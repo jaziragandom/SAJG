@@ -4,10 +4,12 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { ShieldAlert, Lock, Mail, Eye, EyeOff, ArrowRight, Wheat, Calculator, RefreshCcw } from "lucide-react";
+import { loginAction } from "@/actions/auth";
 
 export default function AdminLogin() {
   const router = useRouter();
   const locale = useLocale();
+  const isRtl = locale === 'fa';
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,40 +30,39 @@ export default function AdminLogin() {
   };
 
   useEffect(() => {
+  generateCaptcha();
+
+  // اجرای موقت برای ساخت اکانت سوپر ادمین در اولین لود صفحه
+  import("@/actions/auth").then(({ createFirstSuperAdmin }) => {
+    createFirstSuperAdmin().then(res => console.log(res.message));
+  });
+}, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
+  
+  // بررسی امنیتی کپچا
+  if (parseInt(captchaInput) !== num1 + num2) {
+    setError(isRtl ? "حاصل جمع امنیتی اشتباه است." : "Security math is incorrect.");
     generateCaptcha();
-  }, []);
+    return;
+  }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError("");
+  setIsLoading(true);
 
-    // ۱. بررسی کپچا
-    if (parseInt(captchaInput) !== num1 + num2) {
-      setTimeout(() => {
-        setIsLoading(false);
-        setError("پاسخ کپچا نادرست است. لطفاً دوباره تلاش کنید.");
-        generateCaptcha(); // تغییر کپچا بعد از اشتباه
-      }, 500);
-      return;
-    }
+  // فراخوانی اکشن سرور
+  const result = await loginAction(email, password);
 
-    // ۲. شبیه‌ساز بررسی امنیتی (ایمیل و رمز عبور)
-    setTimeout(() => {
-      if (email === "admin@gandom.com" && password === "admin123") {
-        
-        // نکته: منطق وریفای ایمیل (Two-Factor Auth) در آینده اینجا قرار می‌گیرد.
-        // فعلاً مستقیماً کلید صادر کرده و وارد می‌شویم:
-        
-        sessionStorage.setItem("isJazirehAdmin", "true"); 
-        router.push(`/${locale}/admin`); 
-      } else {
-        setIsLoading(false);
-        setError("اطلاعات ورود نادرست است. دسترسی رد شد.");
-        generateCaptcha();
-      }
-    }, 1500);
-  };
+  if (result?.error) {
+    setError(result.error);
+    setIsLoading(false);
+    generateCaptcha();
+  } else if (result?.success) {
+    // ورود موفقیت آمیز و انتقال به پنل ادمین
+    router.push(`/${locale}/admin`);
+  }
+};
 
   return (
     <div className="min-h-screen bg-transparent flex items-center justify-center relative overflow-hidden select-none" dir="rtl">
