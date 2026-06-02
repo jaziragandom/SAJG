@@ -4,30 +4,41 @@ import React, { useState, useEffect } from "react";
 import { Plus, Search, Edit3, Trash2, Image as ImageIcon, GripVertical, X, Upload, CheckCircle2, Wand2, Loader2, Star, KeySquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAdminShortcuts } from "../hooks/useAdminShortcuts";
-
-const initialProducts = [
-  { id: 1, faTitle: "انرژی‌زا مکس ۲۵۰ میل", enTitle: "Max Energy 250ml", brand: "ام فور", category: "نوشیدنی انرژی‌زا", status: "published", isFeatured: true, mainCat: "beverage" },
-  { id: 2, faTitle: "چیپس نمکی ترد", enTitle: "Crispy Chips", brand: "خندان", category: "اسنک و تنقلات", status: "published", isFeatured: false, mainCat: "snack" },
-  { id: 3, faTitle: "آب انار گازدار", enTitle: "Carbonated Pomegranate", brand: "نیک", category: "نوشیدنی گازدار", status: "out_of_stock", isFeatured: false, mainCat: "beverage" },
-];
+import { getProducts, createProduct, updateProduct, deleteProduct } from "@/actions/product";
+import { getBrands } from "@/actions/brand";
 
 export default function ProductsManager() {
-  const [products, setProducts] = useState(initialProducts);
+  const [products, setProducts] = useState<any[]>([]);
+  const [brandsList, setBrandsList] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const [editMode, setEditMode] = useState(false);
   
   const [formData, setFormData] = useState({ 
-    id: 0, faTitle: "", enTitle: "", mainCat: "beverage",
+    _id: "", brandId: "", slug: "", faTitle: "", enTitle: "", mainCat: "beverage",
     faDesc: "", enDesc: "", faFlavor: "", enFlavor: "",
     faShelfLife: "", enShelfLife: "", faIngredients: "", enIngredients: "",
     visibilityStatus: "published", isFeatured: false 
   });
-  
+
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [translatingField, setTranslatingField] = useState<string | null>(null);
 
   const tabList = ["basic", "specs", "media"];
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    const [productsRes, brandsRes] = await Promise.all([getProducts(), getBrands()]);
+    if (productsRes.success) setProducts(productsRes.data);
+    if (brandsRes.success) setBrandsList(brandsRes.data);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   // اتصال فایل محصولات به سیستم شورت‌کات مرکزی
   useAdminShortcuts({
@@ -38,19 +49,32 @@ export default function ProductsManager() {
     onAddNew: () => { if (!isModalOpen) handleAddNew(); }
   });
 
-
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: string) => {
     if(confirm("آیا از حذف این محصول اطمینان دارید؟")) {
-      setProducts(products.filter(p => p.id !== id));
+      const res = await deleteProduct(id);
+      if (res.success) fetchData();
     }
   };
 
   const handleEdit = (product: any) => {
     setEditMode(true);
     setFormData({ 
-      ...formData, 
-      id: product.id, faTitle: product.faTitle, enTitle: product.enTitle, 
-      mainCat: product.mainCat, visibilityStatus: product.status, isFeatured: product.isFeatured 
+      _id: product._id, 
+      brandId: product.brandId?._id || product.brandId || "",
+      slug: product.slug || "",
+      faTitle: product.faTitle || "", 
+      enTitle: product.enTitle || "", 
+      mainCat: product.mainCat || "beverage", 
+      visibilityStatus: product.status || "published", 
+      isFeatured: product.isFeatured || false,
+      faDesc: "", 
+      enDesc: "", 
+      faFlavor: product.specs?.flavorFa || "", 
+      enFlavor: product.specs?.flavorEn || "",
+      faShelfLife: product.specs?.shelfLifeFa || "", 
+      enShelfLife: product.specs?.shelfLifeEn || "", 
+      faIngredients: product.specs?.ingredientsFa || "", 
+      enIngredients: product.specs?.ingredientsEn || "",
     });
     setActiveTab("basic");
     setIsModalOpen(true);
@@ -59,7 +83,7 @@ export default function ProductsManager() {
   const handleAddNew = () => {
     setEditMode(false);
     setFormData({ 
-      id: 0, faTitle: "", enTitle: "", mainCat: "beverage",
+      _id: "", brandId: brandsList.length > 0 ? brandsList[0]._id : "", slug: "", faTitle: "", enTitle: "", mainCat: "beverage",
       faDesc: "", enDesc: "", faFlavor: "", enFlavor: "",
       faShelfLife: "", enShelfLife: "", faIngredients: "", enIngredients: "",
       visibilityStatus: "published", isFeatured: false
@@ -69,15 +93,46 @@ export default function ProductsManager() {
   };
 
   // تابع ذخیره فرم که با دکمه Enter روی کیبورد هم اجرا می‌شود
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.faTitle.trim()) {
-      alert("نام محصول الزامی است.");
+    if (!formData.faTitle.trim() || !formData.enTitle.trim() || !formData.slug.trim() || !formData.brandId) {
+      alert("پر کردن نام‌ها، اسلاگ و انتخاب برند الزامی است.");
       return;
     }
-    // شبیه‌سازی ذخیره
-    alert("محصول با موفقیت ذخیره شد!");
-    setIsModalOpen(false);
+
+    const payload = {
+      brandId: formData.brandId,
+      faTitle: formData.faTitle,
+      enTitle: formData.enTitle,
+      slug: formData.slug.toLowerCase().replace(/\s+/g, '-'),
+      mainCat: formData.mainCat,
+      category: formData.mainCat, 
+      status: formData.visibilityStatus,
+      isFeatured: formData.isFeatured,
+      specs: {
+        flavorFa: formData.faFlavor,
+        flavorEn: formData.enFlavor,
+        shelfLifeFa: formData.faShelfLife,
+        shelfLifeEn: formData.enShelfLife,
+        ingredientsFa: formData.faIngredients,
+        ingredientsEn: formData.enIngredients,
+      },
+      images: { main: "https://placehold.co/400x400/png", gallery: [] } // مقدار پیش‌فرض تصویر برای دیتابیس
+    };
+
+    if (editMode && formData._id) {
+      const res = await updateProduct(formData._id, payload);
+      if (res.success) {
+        setIsModalOpen(false);
+        fetchData();
+      } else alert(res.error);
+    } else {
+      const res = await createProduct(payload);
+      if (res.success) {
+        setIsModalOpen(false);
+        fetchData();
+      } else alert(res.error);
+    }
   };
 
   const handleAutoTranslate = async (sourceText: string, targetKey: string) => {
@@ -98,7 +153,6 @@ export default function ProductsManager() {
   };
 
   const handleDragStart = (index: number) => setDraggedItemIndex(index);
-  
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
     if (draggedItemIndex === null || draggedItemIndex === index) return;
@@ -111,6 +165,11 @@ export default function ProductsManager() {
   };
 
   const handleDragEnd = () => setDraggedItemIndex(null);
+
+  const filteredProducts = products.filter(p => 
+    (p.faTitle && p.faTitle.includes(searchQuery)) || 
+    (p.enTitle && p.enTitle.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -139,6 +198,8 @@ export default function ProductsManager() {
           <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input 
             type="text" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="جستجو در نام محصولات..." 
             className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl py-2.5 pr-12 pl-4 text-sm focus:outline-none focus:border-amber-400 transition-colors"
           />
@@ -160,9 +221,15 @@ export default function ProductsManager() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800 relative">
-              {products.map((product, index) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12">
+                    <Loader2 className="animate-spin text-amber-500 mx-auto" size={30} />
+                  </td>
+                </tr>
+              ) : filteredProducts.map((product, index) => (
                 <tr 
-                  key={product.id} 
+                  key={product._id} 
                   draggable
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(e, index)}
@@ -186,11 +253,11 @@ export default function ProductsManager() {
                     <div className="font-bold text-gray-900 dark:text-white">{product.faTitle}</div>
                     <div className="text-xs text-gray-500 font-mono mt-0.5">{product.enTitle}</div>
                   </td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-300 font-medium">{product.brand}</td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-300 font-medium">{product.category}</td>
+                  <td className="px-6 py-4 text-gray-600 dark:text-gray-300 font-medium">{product.brandId?.faName || "نامشخص"}</td>
+                  <td className="px-6 py-4 text-gray-600 dark:text-gray-300 font-medium">{product.mainCat === 'beverage' ? 'نوشیدنی' : product.mainCat === 'snack' ? 'اسنک' : 'بیسکویت'}</td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 text-xs font-bold rounded-md ${
-                      product.status === "published" 
+                        product.status === "published" 
                         ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400" 
                         : product.status === "draft"
                         ? "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
@@ -204,16 +271,16 @@ export default function ProductsManager() {
                       <button onClick={() => handleEdit(product)} className="text-gray-400 hover:text-amber-500 transition-colors" title="ویرایش">
                         <Edit3 size={18} />
                       </button>
-                      <button onClick={() => handleDelete(product.id)} className="text-gray-400 hover:text-red-500 transition-colors" title="حذف">
-                        <Trash2 size={18} />
+                      <button onClick={() => handleDelete(product._id)} className="text-gray-400 hover:text-red-500 transition-colors" title="حذف">
+                         <Trash2 size={18} />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {products.length === 0 && (
+              {!isLoading && filteredProducts.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-gray-400">هیچ محصولی یافت نشد.</td>
+                  <td colSpan={7} className="text-center py-8 text-gray-400 font-bold">هیچ محصولی یافت نشد.</td>
                 </tr>
               )}
             </tbody>
@@ -258,11 +325,11 @@ export default function ProductsManager() {
                     onClick={() => setActiveTab(tab)}
                     className={`pb-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
                       activeTab === tab 
-                        ? "border-amber-400 text-amber-500" 
+                          ? "border-amber-400 text-amber-500" 
                         : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                     }`}
                   >
-                    {tab === "basic" ? "اطلاعات پایه" : tab === "specs" ? "مشخصات تخصصی" : "رسانه و ارزش غذایی"}
+                   {tab === "basic" ? "اطلاعات پایه" : tab === "specs" ? "مشخصات تخصصی" : "رسانه و ارزش غذایی"}
                   </button>
                 ))}
               </div>
@@ -273,6 +340,7 @@ export default function ProductsManager() {
                   
                   {activeTab === "basic" && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
+                      
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">نام محصول (فارسی)</label>
                         <input 
@@ -284,6 +352,7 @@ export default function ProductsManager() {
                           className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400" 
                         />
                       </div>
+         
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">نام محصول (انگلیسی)</label>
                         <div className="relative">
@@ -300,7 +369,19 @@ export default function ProductsManager() {
                           </button>
                         </div>
                       </div>
-                      
+
+                      <div className="flex flex-col gap-2 md:col-span-2">
+                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">اسلاگ URL (شناسه لینک)</label>
+                        <input 
+                          type="text" 
+                          dir="ltr" 
+                          value={formData.slug}
+                          onChange={(e) => setFormData({...formData, slug: e.target.value})}
+                          placeholder="max-energy-250" 
+                          className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-mono focus:outline-none focus:border-amber-400" 
+                        />
+                      </div>
+                     
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">گروه اصلی محصول</label>
                         <select 
@@ -316,12 +397,15 @@ export default function ProductsManager() {
 
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">انتخاب برند</label>
-                        <select className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400">
-                          {formData.mainCat === "beverage" ? (
-                            <><option>شیک</option><option>سون اسکای</option><option>نیک</option><option>ام فور</option></>
-                          ) : formData.mainCat === "snack" ? (
-                            <><option>خندان</option><option>صدف</option></>
-                          ) : (<option>برندهای نان و کیک</option>)}
+                        <select 
+                           value={formData.brandId}
+                           onChange={(e) => setFormData({...formData, brandId: e.target.value})}
+                           className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400"
+                        >
+                          <option value="">انتخاب برند...</option>
+                          {brandsList.map(b => (
+                            <option key={b._id} value={b._id}>{b.faName}</option>
+                          ))}
                         </select>
                       </div>
 
@@ -427,6 +511,7 @@ export default function ProductsManager() {
                           </button>
                         </div>
                       </div>
+                     
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">تعداد در بسته (مشترک)</label>
                         <input type="number" placeholder="مثال: 24" className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400" />
@@ -467,7 +552,7 @@ export default function ProductsManager() {
                   )}
 
                   {activeTab === "media" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
                       <div className="flex flex-col gap-3">
                         <label className="text-sm font-bold text-gray-900 dark:text-white">تصویر اصلی محصول (مشترک)</label>
                         <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-48 flex flex-col items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors cursor-pointer group">
@@ -481,7 +566,7 @@ export default function ProductsManager() {
                       <div className="flex flex-col gap-3">
                         <label className="text-sm font-bold text-gray-900 dark:text-white">جدول ارزش غذایی (مشترک)</label>
                         <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-48 flex flex-col items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors cursor-pointer group">
-                          <div className="w-12 h-12 bg-white dark:bg-gray-900 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                           <div className="w-12 h-12 bg-white dark:bg-gray-900 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
                             <Upload size={20} className="text-gray-400" />
                           </div>
                           <span className="text-xs font-bold text-gray-500">آپلود لیبل استاندارد غذایی (JPG/PNG)</span>

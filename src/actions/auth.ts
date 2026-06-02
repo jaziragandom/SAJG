@@ -30,15 +30,15 @@ export async function loginAction(email: string, password: string) {
 
     // تولید توکن امنیتی (JWT) با اعتبار ۲۴ ساعت
     const token = await new SignJWT({ 
-      id: user._id, 
+      id: user._id.toString(), // تبدیل آبجکتِ آیدی به متن ساده
       role: user.role, 
-      permissions: user.permissions 
+      permissions: [...user.permissions] // تبدیل آرایه مخصوص مونگو به آرایه استاندارد جاوااسکریپت
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime("24h")
       .sign(encodedKey);
-
+      
     // ذخیره توکن در کوکیِ غیرقابل دسترسی توسط جاوااسکریپت مرورگر (XSS Protection)
     const cookieStore = await cookies();
     cookieStore.set("admin_token", token, {
@@ -60,23 +60,28 @@ export async function loginAction(email: string, password: string) {
   }
 }
 
-// تابع کمکی برای ساخت اولین ادمین (چون دیتابیس در ابتدا خالی است)
+// تابع کمکی برای ساخت اولین ادمین
 export async function createFirstSuperAdmin() {
-  await dbConnect();
-  const exists = await User.findOne({ email: "hamid@gandom.com" });
-  
-  if (exists) return { message: "سوپر ادمین قبلاً ساخته شده است." };
-
-  const hashedPassword = await bcrypt.hash("Gandom@Admin2026", 10);
-  
-  await User.create({
-    name: "حمید فصیحی",
-    email: "hamid@gandom.com",
-    passwordHash: hashedPassword,
-    role: "super_admin",
-    status: "active",
-    permissions: ["all"]
-  });
-
-  return { success: true, message: "سوپر ادمین با موفقیت ایجاد شد." };
+  try {
+    await dbConnect();
+    const exists = await User.findOne({ email: "hamid@gandom.com" });
+    
+    if (exists) return { message: "سوپر ادمین از قبل وجود دارد! با ایمیل hamid@gandom.com و رمز Gandom@Admin2026 وارد شوید." };
+    
+    const hashedPassword = await bcrypt.hash("Gandom@Admin2026", 10);
+    
+    await User.create({
+      name: "حمید فصیحی",
+      email: "hamid@gandom.com",
+      passwordHash: hashedPassword,
+      role: "super_admin",
+      status: "active",
+      permissions: ["all"]
+    });
+    
+    return { success: true, message: "سوپر ادمین با موفقیت ایجاد شد! حالا می‌توانید با همین اطلاعات وارد شوید." };
+  } catch (error: any) {
+    console.error("Database Error:", error);
+    return { error: `ارور دیتابیس رخ داد: ${error.message}` };
+  }
 }

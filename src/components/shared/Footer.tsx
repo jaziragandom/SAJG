@@ -26,16 +26,13 @@ export default function Footer() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // سیستم هوشمند بازیابی چت‌ها و مدیریت دقیق زبان پیام خوشامدگویی
   useEffect(() => {
     const savedChat = sessionStorage.getItem('visionbot_messages');
     const savedLang = sessionStorage.getItem('visionbot_lang');
     
-    // اگر چت قبلی وجود داشت و زبان مرورگر کاربر تغییر نکرده بود، آن را لود کن
     if (savedChat && savedLang === locale) {
       setMessages(JSON.parse(savedChat));
     } else {
-      // در غیر این صورت، پیام خوشامدگویی جدید (متناسب با زبان فعلی) بساز
       setMessages([
         {
           id: 1,
@@ -49,7 +46,6 @@ export default function Footer() {
     }
   }, [locale, isRtl]);
 
-  // ذخیره زنده پیام‌ها در پس‌زمینه
   useEffect(() => {
     if (messages.length > 0) {
       sessionStorage.setItem('visionbot_messages', JSON.stringify(messages));
@@ -86,7 +82,6 @@ export default function Footer() {
         finalReply = finalReply.replace(/\[ACTION:THEME_LIGHT\]/g, '\n✨ **تم سایت روشن شد!**');
       }
 
-      // هدایت امن با حفظ پارامترهای فیلتر محصول
       const navMatch = finalReply.match(/\[NAVIGATE:(.*?)\]/);
       if (navMatch) {
         const targetPath = navMatch[1].trim();
@@ -264,8 +259,8 @@ export default function Footer() {
         </motion.div>
       </footer>
 
-      {/* ناحیه شناور با قفل شدن کاملا منطبق بر زبان: RTL=سمت راست، LTR=سمت چپ */}
-      <div className={`fixed bottom-6 ${isRtl ? "right-6" : "left-6"} z-9999 flex flex-col ${isRtl ? "items-end" : "items-start"} gap-3 pointer-events-none`}>
+      {/* بخش ثابت شناور: تنظیم یکپارچه برای قفل شدن به لبه‌ها در هر زبان */}
+      <div className={`fixed bottom-6 ${isRtl ? "right-6" : "left-6"} z-9999 flex flex-col items-start gap-3 pointer-events-none`}>
         
         <AnimatePresence>
           {isChatOpen && (
@@ -277,8 +272,8 @@ export default function Footer() {
           )}
         </AnimatePresence>
 
-        {/* استفاده استراتژیک از flex-row-reverse برای قرارگیری دکمه پرتاب به بالا در موقعیت ایده‌آل (راست چت در فارسی، چپ چت در انگلیسی) */}
-        <motion.div layout className={`flex gap-3 pointer-events-auto ${isChatOpen ? 'flex-row-reverse items-end' : 'flex-col items-center'}`}>
+        {/* کانتینر دکمه‌ها با افکت‌های نرم جابجایی هندسی */}
+        <motion.div layout className={`flex gap-3 pointer-events-auto ${isChatOpen ? 'flex-row items-end' : 'flex-col items-center'}`}>
           <motion.button
             layout
             transition={{ type: "spring", stiffness: 400, damping: 25 }}

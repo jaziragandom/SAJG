@@ -1,24 +1,24 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IGallery extends Document {
-  type: 'image' | 'video';
-  category: 'teaser' | 'factory' | 'events' | 'products';
+  type: 'image' | 'video' | 'album' | 'playlist';
+  category: string;
   faTitle: string;
   enTitle: string;
-  url: string; // لینک اصلی عکس یا ویدیو
-  thumbnail: string; // کاور ویدیو
-  episodes: { ep: number; title: string; url: string }[]; // برای ویدیوهای سریالی
+  url: string;
+  thumbnail: string;
+  items: any[];
   status: 'published' | 'draft';
 }
 
 const GallerySchema: Schema = new Schema({
-  type: { type: String, enum: ['image', 'video'], required: true, index: true },
+  type: { type: String, enum: ['image', 'video', 'album', 'playlist'], required: true, index: true },
   category: { type: String, required: true, index: true },
   faTitle: { type: String, required: true },
   enTitle: { type: String, required: true },
-  url: { type: String, required: true },
+  url: { type: String, default: "" },
   thumbnail: { type: String, default: "" },
-  episodes: [{ ep: Number, title: String, url: String }],
+  items: [{ type: mongoose.Schema.Types.Mixed }],
   status: { type: String, enum: ['published', 'draft'], default: 'published', index: true }
 }, { timestamps: true });
 

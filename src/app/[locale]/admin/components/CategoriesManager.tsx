@@ -9,6 +9,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 import { useAdminShortcuts } from "../hooks/useAdminShortcuts";
+import { getCategories, createCategory, updateCategory, deleteCategory } from "@/actions/category";
+import { getBrands } from "@/actions/brand";
 
 const mainCats = [
   { id: "all", label: "عمومی (مشترک)", badge: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400" },
@@ -17,62 +19,26 @@ const mainCats = [
   { id: "bakery", label: "کیک و بیسکویت", badge: "bg-pink-100 text-pink-700 dark:bg-pink-500/10 dark:text-pink-400" },
   { id: "media", label: "دسته‌بندی‌های رسانه و گالری", badge: "bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400" },
 ];
- 
-const initialGroups = [
-  { id: "main", title: "گروه‌های اصلی محصولات", icon: Layers, items: [
-    { id: 1, faName: "نوشیدنی‌ها", enName: "Beverages", parent: "all" }, 
-    { id: 2, faName: "اسنک و تنقلات", enName: "Snacks", parent: "all" },
-    { id: 3, faName: "کیک و بیسکویت", enName: "Bakery", parent: "all" }
-  ]},
-  { id: "brands", title: "برندهای زیرمجموعه", icon: Tag, items: [
-    { id: 4, faName: "خندان", enName: "Khandan", parent: "snack" }, 
-    { id: 5, faName: "شیک", enName: "Shick", parent: "beverage" }, 
-    { id: 6, faName: "سون اسکای", enName: "Seven Sky", parent: "beverage" }, 
-    { id: 7, faName: "نیک", enName: "Nik", parent: "beverage" }, 
-    { id: 8, faName: "ام فور", enName: "M4", parent: "beverage" }, 
-    { id: 9, faName: "صدف", enName: "Sadaf", parent: "snack" }
-  ]},
-  { id: "beverage_type", title: "انواع نوشیدنی", icon: Droplets, items: [
-    { id: 10, faName: "آبمیوه", enName: "Juice", parent: "beverage" }, 
-    { id: 11, faName: "انرژی‌زا", enName: "Energy Drink", parent: "beverage" },
-    { id: 12, faName: "آب معدنی", enName: "Mineral Water", parent: "beverage" },
-    { id: 13, faName: "گازدار", enName: "Carbonated", parent: "beverage" }
-  ]},
-  { id: "snack_type", title: "انواع تنقلات", icon: Sparkles, items: [
-    { id: 14, faName: "پفک", enName: "Cheese Curls", parent: "snack" }, 
-    { id: 15, faName: "پاپ‌کورن", enName: "Popcorn", parent: "snack" }, 
-    { id: 16, faName: "چیپس", enName: "Potato Chips", parent: "snack" }
-  ]},
-  { id: "packaging", title: "انواع بسته‌بندی", icon: Package, items: [
-    { id: 17, faName: "قوطی فلزی", enName: "Can", parent: "beverage" }, 
-    { id: 18, faName: "بطری PET", enName: "PET Bottle", parent: "beverage" }, 
-    { id: 19, faName: "پاکت سلفونی", enName: "Cellophane Pack", parent: "snack" }
-  ]},
-  { id: "flavor", title: "طعم و عصاره", icon: FlaskConical, items: [
-    { id: 20, faName: "پرتقال", enName: "Orange", parent: "all" }, 
-    { id: 21, faName: "انار", enName: "Pomegranate", parent: "beverage" }, 
-    { id: 22, faName: "نمکی", enName: "Salty", parent: "snack" }, 
-    { id: 23, faName: "شکلاتی", enName: "Chocolate", parent: "bakery" }
-  ]},
-  { id: "weight", title: "احجام و اوزان", icon: Scale, items: [
-    { id: 24, faName: "250ml", enName: "250ml", parent: "beverage" }, 
-    { id: 25, faName: "60g", enName: "60g", parent: "snack" }, 
-    { id: 26, faName: "1kg", enName: "1kg", parent: "all" }
-  ]},
-  { id: "status", title: "لیبل‌های وضعیت", icon: CheckCircle2, items: [
-    { id: 27, faName: "موجود", enName: "In Stock", parent: "all" }, 
-    { id: 28, faName: "توقف تولید", enName: "Discontinued", parent: "all" }
-  ]},
-    { id: "media", title: "دسته‌بندی‌های رسانه و گالری", icon: Film, items: [
-    { id: 101, faName: "تیزر تبلیغاتی", enName: "Teaser", parent: "media" }, 
-    { id: 102, faName: "گرافیک و پوستر", enName: "Graphics", parent: "media" },
-    { id: 103, faName: "پشت صحنه خط تولید", enName: "BTS", parent: "media" }
-  ]}
+
+const groupMetadata = [
+  { id: "main", title: "گروه‌های اصلی محصولات", icon: Layers },
+  { id: "brands", title: "برندهای زیرمجموعه", icon: Tag },
+  { id: "beverage_type", title: "انواع نوشیدنی", icon: Droplets },
+  { id: "snack_type", title: "انواع تنقلات", icon: Sparkles },
+  { id: "packaging", title: "انواع بسته‌بندی", icon: Package },
+  { id: "flavor", title: "طعم و عصاره", icon: FlaskConical },
+  { id: "weight", title: "احجام و اوزان", icon: Scale },
+  { id: "status", title: "لیبل‌های وضعیت", icon: CheckCircle2 },
+  { id: "media", title: "دسته‌بندی‌های رسانه و گالری", icon: Film }
 ];
 
 export default function CategoriesManager({ activeCategoryId }: { activeCategoryId: string }) {
-  const [categoriesData, setCategoriesData] = useState(initialGroups);
-  const [editModeId, setEditModeId] = useState<number | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [localItems, setLocalItems] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [editModeId, setEditModeId] = useState<string | null>(null);
   const [newItemFaName, setNewItemFaName] = useState("");
   const [newItemEnName, setNewItemEnName] = useState("");
   const [newItemParent, setNewItemParent] = useState("all");
@@ -80,15 +46,35 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
 
-  const currentGroupData = categoriesData.find(g => g.id === activeCategoryId);
+  const currentGroupData = groupMetadata.find(g => g.id === activeCategoryId);
   const isBrandsCategory = activeCategoryId === "brands";
 
-  // اتصال فایل دسته‌بندی‌ها به سیستم شورت‌کات مرکزی
+  const fetchData = async () => {
+    setIsLoading(true);
+    const [catRes, brandRes] = await Promise.all([getCategories(), getBrands()]);
+    if (catRes.success) setCategories(catRes.data);
+    if (brandRes.success) setBrands(brandRes.data);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // فیلتر کردن آیتم‌های گروه فعلی و مرتب‌سازی بر اساس فیلد order
+  useEffect(() => {
+    if (!isBrandsCategory) {
+      const filtered = categories
+        .filter(c => c.iconName === activeCategoryId) // از iconName برای ذخیره گروه استفاده کردیم
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      setLocalItems(filtered);
+    }
+  }, [categories, activeCategoryId, isBrandsCategory]);
+
   useAdminShortcuts({
     closeModal: () => { if (editModeId) resetForm(); },
     onAddNew: () => document.getElementById('cat-fa-input')?.focus()
   });
-  
 
   if (!currentGroupData) {
     return (
@@ -98,7 +84,6 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
     );
   }
 
-  // --- سیستم ترجمه خودکار گوگل ---
   const autoTranslate = async () => {
     if (!newItemFaName.trim()) return;
     setIsTranslating(true);
@@ -109,58 +94,58 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
       const translatedText = data[0].map((item: any) => item[0]).join('');
       setNewItemEnName(translatedText);
     } catch (error) {
-      console.error("Translation Error:", error);
+      alert("خطا در ترجمه خودکار");
     } finally {
       setIsTranslating(false);
     }
   };
 
-  // --- سیستم ثبت و ویرایش فرم ---
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemFaName.trim() || !newItemEnName.trim() || isBrandsCategory) return;
 
-    setCategoriesData(prev => prev.map(group => {
-      if (group.id === activeCategoryId) {
-        if (editModeId) {
-          return {
-            ...group,
-            items: group.items.map(item => item.id === editModeId 
-              ? { ...item, faName: newItemFaName, enName: newItemEnName, parent: newItemParent } 
-              : item)
-          };
-        } else {
-          return {
-            ...group,
-            items: [...group.items, { id: Date.now(), faName: newItemFaName, enName: newItemEnName, parent: newItemParent }]
-          };
-        }
-      }
-      return group;
-    }));
-    resetForm();
-    // بعد از ثبت، فوکوس دوباره روی فیلد اول برمی‌گردد تا تند تند تایپ کنید
+    // ساخت اسلاگ یکتا به صورت خودکار از نام انگلیسی
+    const slug = newItemEnName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') + '-' + Math.floor(Math.random() * 1000);
+
+    const payload = {
+      faName: newItemFaName,
+      enName: newItemEnName,
+      slug: slug,
+      parent: newItemParent,
+      iconName: activeCategoryId, // ترفند اتصال گروه به دیتابیس
+      order: localItems.length
+    };
+
+    if (editModeId) {
+      const res = await updateCategory(editModeId, payload);
+      if (res.success) {
+        resetForm();
+        fetchData();
+      } else alert(res.error);
+    } else {
+      const res = await createCategory(payload);
+      if (res.success) {
+        resetForm();
+        fetchData();
+      } else alert(res.error);
+    }
     document.getElementById('cat-fa-input')?.focus();
   };
 
   const handleEdit = (item: any) => {
     if (isBrandsCategory) return;
-    setEditModeId(item.id);
+    setEditModeId(item._id);
     setNewItemFaName(item.faName);
     setNewItemEnName(item.enName);
     setNewItemParent(item.parent);
     document.getElementById('cat-fa-input')?.focus();
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: string) => {
     if (isBrandsCategory) return;
     if (confirm("آیا از حذف این آیتم اطمینان دارید؟")) {
-      setCategoriesData(prev => prev.map(group => {
-        if (group.id === activeCategoryId) {
-          return { ...group, items: group.items.filter(item => item.id !== id) };
-        }
-        return group;
-      }));
+      const res = await deleteCategory(id);
+      if (res.success) fetchData();
     }
   };
 
@@ -171,7 +156,7 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
     setNewItemParent("all");
   };
 
-  // --- سیستم مرتب‌سازی Drag and Drop ---
+  // --- سیستم مرتب‌سازی Drag and Drop متصل به دیتابیس ---
   const handleDragStart = (index: number) => {
     if (!isBrandsCategory) setDraggedItemIndex(index);
   };
@@ -180,21 +165,29 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
     e.preventDefault();
     if (isBrandsCategory || draggedItemIndex === null || draggedItemIndex === index) return;
     
-    const newCategoriesData = [...categoriesData];
-    const groupIndex = newCategoriesData.findIndex(g => g.id === activeCategoryId);
-    const items = [...newCategoriesData[groupIndex].items];
-    
+    const items = [...localItems];
     const draggedItem = items[draggedItemIndex];
     items.splice(draggedItemIndex, 1);
     items.splice(index, 0, draggedItem);
     
-    newCategoriesData[groupIndex].items = items;
-    setCategoriesData(newCategoriesData);
+    setLocalItems(items); // آپدیت فوری رابط کاربری
     setDraggedItemIndex(index);
   };
 
-  const handleDragEnd = () => setDraggedItemIndex(null);
+  const handleDragEnd = () => {
+    setDraggedItemIndex(null);
+    // آپدیت کردن فیلد order در دیتابیس در پس‌زمینه
+    localItems.forEach((item, idx) => {
+      updateCategory(item._id, { order: idx });
+    });
+  };
+
   const getParentInfo = (parentId: string) => mainCats.find(c => c.id === parentId) || mainCats[0];
+
+  // تشخیص اینکه چه دیتایی باید در لیست رندر شود
+  const displayItems = isBrandsCategory 
+    ? brands.map(b => ({ _id: b._id, faName: b.faName, enName: b.enName, parent: "all" }))
+    : localItems;
 
   return (
     <div className="flex flex-col gap-6">
@@ -289,49 +282,54 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
         )}
 
         <div className="flex flex-col gap-2">
-          {currentGroupData.items.map((item, index) => {
-            const parentInfo = getParentInfo(item.parent);
-            return (
-              <div
-                key={item.id}
-                draggable={!isBrandsCategory}
-                onDragStart={() => handleDragStart(index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragEnd={handleDragEnd}
-                className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex items-center gap-4 group shadow-sm transition-colors ${draggedItemIndex === index ? 'opacity-50 bg-gray-50 dark:bg-gray-900' : 'hover:border-amber-400'} ${isBrandsCategory ? 'opacity-80 pointer-events-none' : ''}`}
-              >
-                {!isBrandsCategory && (
-                  <div className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-amber-500 transition-colors">
-                    <GripVertical size={20} />
+          {isLoading ? (
+             <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-amber-500" size={32} /></div>
+          ) : (
+            displayItems.map((item, index) => {
+              const parentInfo = getParentInfo(item.parent);
+              
+              return (
+                <div
+                  key={item._id}
+                  draggable={!isBrandsCategory}
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                  className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex items-center gap-4 group shadow-sm transition-colors ${draggedItemIndex === index ? 'opacity-50 bg-gray-50 dark:bg-gray-900' : 'hover:border-amber-400'} ${isBrandsCategory ? 'opacity-80 pointer-events-none' : ''}`}
+                >
+                  {!isBrandsCategory && (
+                    <div className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-amber-500 transition-colors">
+                      <GripVertical size={20} />
+                    </div>
+                  )}
+                  
+                  <div className={`flex flex-col grow leading-tight pr-4 ${!isBrandsCategory ? 'border-r border-gray-100 dark:border-gray-700' : ''}`}>
+                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{item.faName}</span>
+                    <span className="text-xs font-mono text-gray-400 mt-0.5">{item.enName}</span>
                   </div>
-                )}
-                
-                <div className={`flex flex-col grow leading-tight pr-4 ${!isBrandsCategory ? 'border-r border-gray-100 dark:border-gray-700' : ''}`}>
-                  <span className="text-sm font-bold text-gray-900 dark:text-gray-100">{item.faName}</span>
-                  <span className="text-xs font-mono text-gray-400 mt-0.5">{item.enName}</span>
-                </div>
-                
-                <div className="hidden md:flex w-40 justify-center">
-                  <span className={`text-[10px] px-3 py-1 rounded-lg font-bold ${parentInfo.badge}`}>
-                    {parentInfo.label}
-                  </span>
-                </div>
+                  
+                  <div className="hidden md:flex w-40 justify-center">
+                    <span className={`text-[10px] px-3 py-1 rounded-lg font-bold ${parentInfo.badge}`}>
+                      {parentInfo.label}
+                    </span>
+                  </div>
 
-                {!isBrandsCategory && (
-                  <div className="flex items-center gap-2 pl-2">
-                    <button onClick={() => handleEdit(item)} className="p-2 bg-gray-50 dark:bg-gray-900 text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors">
-                      <Edit3 size={16} />
-                    </button>
-                    <button onClick={() => handleDelete(item.id)} className="p-2 bg-gray-50 dark:bg-gray-900 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                  {!isBrandsCategory && (
+                    <div className="flex items-center gap-2 pl-2">
+                      <button onClick={() => handleEdit(item)} className="p-2 bg-gray-50 dark:bg-gray-900 text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors">
+                        <Edit3 size={16} />
+                      </button>
+                      <button onClick={() => handleDelete(item._id)} className="p-2 bg-gray-50 dark:bg-gray-900 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
           
-          {currentGroupData.items.length === 0 && (
+          {!isLoading && displayItems.length === 0 && (
             <div className="py-12 flex flex-col items-center justify-center border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
               <span className="text-sm text-gray-400 font-bold">هیچ آیتمی یافت نشد!</span>
             </div>

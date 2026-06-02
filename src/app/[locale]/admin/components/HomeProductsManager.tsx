@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { CheckCircle2, Wand2, Loader2, LayoutTemplate, Settings2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { getSiteContent, saveSiteContent } from "@/actions/siteContent";
 
 export default function HomeProductsManager() {
   const [formData, setFormData] = useState({
@@ -11,8 +12,21 @@ export default function HomeProductsManager() {
     displayType: "featured", // featured | latest | category
     maxItems: "8",
   });
-
+  
   const [translatingField, setTranslatingField] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const res = await getSiteContent("home_products_settings");
+      if (res?.data) {
+        setFormData(res.data);
+      }
+      setIsLoading(false);
+    };
+    loadData();
+  }, []);
 
   const handleAutoTranslate = async (sourceText: string, targetKey: string) => {
     if (!sourceText.trim()) return;
@@ -31,13 +45,34 @@ export default function HomeProductsManager() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    alert("تنظیمات سکشن محصولات صفحه اصلی ذخیره شد!");
+    setIsSaving(true);
+    const res = await saveSiteContent("home_products_settings", formData);
+    setIsSaving(false);
+    
+    if (res.success) {
+      alert("تنظیمات سکشن محصولات صفحه اصلی با موفقیت ذخیره شد!");
+    } else {
+      alert(res.error || "خطا در ذخیره‌سازی اطلاعات");
+    }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-amber-500" size={40} />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-6">
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      className="flex flex-col gap-6"
+    >
       
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -116,8 +151,8 @@ export default function HomeProductsManager() {
           </div>
 
           <div className="flex justify-end border-t border-gray-100 dark:border-gray-800 pt-4 mt-2">
-            <button type="submit" className="bg-amber-400 hover:bg-amber-500 text-gray-950 px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-amber-400/20 hover:scale-105 active:scale-95 text-sm">
-              <CheckCircle2 size={18} />
+            <button disabled={isSaving} type="submit" className="bg-amber-400 hover:bg-amber-500 text-gray-950 px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-amber-400/20 hover:scale-105 active:scale-95 text-sm disabled:opacity-50">
+              {isSaving ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
               <span>ذخیره تنظیمات صفحه اصلی</span>
             </button>
           </div>
@@ -125,6 +160,6 @@ export default function HomeProductsManager() {
         </form>
       </div>
 
-    </div>
+    </motion.div>
   );
 }

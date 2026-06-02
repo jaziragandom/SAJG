@@ -1,5 +1,6 @@
 import createMiddleware from 'next-intl/middleware';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
 
 // ۱. ساخت هسته اصلی تغییر زبان
 const intlMiddleware = createMiddleware({
@@ -8,25 +9,47 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'always'
 });
 
-export default function middleware(request: NextRequest) {
-  // ۲. دریافت کد کشور کاربر (این قابلیت روی سرورهای واقعی مثل Vercel فعال می‌شود)
+const JWT_SECRET_KEY = process.env.JWT_SECRET || "Gandom_Island_Super_Secure_Key_2026_!@#";
+const encodedKey = new TextEncoder().encode(JWT_SECRET_KEY);
+
+export default async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // --- لایه امنیتی پنل ادمین ---
+  const isAdminRoute = pathname.includes('/admin') && !pathname.includes('/admin/login');
+
+  if (isAdminRoute) {
+    const token = request.cookies.get('admin_token')?.value;
+    const locale = pathname.split('/')[1] || 'fa'; 
+
+    if (!token) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/${locale}/admin/login`;
+      return NextResponse.redirect(url);
+    }
+
+    try {
+      await jwtVerify(token, encodedKey);
+    } catch (error) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/${locale}/admin/login`;
+      return NextResponse.redirect(url);
+    }
+  }
+  // ------------------------------
+
+  // ۲. دریافت کد کشور کاربر
   const country = request.headers.get('x-vercel-ip-country');
-  
-  // ۳. لیست کدهای ISO برای کشورهای فارسی‌زبان (ایران، افغانستان، تاجیکستان)
   const persianCountries = ['IR', 'AF', 'TJ'];
 
-  // ۴. منطق مسیریابی هوشمند
   if (country) {
     if (persianCountries.includes(country)) {
-      // اگر از کشورهای فارسی‌زبان بود، به مرورگر می‌گوییم اولویت ۱۰۰٪ با زبان فارسی است
       request.headers.set('accept-language', 'fa-IR,fa;q=0.9');
     } else {
-      // اگر از هر جای دیگر دنیا بود، اولویت را به انگلیسی تغییر می‌دهیم
       request.headers.set('accept-language', 'en-US,en;q=0.9');
     }
   }
 
-  // ۵. پاس دادن درخواست دستکاری شده به موتور next-intl
   return intlMiddleware(request);
 }
 

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { ShieldAlert, Lock, Mail, Eye, EyeOff, ArrowRight, Wheat, Calculator, RefreshCcw } from "lucide-react";
-import { loginAction } from "@/actions/auth";
+import { loginAction, createFirstSuperAdmin } from "@/actions/auth";
 
 export default function AdminLogin() {
   const router = useRouter();
@@ -181,6 +181,8 @@ export default function AdminLogin() {
               </motion.div>
             )}
           </AnimatePresence>
+
+        
 
           {/* دکمه ارسال با شبیه‌ساز لودینگ */}
           <button
