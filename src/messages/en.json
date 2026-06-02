@@ -1,0 +1,141 @@
+{
+  "Navbar": {
+    "home": "Home",
+    "products": "Products",
+    "brands": "Brands",
+    "about": "About Us",
+    "contact": "Contact",
+    "dashboard": "Dashboard"
+  },
+  "Index": {
+    "title": "Jazireh Gandom | Premium Products",
+    "description": "Leading the food industry with modern production lines and organic ingredients."
+  },
+  "Products": {
+    "title_part1": "Premium",
+    "title_part2": "Production Line",
+    "description": "An unparalleled variety of beverages and snacks with global standards.",
+    "view_catalog": "View Catalog",
+    "badges": {
+      "best": "Best Seller",
+      "new": "New",
+      "popular": "Popular",
+      "special": "Special"
+    },
+    "items": {
+      "energy": { "title": "Max Energy", "desc": "Energy bomb with various flavors", "category": "Beverage" },
+      "orange": { "title": "Pure Orange", "desc": "100% natural", "category": "Juice" },
+      "chips": { "title": "Crispy Chips", "desc": "Roasted with sunflower oil", "category": "Snack" },
+      "cheddar": { "title": "Cheddar Puffs", "desc": "Authentic cheese flavor", "category": "Snack" },
+      "popcorn": { "title": "Butter Popcorn", "desc": "Perfect movie companion", "category": "Snack" },
+      "coffee": { "title": "Espresso Coffee", "desc": "Special roast with delightful aroma", "category": "Beverage" },
+      "tea": { "title": "Organic Green Tea", "desc": "Soothing and nutritious", "category": "Beverage" },
+      "chocolate": { "title": "85% Dark Chocolate", "desc": "Pure and energizing", "category": "Snacks" },
+      "biscuit": { "title": "Bran Biscuit", "desc": "Healthy snack", "category": "Snack" },
+      "cake": { "title": "Orange Cake", "desc": "Freshly baked", "category": "Snack" }
+    }
+  },
+  "Hero": {
+    "slides": {
+      "slide1": {
+        "title": "Endless Wheat Energy",
+        "subtitle": "Extreme Energy Drink",
+        "description": "An explosive blend of vitamins and natural caffeine for your challenging days. Take your focus to the peak!"
+      },
+      "slide2": {
+        "title": "Crispy and Exciting",
+        "subtitle": "Special Pepper & Cheese Chips",
+        "description": "Thin slices of organic potatoes with authentic spices. A taste you'll never forget, with a crunch you can hear in every bite."
+      },
+      "slide3": {
+        "title": "Your Home Cinema",
+        "subtitle": "Special Butter Popcorn",
+        "description": "Premium corn kernels popped with gentle heat and natural butter. The best companion for watching movies and series."
+      }
+    },
+    "main_placeholder": "MAIN PRODUCT",
+    "view_products": "View Products"
+  },
+  "Brands": {
+    "title_part1": "Our Family of",
+    "title_part2": "Brands",
+    "description": "Each brand, a new story. Variety and quality brought together under the Jazireh Gandom umbrella.",
+    "view_brand": "View Brand",
+    "items": {
+      "brand1": { "name": "Chic", "desc": "Professional Energy Drinks" },
+      "brand2": { "name": "Khandan", "desc": "Crispy & Cheesy Snacks" },
+      "brand3": { "name": "Sadaf", "desc": "Delicious Popcorn" },
+      "brand4": { "name": "Seven Sky", "desc": "100% Natural Juices" },
+      "brand5": { "name": "M4", "desc": "High-Quality Energy" },
+      "brand6": { "name": "Nik", "desc": "Carbonated Beverages" }
+    }
+  },
+  "AboutFactory": {
+    "badge": "Production Power",
+    "title_part1": "Merging",
+    "title_part2": "Nature",
+    "title_part3": "Technology",
+    "description": "Jazireh Gandom factories are committed to providing products that guarantee family health.",
+    "virtual_tour": "Virtual Factory Tour",
+    "features": {
+      "global": { "title": "Global Standards", "desc": "Produced according to international health protocols" },
+      "natural": { "title": "Natural Ingredients", "desc": "Using the best organic raw materials" },
+      "quality": { "title": "Quality Assurance", "desc": "Continuous monitoring by advanced laboratories" },
+      "tech": { "title": "Modern Technology", "desc": "State-of-the-art industrial machinery" }
+    },
+    "stats": {
+      "products": "Product Variety",
+      "customers": "Active Customers",
+      "agents": "Sales Agents",
+      "lines": "Automated Lines"
+    }
+  },
+  "WhyUs": {
+    "title_part1": "Why",
+    "title_part2": "Jazireh Gandom?",
+    "features": {
+      "feature1": { "title": "100% Organic Ingredients", "desc": "Using the freshest and most natural raw materials without harmful preservatives." },
+      "feature2": { "title": "Global Standards", "desc": "Produced in the most advanced factory lines following international protocols." },
+      "feature3": { "title": "Exclusive Flavors", "desc": "Special formulations and combinations you won't experience in any other product." },
+      "feature4": { "title": "Quality Assurance", "desc": "Multi-stage quality control to ensure the health and crispness of every package." }
+    }
+  },
+  "Testimonials": {
+    "items": {
+      "item1": { "text": "The taste of the SHIK pepper chips was exactly what I've been looking for. Fantastic crispness and authentic flavor.", "author": "Mohammad Parsa", "role": "Graphic Designer" },
+      "item2": { "text": "M4 Energy has become my pre-workout routine. The taste is unique and it provides sustained energy.", "author": "Mohammad Rezaei", "role": "Professional Athlete" },
+      "item3": { "text": "Premium packaging and high-quality popcorn made our movie nights much more exciting.", "author": "Ali Hosseini", "role": "Cinema Lover" }
+    }
+  },
+  "CTA": {
+    "title_part1": "Join the",
+    "title_part2": "Jazirah Gandom",
+    "title_part3": "Family",
+    "description": "Enter your phone number or email to get notified about our latest products, new flavors, and special discounts.",
+    "input_placeholder": "Phone number or email...",
+    "button_text": "Subscribe",
+    "success_title": "Successfully Subscribed!",
+    "success_message": "We will send you exciting news very soon."
+  },
+  "Footer": {
+    "about_desc": "Jazireh Gandom Production Group, a pioneer in the food and beverage industry with global standards. We are committed to providing the best flavors and highest quality for families.",
+    "quick_links": "Quick Access",
+    "contact_info": "Contact Info",
+    "address": "No. 45, Industry St, Phase 2, Industrial Parks, Kabul, Afghanistan",
+    "copyright": "All rights reserved.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Use",
+    "newsletter": {
+      "title": "Newsletter Subscription",
+      "desc": "Enter your email to receive the latest product news and special conditions for agencies.",
+      "placeholder": "Your email..."
+    },
+    "links": {
+      "about": "About Us & History",
+      "products": "Products & Catalog",
+      "factory": "Production Lines & Lab",
+      "agencies": "Agency Request",
+      "blog": "News & Media"
+    }
+  }
+}

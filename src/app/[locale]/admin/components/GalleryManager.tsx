@@ -1,0 +1,458 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { Plus, Search, Edit3, Trash2, Image as ImageIcon, Video, Layers, ListVideo, X, CheckCircle2, Upload, GripVertical, LayoutGrid } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { MOCK_MEDIA } from "@/lib/mockData";
+
+export default function GalleryManager({ currentSection }: { currentSection: string }) {
+  const [mediaList, setMediaList] = useState<any[]>(MOCK_MEDIA);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // خواندن وضعیت فعال مستقیماً از سایدبار اصلی سایت
+  const activeSubSection = currentSection === "gallery_images" ? "images" : currentSection === "gallery_videos" ? "videos" : "all";
+  
+  // استیت‌های مربوط به مدال مدیریت (ویرایش / افزودن)
+  const [editItem, setEditItem] = useState<any>(null);
+  const [formTitleFa, setFormTitleFa] = useState("");
+  const [formTitleEn, setFormTitleEn] = useState("");
+  const [formType, setFormType] = useState("image");
+  const [formCategory, setFormCategory] = useState("teaser");
+
+  // استیت‌های سیستم آپلود پیشرفته (برای آلبوم و پلی‌لیست)
+  const [formItems, setFormItems] = useState<any[]>([]);
+  const [draggedItemId, setDraggedItemId] = useState<number | null>(null);
+
+  // لیست دسته‌بندی‌های داینامیک رسانه (که در آینده از CategoriesManager تغذیه می‌شود)
+  const [mediaCategories] = useState([
+    { id: "teaser", title: "تیزر تبلیغاتی" },
+    { id: "graphic", title: "گرافیک و پوستر" },
+    { id: "bts", title: "پشت صحنه خط تولید" }
+  ]);
+
+  // گراف سرعت اختصاصی پروژه (بدون فنر، ترمز بسیار نرم اپل)
+  const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
+  // منطق فیلترینگ دو لایه هوشمند (سرچ متنی + دسته بندی سایدبار اصلی)
+  const filteredMedia = mediaList.filter(m => {
+    const matchesSearch = m.faTitle.includes(searchQuery) || m.enTitle.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (activeSubSection === "images") {
+      return matchesSearch && (m.type === "image" || m.type === "album");
+    }
+    if (activeSubSection === "videos") {
+      return matchesSearch && (m.type === "video" || m.type === "playlist");
+    }
+    return matchesSearch;
+  });
+
+  const handleDelete = (id: number) => {
+    setMediaList(prev => prev.filter(m => m.id !== id));
+  };
+
+  const handleEditOpen = (item: any) => {
+    setEditItem(item);
+    setFormTitleFa(item.faTitle);
+    setFormTitleEn(item.enTitle);
+    setFormType(item.type);
+    setFormCategory(item.category);
+    
+    // لود کردن آیتم‌های لیست پخش یا آلبوم به همراه تشخیص کاور
+    let initialItems: any[] = [];
+    if (item.type === 'album') {
+      initialItems = item.items?.map((url: string, index: number) => ({
+        id: Date.now() + index,
+        url,
+        title: "",
+        isCover: item.thumbnail === url
+      })) || [];
+    } else if (item.type === 'playlist') {
+      initialItems = item.items?.map((ep: any, index: number) => ({
+        id: Date.now() + index,
+        url: ep.url || "https://placehold.co/600x400/1e293b/ffffff",
+        title: ep.title,
+        isCover: item.thumbnail === ep.thumbnail || false
+      })) || [];
+    }
+    
+    // اگر هیچ عکسی کاور نبود، عکس اول به طور پیش‌فرض کاور می‌شود
+    if (initialItems.length > 0 && !initialItems.some(i => i.isCover)) {
+      initialItems[0].isCover = true;
+    }
+    setFormItems(initialItems);
+    setIsModalOpen(true);
+  };
+
+  const handleAddOpen = () => {
+    setEditItem(null);
+    setFormTitleFa("");
+    setFormTitleEn("");
+    setFormType(activeSubSection === "videos" ? "video" : "image");
+    setFormCategory(mediaCategories[0].id);
+    setFormItems([]);
+    setIsModalOpen(true);
+  };
+
+  // هندلرهای تغییر تایپ فرم
+  const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newType = e.target.value;
+    setFormType(newType);
+    if ((newType === 'album' || newType === 'playlist') && formItems.length === 0) {
+      setFormItems([{
+        id: Date.now(),
+        url: `https://placehold.co/600x400/1e293b/ffffff?text=Item+1`,
+        title: `آیتم اول`,
+        isCover: true
+      }]);
+    }
+  };
+
+  // --- هندلرهای سیستم درگ اند دراپ بومی (Drag & Drop) ---
+  const handleDragStart = (e: React.DragEvent, id: number) => {
+    setDraggedItemId(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault(); 
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: number) => {
+    e.preventDefault();
+    if (draggedItemId === null || draggedItemId === targetId) return;
+    
+    const draggedIndex = formItems.findIndex(i => i.id === draggedItemId);
+    const targetIndex = formItems.findIndex(i => i.id === targetId);
+    
+    const newItems = [...formItems];
+    const [draggedItem] = newItems.splice(draggedIndex, 1);
+    newItems.splice(targetIndex, 0, draggedItem);
+    
+    setFormItems(newItems);
+    setDraggedItemId(null);
+  };
+
+  // --- هندلرهای مدیریت آیتم‌های درون آلبوم و پلی‌لیست ---
+  const handleAddItem = () => {
+    setFormItems([...formItems, {
+      id: Date.now(),
+      url: `https://placehold.co/600x400/1e293b/ffffff?text=Item+${formItems.length + 1}`,
+      title: `قسمت ${formItems.length + 1}`,
+      isCover: formItems.length === 0 // اگر اولی است، کاور شود
+    }]);
+  };
+
+  const handleReplaceItem = (id: number) => {
+    // در سیستم واقعی اینجا پنجره آپلود فایل باز می‌شود. (ماک شده)
+    setFormItems(formItems.map(item => item.id === id ? { ...item, url: `https://placehold.co/600x400/3b82f6/ffffff?text=Replaced` } : item));
+  };
+
+  const handleSetCover = (id: number) => {
+    setFormItems(formItems.map(item => ({ ...item, isCover: item.id === id })));
+  };
+
+  const handleSave = () => {
+    let finalThumbnail = "https://placehold.co/600x600/1e293b/ffffff?text=New+Media";
+    let finalItems: any[] = [];
+    
+    if (formType === 'album' || formType === 'playlist') {
+       const coverItem = formItems.find(i => i.isCover) || formItems[0];
+       if (coverItem) finalThumbnail = coverItem.url;
+       
+       if (formType === 'album') {
+          finalItems = formItems.map(i => i.url);
+       } else {
+          finalItems = formItems.map((i, idx) => ({
+             ep: idx + 1,
+             title: i.title || `قسمت ${idx + 1}`,
+             url: i.url
+          }));
+       }
+    } else {
+       finalThumbnail = editItem ? editItem.thumbnail : finalThumbnail;
+    }
+
+    if (editItem) {
+      setMediaList(prev => prev.map(m => m.id === editItem.id ? {
+        ...m,
+        faTitle: formTitleFa,
+        enTitle: formTitleEn,
+        type: formType as any,
+        category: formCategory as any,
+        thumbnail: finalThumbnail,
+        items: finalItems.length > 0 ? finalItems : undefined
+      } : m));
+    } else {
+      const newMedia = {
+        id: Date.now(),
+        type: formType as any,
+        category: formCategory as any,
+        faTitle: formTitleFa,
+        enTitle: formTitleEn,
+        thumbnail: finalThumbnail,
+        items: finalItems.length > 0 ? finalItems : undefined,
+        isFeatured: false,
+        date: new Date().toISOString().split('T')[0]
+      };
+      setMediaList(prev => [newMedia as any, ...prev]);
+    }
+    setIsModalOpen(false);
+    setEditItem(null);
+  };
+
+  const getIcon = (type: string) => {
+    if (type === 'video') return <Video size={16} className="text-blue-500" />;
+    if (type === 'playlist') return <ListVideo size={16} className="text-purple-500" />;
+    if (type === 'album') return <Layers size={16} className="text-amber-500" />;
+    return <ImageIcon size={16} className="text-emerald-500" />;
+  };
+
+  const getTypeLabel = (type: string) => {
+    if (type === 'video') return "ویدیوی تکی";
+    if (type === 'playlist') return "پلی‌لیست اپیزودیک";
+    if (type === 'album') return "آلبوم تصاویر";
+    return "تصویر تکی";
+  };
+
+  const getCategoryLabel = (catId: string) => {
+    const found = mediaCategories.find(c => c.id === catId);
+    return found ? found.title : catId;
+  };
+
+  return (
+    <div className="p-6 md:p-8 max-w-7xl mx-auto flex flex-col gap-8" dir="rtl">
+      
+      <div className="grow flex flex-col">
+        
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-white">
+              {activeSubSection === "all" ? "مدیریت کل رسانه‌ها" : activeSubSection === "images" ? "مدیریت تصاویر و آلبوم‌ها" : "مدیریت ویدیوهای تکی و اپیزودیک"}
+            </h1>
+            <p className="text-sm text-gray-500 mt-0.5">تنظیم چیدمان بنتو، ویرایش داده‌های متادیتا و حذف فایل‌ها</p>
+          </div>
+          <button onClick={handleAddOpen} className="w-full sm:w-auto bg-amber-400 hover:bg-amber-500 text-gray-950 px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg transition-transform hover:scale-103">
+            <Plus size={18} /> افزودن رسانه جدید
+          </button>
+        </div>
+
+        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-200/60 dark:border-gray-800/60 p-4 mb-6 flex items-center gap-3 shadow-xs shrink-0">
+          <Search className="text-gray-400 ml-1" size={18} />
+          <input 
+            type="text" 
+            placeholder="جستجو در عناوین رسانه‌های این بخش..." 
+            value={searchQuery} 
+            onChange={e => setSearchQuery(e.target.value)}
+            className="bg-transparent border-none outline-none text-sm font-bold w-full text-gray-900 dark:text-white placeholder:text-gray-400"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <AnimatePresence mode="popLayout">
+            {filteredMedia.map(media => (
+              <motion.div 
+                key={media.id} 
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.4, ease: customEase }}
+                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl overflow-hidden group hover:border-amber-400 transition-colors shadow-sm flex flex-col h-full relative"
+              >
+                <div className="h-44 relative overflow-hidden bg-gray-100 dark:bg-gray-800 shrink-0">
+                  <img src={media.thumbnail} alt={media.faTitle} className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-700" />
+                  
+                  <div className="absolute top-3 right-3 bg-white/95 dark:bg-gray-950/95 backdrop-blur-md px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs z-20">
+                    {getIcon(media.type)} 
+                    <span className="text-[10px] font-black text-gray-700 dark:text-gray-300">{getTypeLabel(media.type)}</span>
+                  </div>
+                </div>
+                
+                <div className="p-5 flex flex-col grow">
+                  <h3 className="font-black text-gray-900 dark:text-white truncate mb-0.5">{media.faTitle}</h3>
+                  <p className="text-[10px] font-mono text-gray-400 truncate mb-4">{media.enTitle}</p>
+                  
+                  <div className="mt-auto flex justify-between items-center pt-4 border-t border-gray-100 dark:border-gray-800">
+                    <span className="text-[10px] font-black px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-md text-gray-500 uppercase">
+                      {getCategoryLabel(media.category)}
+                    </span>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => handleEditOpen(media)} className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-amber-500 hover:bg-amber-400/10 rounded-xl transition-colors" title="ویرایش"><Edit3 size={15} /></button>
+                      <button onClick={() => handleDelete(media.id)} className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-colors" title="حذف"><Trash2 size={15} /></button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+
+      </div>
+
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsModalOpen(false)} className="absolute inset-0 bg-gray-950/60 backdrop-blur-sm" />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 20 }} 
+              transition={{ duration: 0.5, ease: customEase }} 
+              className="relative bg-white dark:bg-gray-900 w-full max-w-3xl rounded-[2.5rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border border-gray-100 dark:border-gray-800 z-10"
+            >
+              <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/50">
+                <h2 className="text-base font-black text-gray-900 dark:text-white">
+                  {editItem ? `ویرایش رسانه: ${editItem.faTitle}` : "افزودن رسانه جدید به پلتفرم"}
+                </h2>
+                <button onClick={() => setIsModalOpen(false)} className="p-2 bg-gray-100 dark:bg-gray-800 rounded-full hover:text-red-500 transition-colors"><X size={18}/></button>
+              </div>
+              
+              <div className="p-6 overflow-y-auto flex flex-col gap-4 custom-scrollbar">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-black text-gray-400">عنوان فارسی</label>
+                    <input 
+                      type="text" 
+                      value={formTitleFa}
+                      onChange={e => setFormTitleFa(e.target.value)}
+                      className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-transparent text-sm font-bold outline-none focus:border-amber-400 transition-colors text-gray-900 dark:text-white" 
+                      placeholder="مثلا: تیزر معرفی کارخانه" 
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-black text-gray-400">عنوان انگلیسی</label>
+                    <input 
+                      type="text" 
+                      value={formTitleEn}
+                      onChange={e => setFormTitleEn(e.target.value)}
+                      className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-transparent text-sm font-bold outline-none focus:border-amber-400 transition-colors text-gray-900 dark:text-white" 
+                      placeholder="e.g. Factory Tour" 
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-black text-gray-400">نوع ساختار رسانه</label>
+                    <select 
+                      value={formType}
+                      onChange={handleTypeChange}
+                      className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-900 text-sm font-bold outline-none focus:border-amber-400 transition-colors text-gray-900 dark:text-white"
+                    >
+                      <option value="image">تصویر تکی</option>
+                      <option value="album">آلبوم تصاویر چندگانه</option>
+                      <option value="video">ویدیوی تکی</option>
+                      <option value="playlist">پلی‌لیست اپیزودیک (چند قسمتی)</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-xs font-black text-gray-400">دسته‌بندی ساختاری</label>
+                    <select 
+                      value={formCategory}
+                      onChange={e => setFormCategory(e.target.value)}
+                      className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-900 text-sm font-bold outline-none focus:border-amber-400 transition-colors text-gray-900 dark:text-white"
+                    >
+                      {mediaCategories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="flex flex-col gap-2 mt-2">
+                  <label className="text-xs font-black text-gray-400">نوع ابعاد چیدمان در ویترین بنتو سایت</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300 cursor-pointer">
+                      <input type="radio" name="bentoSize" defaultChecked /> سایز معمولی کادر (۱×۱)
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-bold text-gray-600 dark:text-gray-300 cursor-pointer">
+                      <input type="radio" name="bentoSize" /> کادر بزرگ ویژه بنتو (۲×۲)
+                    </label>
+                  </div>
+                </div>
+
+                {/* --- سیستم آپلود پیشرفته (بسته به نوع رسانه) --- */}
+                {formType === 'album' || formType === 'playlist' ? (
+                  <div className="border border-gray-200 dark:border-gray-800 rounded-2xl p-4 bg-gray-50/50 dark:bg-gray-900/30 mt-4">
+                     <div className="flex items-center justify-between mb-4">
+                        <label className="text-sm font-black text-gray-900 dark:text-white">
+                          {formType === 'album' ? 'آیتم‌های آلبوم تصاویر' : 'اپیزودهای پلی‌لیست ویدیویی'}
+                        </label>
+                        <button 
+                          type="button" 
+                          onClick={handleAddItem} 
+                          className="bg-amber-400/20 text-amber-700 dark:text-amber-400 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-amber-400 hover:text-gray-900 transition-colors flex items-center gap-1"
+                        >
+                          <Plus size={14}/> افزودن آیتم جدید
+                        </button>
+                     </div>
+                     
+                     <div className="flex flex-col gap-2">
+                        {formItems.map((item, index) => (
+                           <div 
+                             key={item.id}
+                             draggable
+                             onDragStart={(e) => handleDragStart(e, item.id)}
+                             onDragOver={handleDragOver}
+                             onDrop={(e) => handleDrop(e, item.id)}
+                             className="flex items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm transition-all"
+                           >
+                              <div className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-amber-500 transition-colors p-1" title="برای جابجایی بکشید">
+                                <GripVertical size={16}/>
+                              </div>
+                              <div className="w-16 h-12 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-800 relative">
+                                 <img src={item.url} className="w-full h-full object-cover" alt="item thumbnail"/>
+                                 {item.isCover && <div className="absolute top-0 right-0 bg-amber-400 text-gray-950 text-[9px] font-black px-1.5 py-0.5 rounded-bl-lg shadow-sm">کاور</div>}
+                              </div>
+                              
+                              <div className="flex flex-col grow gap-1 min-w-0">
+                                 {formType === 'playlist' ? (
+                                    <input 
+                                      type="text" 
+                                      value={item.title} 
+                                      onChange={(e) => {
+                                         setFormItems(formItems.map(i => i.id === item.id ? {...i, title: e.target.value} : i));
+                                      }}
+                                      className="bg-transparent border-b border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-900 dark:text-white outline-none focus:border-amber-400 px-1 py-1 w-full transition-colors"
+                                      placeholder="عنوان اپیزود را وارد کنید..."
+                                    />
+                                 ) : (
+                                    <span className="text-xs font-bold text-gray-600 dark:text-gray-300">تصویر {index + 1}</span>
+                                 )}
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                 {!item.isCover && (
+                                    <button type="button" onClick={() => handleSetCover(item.id)} className="p-1.5 text-gray-400 hover:text-amber-500 bg-gray-50 dark:bg-gray-800 rounded-lg transition-colors border border-transparent hover:border-amber-400/30 text-[10px] font-bold" title="انتخاب به عنوان کاور اصلی گالری">کاور</button>
+                                 )}
+                                 <button type="button" onClick={() => handleReplaceItem(item.id)} className="p-1.5 text-gray-400 hover:text-blue-500 bg-gray-50 dark:bg-gray-800 rounded-lg transition-colors border border-transparent hover:border-blue-500/30" title="جایگزینی فایل آپلودی"><Upload size={14}/></button>
+                                 <button type="button" onClick={() => setFormItems(formItems.filter(i => i.id !== item.id))} className="p-1.5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 rounded-lg transition-colors border border-transparent hover:border-red-500/30" title="حذف کامل این آیتم"><Trash2 size={14}/></button>
+                              </div>
+                           </div>
+                        ))}
+                        {formItems.length === 0 && (
+                          <div className="text-center py-8 text-gray-400 text-xs font-bold border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl">
+                            هیچ آیتمی در لیست وجود ندارد. برای شروع «افزودن آیتم جدید» را بزنید.
+                          </div>
+                        )}
+                     </div>
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 mt-4 hover:border-amber-400 transition-colors cursor-pointer group bg-gray-50/50 dark:bg-gray-900/30">
+                    <Upload size={32} className="text-gray-400 group-hover:text-amber-500 transition-colors" />
+                    <span className="text-xs font-black text-gray-600 dark:text-gray-300">بارگذاری فایل {formType === 'video' ? 'ویدیو و کاور' : 'تصویر'} اصلی (Thumbnail)</span>
+                  </div>
+                )}
+
+              </div>
+              
+              <div className="p-6 border-t border-gray-100 dark:border-gray-800 flex justify-end bg-gray-50/50 dark:bg-gray-900/50">
+                <button onClick={handleSave} className="bg-amber-400 hover:bg-amber-500 text-gray-950 px-6 py-3 rounded-xl font-black text-xs flex items-center gap-2 shadow-md transition-all">
+                  <CheckCircle2 size={16}/> 
+                  <span>{editItem ? "بروزرسانی تغییرات رسانه" : "ذخیره و انتشار نهایی رسانه"}</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
