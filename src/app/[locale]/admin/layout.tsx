@@ -11,12 +11,12 @@ import {
   Settings, Users, Mail, Compass, Tag, Droplets, 
   Sparkles, Package, FlaskConical, Scale, CheckCircle2,
   ChevronDown, ChevronLeft,
-  Factory, Target, BarChart, Award, MapPin, ClipboardList, Film, LayoutGrid, ListVideo, LayoutTemplate
+  Factory, Target, BarChart, Award, MapPin, ClipboardList, Film, LayoutGrid, ListVideo, LayoutTemplate,
+  LogOut, Globe 
 } from "lucide-react";
-import { LogOut, Globe } from "lucide-react";
-import { useAdminShortcuts } from "./hooks/useAdminShortcuts";
+// در صورت نیاز به هوک شورت‌کات‌ها، ایمپورت زیر را از کامنت خارج کنید
+// import { useAdminShortcuts } from "./hooks/useAdminShortcuts";
 
-// 1. تعریف تایپ‌های دقیق برای رفع ارورهای TypeScript
 type SubItemType = {
   id: string;
   label: string;
@@ -27,7 +27,7 @@ type SidebarItemType = {
   id: string;
   label: string;
   icon: ElementType;
-  subItems?: SubItemType[]; // علامت سوال یعنی این ویژگی اختیاری است
+  subItems?: SubItemType[]; 
 };
 
 type TabMenuType = {
@@ -36,7 +36,6 @@ type TabMenuType = {
   sidebar: SidebarItemType[];
 };
 
-// 2. اعمال تایپ Record به ساختار منو
 const menuStructure: Record<string, TabMenuType> = {
   home: {
     label: "صفحه اصلی",
@@ -53,7 +52,6 @@ const menuStructure: Record<string, TabMenuType> = {
     label: "درباره شرکت",
     icon: Info,
     sidebar: [
-      // گزینه‌های سایدبار دقیقاً مطابق با تب‌های پنل تنظیم شدند
       { id: "history", label: "تاریخچه و ویدیو", icon: Factory },
       { id: "vision", label: "چشم‌انداز و ماموریت", icon: Target },
       { id: "stats", label: "آمار و چرا جزیره گندم", icon: BarChart },
@@ -67,7 +65,6 @@ const menuStructure: Record<string, TabMenuType> = {
     icon: ShoppingBag,
     sidebar: [
       { id: "prod_list", label: "لیست محصولات", icon: ShoppingBag },
-      // منوی کشویی مدیریت دسته‌بندی‌ها
       { 
         id: "categories_group", 
         label: "مدیریت دسته‌بندی‌ها", 
@@ -127,29 +124,91 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   
   const isLoginPage = pathname.includes('/login');
   const currentSection = searchParams.get("section") || "hero";
-
+  
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("home");
-
-  // استیت برای کنترل باز و بسته بودن منوهای کشویی سایدبار
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["categories_group"]);
+
+  // استیت‌های امنیتی و فیلتر منوها
+  const [userRole, setUserRole] = useState<string>("editor");
+  const [userPerms, setUserPerms] = useState<string[]>([]);
+  const [filteredMenu, setFilteredMenu] = useState<Record<string, TabMenuType>>({});
 
   useEffect(() => {
     if (isLoginPage) {
       setIsAuthorized(true);
       return;
     }
-    const checkAuth = sessionStorage.getItem("isJazirehAdmin");
-    if (!checkAuth) {
-      router.push(`/${locale}/admin/login`);
-    } else {
-      setIsAuthorized(true);
-    }
-  }, [router, isLoginPage, pathname, locale]);
 
-  // تنظیم خودکار تبِ فعال بر اساس اینکه آیا سکشن داخل منوی اصلی است یا زیرمنو
+    const getCookie = (name: string) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop()?.split(';').shift();
+      return null;
+    };
+
+    const token = getCookie("admin_token");
+    
+    if (!token) {
+      router.push(`/${locale}/admin/login`);
+      return;
+    }
+
+    setIsAuthorized(true);
+
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const role = payload.role || "editor";
+      const perms = payload.permissions || [];
+      setUserRole(role);
+      setUserPerms(perms);
+
+      const allowed: Record<string, TabMenuType> = {};
+      
+      Object.keys(menuStructure).forEach(key => {
+        const tab = menuStructure[key];
+        let hasTabAccess = false;
+
+        // تعیین سطح دسترسی به تب‌های اصلی بر اساس نقش
+        if (role === "super_admin") {
+          hasTabAccess = true;
+        } else if (role === "editor") {
+          if (key === "blog") hasTabAccess = true;
+        } else if (role === "admin") {
+          if (["home", "products", "gallery", "about", "settings"].includes(key)) hasTabAccess = true;
+        }
+
+        if (hasTabAccess) {
+          // فیلتر کردن آیتم‌های داخل سایدبار
+          const filteredSidebar = tab.sidebar.filter(item => {
+            // مخفی کردن کامل مدیریت کاربران برای همه به جز سوپر ادمین
+            if (item.id === "users" && role !== "super_admin") return false;
+            return true;
+          });
+
+          if (filteredSidebar.length > 0) {
+            allowed[key] = { ...tab, sidebar: filteredSidebar };
+          }
+        }
+      });
+
+      setFilteredMenu(allowed);
+      
+      // اگر تب فعلی غیرمجاز بود، هدایت به اولین تب مجاز
+      if (Object.keys(allowed).length > 0 && !allowed[activeTab]) {
+        const firstAllowedTab = Object.keys(allowed)[0] as TabKey;
+        setActiveTab(firstAllowedTab);
+      }
+
+    } catch (e) {
+      router.push(`/${locale}/admin/login`);
+    }
+  }, [router, isLoginPage, pathname, locale, activeTab]);
+
   useEffect(() => {
-    for (const [key, tab] of Object.entries(menuStructure)) {
+    if (Object.keys(filteredMenu).length === 0) return;
+    
+    for (const [key, tab] of Object.entries(filteredMenu)) {
       const hasActiveItem = tab.sidebar.some(item => {
         if (item.id === currentSection) return true;
         if (item.subItems && item.subItems.some(sub => sub.id === currentSection)) return true;
@@ -160,15 +219,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         break;
       }
     }
-  }, [currentSection]);
+  }, [currentSection, filteredMenu]);
 
   if (!isAuthorized) return <div className="min-h-screen bg-gray-950"></div>;
   if (isLoginPage) return <>{children}</>;
 
   const handleTabChange = (tab: TabKey) => {
     setActiveTab(tab);
-    // وقتی تب عوض می‌شود، به اولین آیتمِ آن تب (چه عادی چه زیرمنو) برو
-    const firstItem = menuStructure[tab].sidebar[0];
+    const firstItem = filteredMenu[tab].sidebar[0];
     const targetId = firstItem.subItems ? firstItem.subItems[0].id : firstItem.id;
     router.push(`/${locale}/admin?section=${targetId}`);
   };
@@ -183,6 +241,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     );
   };
 
+  // اگر هنوز منوی فیلتر شده ساخته نشده است
+  if (Object.keys(filteredMenu).length === 0 || !filteredMenu[activeTab]) return <div className="min-h-screen bg-gray-950"></div>;
+
   return (
     <div className="min-h-screen bg-transparent flex flex-col text-gray-900 dark:text-gray-100" dir="rtl">
       
@@ -193,8 +254,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-          {(Object.keys(menuStructure) as TabKey[]).map((tabKey) => {
-            const tab = menuStructure[tabKey];
+          {(Object.keys(filteredMenu) as TabKey[]).map((tabKey) => {
+            const tab = filteredMenu[tabKey];
             const TabIcon = tab.icon;
             const isActive = activeTab === tabKey;
             
@@ -221,7 +282,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="flex items-center gap-3">
-          <span className="text-xs font-bold text-gray-400">خوش آمدید، مدیر</span>
+          <span className="text-xs font-bold text-gray-400">
+            {userRole === "super_admin" ? "سوپر ادمین" : userRole === "admin" ? "مدیر ارشد" : "ویرایشگر"}
+          </span>
           <div className="w-8 h-8 rounded-full bg-amber-400" />
         </div>
       </header>
@@ -231,7 +294,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         <aside className="w-64 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 p-4 flex flex-col justify-between overflow-y-auto custom-scrollbar">
           <div className="flex flex-col gap-1">
             <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-3 px-3 uppercase tracking-wider">
-              مدیریت بخش {menuStructure[activeTab].label}
+              مدیریت بخش {filteredMenu[activeTab].label}
             </span>
             
             <AnimatePresence mode="wait">
@@ -243,16 +306,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 transition={{ duration: 0.2, ease: "easeOut" }}
                 className="flex flex-col gap-1 w-full"
               >
-                {menuStructure[activeTab].sidebar.map((item) => {
+                {filteredMenu[activeTab].sidebar.map((item) => {
                   
-                  // اگر آیتم دارای زیرمجموعه (Accordion) بود
                   if (item.subItems) {
                     const isExpanded = expandedGroups.includes(item.id);
                     const isChildActive = item.subItems.some(sub => sub.id === currentSection);
                     
                     return (
                       <div key={item.id} className="flex flex-col gap-1 w-full">
-                        {/* دکمه اصلی گروه (باز و بسته کننده) */}
                         <button
                           onClick={() => toggleGroup(item.id)}
                           className={`flex items-center justify-between px-4 py-3 text-xs font-bold rounded-xl w-full text-right transition-all ${
@@ -268,14 +329,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                           {isExpanded ? <ChevronDown size={14} /> : <ChevronLeft size={14} />}
                         </button>
                         
-                        {/* لیست زیرمجموعه‌ها با افکت انیمیشنی */}
                         <AnimatePresence>
                           {isExpanded && (
                             <motion.div
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: "auto", opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden flex flex-col gap-1 pr-4" // تورفتگی برای زیرمجموعه‌ها
+                              className="overflow-hidden flex flex-col gap-1 pr-4"
                             >
                               {item.subItems.map((sub) => {
                                 const SubIcon = sub.icon;
@@ -299,11 +359,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                           )}
                         </AnimatePresence>
                       </div>
-                      
                     );
                   } 
                   
-                  // اگر آیتم یک لینک معمولی بود (بدون زیرمجموعه)
                   else {
                     const ItemIcon = item.icon;
                     const isItemActive = currentSection === item.id;
@@ -327,7 +385,8 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               </motion.div>
             </AnimatePresence>
           </div>
-        <div className="mt-auto p-4 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-1.5 shrink-0">
+          
+          <div className="mt-auto p-4 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-1.5 shrink-0">
             <Link 
               href={`/${locale}`}
               className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold rounded-xl w-full text-right text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white transition-all"
@@ -337,7 +396,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </Link>
             
             <button 
-              onClick={() => router.push(`/${locale}/admin/login`)} // یا هر منطق خروجی که دارید
+              onClick={() => {
+                // پاک کردن کوکی و خروج
+                document.cookie = "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                router.push(`/${locale}/admin/login`);
+              }} 
               className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold rounded-xl w-full text-right text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
             >
               <LogOut size={16} />
