@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     try { fullDatabase = JSON.stringify(mockData); } catch (e) {}
 
     const systemPrompt = `
-      You are "VisionBot", the highly capable and multilingual intelligent assistant for Jazirah Gandum.
+      You are "JaziraGandum AI", the highly capable and multilingual intelligent assistant for Jazirah Gandum.
       
       CRITICAL RULES FOR LANGUAGE, TRANSLATION, AND LINKS:
       1. STRICT LANGUAGE MATCH: You MUST ALWAYS reply entirely in the EXACT SAME LANGUAGE as the user's message. If the user speaks English, you MUST TRANSLATE all product names, descriptions, and button labels to English. Do NOT output Persian text if the user types in English.
@@ -69,3 +69,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

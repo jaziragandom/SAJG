@@ -107,7 +107,7 @@ export default function ChatWindow({
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm"><Bot size={20} /></div>
           <div>
-            <h4 className="font-bold text-sm">VisionBot AI</h4>
+            <h4 className="font-bold text-sm">JaziraGandum AI</h4>
             <div className="flex items-center gap-1.5 opacity-90 mt-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span><span className="text-[10px] font-medium">Online</span></div>
           </div>
         </div>
