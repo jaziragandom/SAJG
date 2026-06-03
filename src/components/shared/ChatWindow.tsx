@@ -2,7 +2,6 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Bot, X, Send, ShoppingBag } from "lucide-react";
 
-// (کامپوننت MiniProductSlider دقیقاً مثل قبل اینجا قرار می‌گیرد)
 const MiniProductSlider = ({ router, locale, setIsChatOpen }: { router: any, locale: string, setIsChatOpen: any }) => (
   <div className="w-full overflow-x-auto flex gap-3 pb-2 custom-scrollbar mt-2">
     {[1, 2, 3].map((item) => (
@@ -36,7 +35,7 @@ interface ChatWindowProps {
   handleSend: (e: React.FormEvent) => void; 
   isTyping: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
-  inputRef: React.RefObject<HTMLInputElement | null>;
+  inputRef: React.RefObject<any>; // رفع ارور تایپ اسکریپت برای Textarea
   isRtl: boolean; 
   router: any; 
   locale: string;
@@ -49,29 +48,21 @@ export default function ChatWindow({
   
   if (!isChatOpen) return null;
 
-  // تابع یکپارچه برای مدیریت اکشن‌های سایت
   const handleSystemAction = (actionType: string) => {
     if (actionType === 'THEME_DARK') document.documentElement.classList.add('dark');
     if (actionType === 'THEME_LIGHT') document.documentElement.classList.remove('dark');
-    if (actionType.startsWith('LANG_')) {
-      const newLang = actionType.replace('LANG_', '').toLowerCase();
-      router.push(`/${newLang}`);
-    }
   };
 
   const renderMessageContent = (text: string) => {
     if (!text) return null;
     
-    // تشخیص همزمان اسلایدر، اکشن‌ها و لینک‌های مارک‌داون
     const parts = text.split(/(\[UI:SLIDER\]|\[ACTION:[A-Z_]+\]|\[.*?\]\(.*?\))/g);
     
     return parts.map((part, index) => {
-      // رندر اسلایدر محصولات
       if (part === '[UI:SLIDER]') {
         return <MiniProductSlider key={index} router={router} locale={locale} setIsChatOpen={setIsChatOpen} />;
       }
       
-      // رندر دکمه‌های اکشن (تغییر تم، زبان و...)
       const actionMatch = part.match(/\[ACTION:([A-Z_]+)\]/);
       if (actionMatch) {
         return (
@@ -80,12 +71,11 @@ export default function ChatWindow({
             onClick={() => handleSystemAction(actionMatch[1])}
             className="inline-flex items-center mx-1 my-1 px-3 py-1.5 rounded-xl bg-zinc-900/10 dark:bg-white/10 backdrop-blur-sm text-zinc-800 dark:text-zinc-200 hover:scale-105 transition-all text-xs font-bold border border-zinc-300 dark:border-zinc-700"
           >
-            ⚡ اجرای دستور ({actionMatch[1]})
+            ⚡ اعمال تنظیمات ({actionMatch[1]})
           </button>
         );
       }
       
-      // رندر لینک‌ها و دکمه‌های ناوبری هوشمند
       const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
       if (linkMatch) {
         const [_, label, target] = linkMatch;
@@ -102,11 +92,13 @@ export default function ChatWindow({
               } else if (target.startsWith('http')) {
                 window.open(target, '_blank');
               } else {
-                let finalPath = target;
-                if (target.startsWith('/')) {
-                  const urlObj = new URL(target, 'http://localhost');
-                  finalPath = `/${locale}${urlObj.pathname}${urlObj.search}${urlObj.hash}`;
-                }
+                // سیستم ضدگلوله برای روتینگ داخلی (رفع مشکل کوئری‌ها و هَش‌ها)
+                let cleanTarget = target.trim().replace(/['"]/g, '');
+                if (!cleanTarget.startsWith('/')) cleanTarget = '/' + cleanTarget;
+                
+                const urlObj = new URL(cleanTarget, 'http://localhost');
+                const finalPath = `/${locale}${urlObj.pathname}${urlObj.search}${urlObj.hash}`;
+                
                 router.push(finalPath);
                 setIsChatOpen(false);
               }
@@ -118,7 +110,6 @@ export default function ChatWindow({
         );
       }
       
-      // رندر متن‌های معمولی
       return <span key={index}>{part}</span>;
     });
   };
@@ -131,11 +122,11 @@ export default function ChatWindow({
       transition={{ duration: 0.2 }}
       className="pointer-events-auto w-80 md:w-96 h-[calc(100vh-120px)] max-h-200 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden mb-2"
     >
-      <div className="bg-linear-to-r from-amber-500 to-orange-600 p-4 flex justify-between items-center text-white shrink-0">
+      <div className="bg-gradient-to-r from-amber-500 to-orange-600 p-4 flex justify-between items-center text-white shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md shadow-inner"><Bot size={20} /></div>
           <div>
-            <h4 className="font-bold text-sm drop-shadow-sm">Gandom Island AI</h4>
+            <h4 className="font-bold text-sm drop-shadow-sm">Jazira Gandum AI</h4>
             <div className="flex items-center gap-1.5 opacity-90 mt-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span><span className="text-[10px] font-medium">Online</span></div>
           </div>
         </div>
@@ -145,7 +136,7 @@ export default function ChatWindow({
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-50/50 dark:bg-zinc-900/30 custom-scrollbar">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div dir="auto" className={`max-w-[85%] p-3.5 rounded-2xl text-sm leading-7 shadow-sm text-left ${msg.sender === 'user' ? 'bg-amber-500 text-zinc-950 rounded-br-none' : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-bl-none'}`}>
+            <div dir="auto" className={`max-w-[85%] p-3.5 rounded-2xl text-sm leading-7 shadow-sm text-left whitespace-pre-wrap ${msg.sender === 'user' ? 'bg-amber-500 text-zinc-950 rounded-br-none' : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-bl-none'}`}>
               {msg.sender === 'bot' ? renderMessageContent(msg.text) : msg.text}
             </div>
           </div>
@@ -164,7 +155,24 @@ export default function ChatWindow({
 
       <form onSubmit={handleSend} className="p-3 border-t border-zinc-100 dark:border-zinc-800/50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md shrink-0">
         <div className="relative flex items-center gap-2">
-          <input ref={inputRef} dir="auto" type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder={isRtl ? "پیام خود را بنویسید..." : "Type a message..."} className="flex-1 pl-4 pr-12 py-3 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 border border-transparent" />
+          {/* تغییر Input به Textarea برای پشتیبانی از Shift+Enter */}
+          <textarea 
+            ref={inputRef} 
+            dir="auto" 
+            value={input} 
+            onChange={(e) => setInput(e.target.value)} 
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (input.trim() && !isTyping) {
+                  handleSend(e as unknown as React.FormEvent);
+                }
+              }
+            }}
+            rows={1}
+            placeholder={isRtl ? "پیام خود را بنویسید..." : "Type a message..."} 
+            className="flex-1 pl-4 pr-12 py-3 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 border border-transparent resize-none overflow-hidden h-[46px] leading-[22px] custom-scrollbar" 
+          />
           <button type="submit" disabled={!input.trim() || isTyping} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-amber-500 text-zinc-900 rounded-lg hover:bg-amber-400 transition-colors disabled:opacity-50"><Send size={16} className={isRtl ? "rotate-180" : ""} /></button>
         </div>
       </form>
