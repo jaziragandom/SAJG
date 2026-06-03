@@ -91,3 +91,17 @@ export async function deleteUser(id: string) {
     return { success: false, error: "خطا در حذف کاربر" };
   }
 }
+// دریافت اطلاعات جلسه کاربری در سمت سرور
+export async function getAdminSession() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get("admin_token")?.value;
+  
+  if (!token) return null;
+  
+  try {
+    const verified = await jwtVerify(token, encodedKey);
+    return { role: verified.payload.role, permissions: verified.payload.permissions };
+  } catch (error) {
+    return null;
+  }
+}

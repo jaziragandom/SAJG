@@ -14,8 +14,7 @@ import {
   Factory, Target, BarChart, Award, MapPin, ClipboardList, Film, LayoutGrid, ListVideo, LayoutTemplate,
   LogOut, Globe 
 } from "lucide-react";
-// در صورت نیاز به هوک شورت‌کات‌ها، ایمپورت زیر را از کامنت خارج کنید
-// import { useAdminShortcuts } from "./hooks/useAdminShortcuts";
+import { getAdminSession } from "@/actions/user";
 
 type SubItemType = {
   id: string;
@@ -47,7 +46,6 @@ const menuStructure: Record<string, TabMenuType> = {
       { id: "footer_sec", label: "سکشن فوتر", icon: FileText },
     ]
   },
-  
   about: {
     label: "درباره شرکت",
     icon: Info,
@@ -93,7 +91,6 @@ const menuStructure: Record<string, TabMenuType> = {
       { id: "cat_media", label: "دسته‌بندی گالری و رسانه", icon: Film },
     ]
   },
-  
   blog: {
     label: "مجله و اخبار",
     icon: FileText,
@@ -103,7 +100,6 @@ const menuStructure: Record<string, TabMenuType> = {
       { id: "blog_draft", label: "پیش‌نویس‌ها", icon: FileText },
     ]
   },
-
   settings: {
     label: "تنظیمات عمومی",
     icon: Settings,
@@ -129,10 +125,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const [activeTab, setActiveTab] = useState<TabKey>("home");
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["categories_group"]);
 
-  // استیت‌های امنیتی و فیلتر منوها
   const [userRole, setUserRole] = useState<string>("editor");
-  const [userPerms, setUserPerms] = useState<string[]>([]);
   const [filteredMenu, setFilteredMenu] = useState<Record<string, TabMenuType>>({});
+  const [isMenuLoaded, setIsMenuLoaded] = useState(false);
 
   useEffect(() => {
     if (isLoginPage) {
@@ -140,28 +135,15 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const getCookie = (name: string) => {
-      const value = `; ${document.cookie}`;
-      const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) return parts.pop()?.split(';').shift();
-      return null;
-    };
+    getAdminSession().then((payload) => {
+      if (!payload) {
+        router.push(`/${locale}/admin/login`);
+        return;
+      }
 
-    const token = getCookie("admin_token");
-    
-    if (!token) {
-      router.push(`/${locale}/admin/login`);
-      return;
-    }
-
-    setIsAuthorized(true);
-
-    try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      const role = payload.role || "editor";
-      const perms = payload.permissions || [];
+      setIsAuthorized(true);
+      const role = String(payload.role || "editor");
       setUserRole(role);
-      setUserPerms(perms);
 
       const allowed: Record<string, TabMenuType> = {};
       
@@ -169,7 +151,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         const tab = menuStructure[key];
         let hasTabAccess = false;
 
-        // تعیین سطح دسترسی به تب‌های اصلی بر اساس نقش
         if (role === "super_admin") {
           hasTabAccess = true;
         } else if (role === "editor") {
@@ -179,9 +160,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         }
 
         if (hasTabAccess) {
-          // فیلتر کردن آیتم‌های داخل سایدبار
           const filteredSidebar = tab.sidebar.filter(item => {
-            // مخفی کردن کامل مدیریت کاربران برای همه به جز سوپر ادمین
             if (item.id === "users" && role !== "super_admin") return false;
             return true;
           });
@@ -193,20 +172,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       });
 
       setFilteredMenu(allowed);
+      setIsMenuLoaded(true);
       
-      // اگر تب فعلی غیرمجاز بود، هدایت به اولین تب مجاز
       if (Object.keys(allowed).length > 0 && !allowed[activeTab]) {
         const firstAllowedTab = Object.keys(allowed)[0] as TabKey;
         setActiveTab(firstAllowedTab);
       }
-
-    } catch (e) {
-      router.push(`/${locale}/admin/login`);
-    }
+    });
   }, [router, isLoginPage, pathname, locale, activeTab]);
 
   useEffect(() => {
-    if (Object.keys(filteredMenu).length === 0) return;
+    if (!isMenuLoaded || Object.keys(filteredMenu).length === 0) return;
     
     for (const [key, tab] of Object.entries(filteredMenu)) {
       const hasActiveItem = tab.sidebar.some(item => {
@@ -219,9 +195,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         break;
       }
     }
-  }, [currentSection, filteredMenu]);
+  }, [currentSection, filteredMenu, isMenuLoaded]);
 
-  if (!isAuthorized) return <div className="min-h-screen bg-gray-950"></div>;
+  if (!isAuthorized || (!isMenuLoaded && !isLoginPage)) return <div className="min-h-screen bg-gray-950 flex items-center justify-center"><div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div></div>;
   if (isLoginPage) return <>{children}</>;
 
   const handleTabChange = (tab: TabKey) => {
@@ -241,12 +217,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     );
   };
 
-  // اگر هنوز منوی فیلتر شده ساخته نشده است
-  if (Object.keys(filteredMenu).length === 0 || !filteredMenu[activeTab]) return <div className="min-h-screen bg-gray-950"></div>;
+  const handleLogout = async () => {
+    document.cookie = "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    router.push(`/${locale}/admin/login`);
+  };
 
   return (
     <div className="min-h-screen bg-transparent flex flex-col text-gray-900 dark:text-gray-100" dir="rtl">
-      
       <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 flex items-center justify-between sticky top-0 z-50 shadow-xs">
         <div className="flex items-center gap-2 font-black text-lg tracking-tight">
           <span className="text-red-600">پنل</span>
@@ -285,16 +262,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           <span className="text-xs font-bold text-gray-400">
             {userRole === "super_admin" ? "سوپر ادمین" : userRole === "admin" ? "مدیر ارشد" : "ویرایشگر"}
           </span>
-          <div className="w-8 h-8 rounded-full bg-amber-400" />
+          <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center text-gray-900 font-black text-xs">
+            {userRole === "super_admin" ? "S" : userRole === "admin" ? "A" : "E"}
+          </div>
         </div>
       </header>
 
       <div className="flex grow h-[calc(100vh-64px)] overflow-hidden">
-        
         <aside className="w-64 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 p-4 flex flex-col justify-between overflow-y-auto custom-scrollbar">
           <div className="flex flex-col gap-1">
             <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 block mb-3 px-3 uppercase tracking-wider">
-              مدیریت بخش {filteredMenu[activeTab].label}
+              مدیریت بخش {filteredMenu[activeTab]?.label}
             </span>
             
             <AnimatePresence mode="wait">
@@ -306,8 +284,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 transition={{ duration: 0.2, ease: "easeOut" }}
                 className="flex flex-col gap-1 w-full"
               >
-                {filteredMenu[activeTab].sidebar.map((item) => {
-                  
+                {filteredMenu[activeTab]?.sidebar.map((item) => {
                   if (item.subItems) {
                     const isExpanded = expandedGroups.includes(item.id);
                     const isChildActive = item.subItems.some(sub => sub.id === currentSection);
@@ -360,9 +337,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                         </AnimatePresence>
                       </div>
                     );
-                  } 
-                  
-                  else {
+                  } else {
                     const ItemIcon = item.icon;
                     const isItemActive = currentSection === item.id;
 
@@ -396,18 +371,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </Link>
             
             <button 
-              onClick={() => {
-                // پاک کردن کوکی و خروج
-                document.cookie = "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                router.push(`/${locale}/admin/login`);
-              }} 
+              onClick={handleLogout} 
               className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold rounded-xl w-full text-right text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
             >
               <LogOut size={16} />
               <span>خروج از پنل</span>
             </button>
           </div>
-
         </aside>
 
         <main className="grow p-8 overflow-y-auto bg-transparent custom-scrollbar">
@@ -415,7 +385,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         </main>
-
       </div>
     </div>
   );
