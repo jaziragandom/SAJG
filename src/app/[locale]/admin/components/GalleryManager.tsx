@@ -172,6 +172,12 @@ export default function GalleryManager({ currentSection }: { currentSection: str
 
   const handleReplaceItem = async (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.[0]) return;
+    
+    const currentItem = formItems.find(i => i.id === id);
+    if (currentItem && currentItem.url && currentItem.url.startsWith('/uploads/')) {
+      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: currentItem.url }) }).catch(err => console.error(err));
+    }
+
     const url = await handleFileUpload(e.target.files[0]);
     if (url) {
       setFormItems(formItems.map(item => item.id === id ? { ...item, url } : item));
@@ -449,7 +455,7 @@ export default function GalleryManager({ currentSection }: { currentSection: str
                               </div>
                               
                               <div className="flex flex-col grow gap-1 min-w-0">
-                                {formType === 'playlist' ? (
+                                 {formType === 'playlist' ? (
                                     <input 
                                       type="text" 
                                       value={item.title} 
@@ -466,13 +472,13 @@ export default function GalleryManager({ currentSection }: { currentSection: str
 
                               <div className="flex items-center gap-1.5 shrink-0">
                                  {!item.isCover && (
-                                    <button type="button" onClick={() => handleSetCover(item.id)} className="p-1.5 text-gray-400 hover:text-amber-500 bg-gray-50 dark:bg-gray-800 rounded-lg transition-colors border border-transparent hover:border-amber-400/30 text-[10px] font-bold" title="انتخاب به عنوان کاور اصلی گالری">کاور</button>
+                                     <button type="button" onClick={() => handleSetCover(item.id)} className="p-1.5 text-gray-400 hover:text-amber-500 bg-gray-50 dark:bg-gray-800 rounded-lg transition-colors border border-transparent hover:border-amber-400/30 text-[10px] font-bold" title="انتخاب به عنوان کاور اصلی گالری">کاور</button>
                                  )}
                                  
-                                 <label className="p-1.5 text-gray-400 hover:text-blue-500 bg-gray-50 dark:bg-gray-800 rounded-lg transition-colors border border-transparent hover:border-blue-500/30 cursor-pointer" title="آپلود فایل">
+                                 <div className="relative p-1.5 text-gray-400 hover:text-blue-500 bg-gray-50 dark:bg-gray-800 rounded-lg transition-colors border border-transparent hover:border-blue-500/30 overflow-hidden" title="آپلود فایل">
                                     <Upload size={14}/>
-                                    <input type="file" className="hidden" onChange={(e) => handleReplaceItem(item.id, e)} />
-                                 </label>
+                                    <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={(e) => handleReplaceItem(item.id, e)} />
+                                 </div>
 
                                  <button type="button" onClick={() => setFormItems(formItems.filter(i => i.id !== item.id))} className="p-1.5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 rounded-lg transition-colors border border-transparent hover:border-red-500/30" title="حذف کامل این آیتم"><Trash2 size={14}/></button>
                               </div>
@@ -486,9 +492,12 @@ export default function GalleryManager({ currentSection }: { currentSection: str
                      </div>
                   </div>
                 ) : (
-                  <label className="border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 mt-4 hover:border-amber-400 transition-colors cursor-pointer group bg-gray-50/50 dark:bg-gray-900/30">
-                    <input type="file" className="hidden" onChange={async (e) => {
+                  <div className="relative overflow-hidden border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 mt-4 hover:border-amber-400 transition-colors bg-gray-50/50 dark:bg-gray-900/30">
+                    <input type="file" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={async (e) => {
                        if (e.target.files?.[0]) {
+                         if (formThumbnail && formThumbnail.startsWith('/uploads/')) {
+                           await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formThumbnail }) }).catch(err => console.error(err));
+                         }
                          const url = await handleFileUpload(e.target.files[0]);
                          if (url) setFormThumbnail(url);
                        }
@@ -503,7 +512,7 @@ export default function GalleryManager({ currentSection }: { currentSection: str
                          <span className="text-xs font-black text-gray-600 dark:text-gray-300">بارگذاری فایل {formType === 'video' ? 'ویدیو و کاور' : 'تصویر'} اصلی (Thumbnail)</span>
                        </>
                     )}
-                  </label>
+                  </div>
                 )}
 
               </div>

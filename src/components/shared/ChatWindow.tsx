@@ -122,7 +122,7 @@ export default function ChatWindow({
       transition={{ duration: 0.2 }}
       className="pointer-events-auto w-80 md:w-96 h-[calc(100vh-120px)] max-h-200 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden mb-2"
     >
-      <div className="bg-gradient-to-r from-amber-500 to-orange-600 p-4 flex justify-between items-center text-white shrink-0">
+      <div className="bg-linear-to-r from-amber-500 to-orange-600 p-4 flex justify-between items-center text-white shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md shadow-inner"><Bot size={20} /></div>
           <div>
@@ -171,7 +171,7 @@ export default function ChatWindow({
             }}
             rows={1}
             placeholder={isRtl ? "پیام خود را بنویسید..." : "Type a message..."} 
-            className="flex-1 pl-4 pr-12 py-3 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 border border-transparent resize-none overflow-hidden h-[46px] leading-[22px] custom-scrollbar" 
+            className="flex-1 pl-4 pr-12 py-3 rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 transition-all bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-zinc-600 border border-transparent resize-none overflow-hidden h-11.5 leading-5.5 custom-scrollbar" 
           />
           <button type="submit" disabled={!input.trim() || isTyping} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-amber-500 text-zinc-900 rounded-lg hover:bg-amber-400 transition-colors disabled:opacity-50"><Send size={16} className={isRtl ? "rotate-180" : ""} /></button>
         </div>

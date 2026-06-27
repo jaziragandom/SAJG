@@ -11,6 +11,7 @@ import GalleryManager from "./components/GalleryManager";
 import BlogManager from "./components/BlogManager";
 import UsersManager from "./components/UsersManager";
 import { ShieldAlert } from "lucide-react";
+import GeneralSettings from "./components/GeneralSettings";
 
 export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
   
@@ -59,6 +60,7 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
       : section === "prod_list" ? <ProductsManager />
       : section.startsWith("cat_") ? <CategoriesManager activeCategoryId={section.replace("cat_", "")} />
       : section === "users" ? <UsersManager />
+      : section === "general" ? <GeneralSettings />
       : (
         <div className="flex flex-col gap-6">
           <div className="bg-amber-400/10 border border-amber-400/20 text-amber-700 dark:text-amber-400 p-6 rounded-2xl font-bold flex items-center justify-between">

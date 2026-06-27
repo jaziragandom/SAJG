@@ -317,11 +317,19 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
               <div className="flex flex-col gap-2 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 mt-2">
                 <label className="text-xs font-bold text-gray-600 dark:text-gray-400">آپلود ویدیوی پس‌زمینه (MP4)</label>
                 <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-3 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800 cursor-pointer transition-colors group">
-                  <input
-                    type="file" accept="video/mp4" className="hidden"
-                    onChange={(e) => { if (e.target.files && e.target.files[0]) { alert(`ویدیوی ${e.target.files[0].name} آماده آپلود در هاست شماست.`); } }}
-                  />
-                  <Video size={32} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+  <input type="file" accept="video/mp4" className="hidden" onChange={async(e) => { 
+    const f = e.target.files?.[0]; 
+    if(!f) return; 
+    if(introData.videoUrl) { 
+      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: introData.videoUrl }) }).catch(e => console.error(e)); 
+    } 
+    const fd = new FormData(); 
+    fd.append('file', f); 
+    const r = await fetch('/api/upload', {method:'POST',body:fd}); 
+    const d = await r.json(); 
+    if(d.success) { setIntroData({...introData, videoUrl: d.url}); alert('ویدیو جدید آپلود و ویدیوی قبلی حذف شد!'); } 
+  }} />
+                  {introData.videoUrl ? <span className="text-sm font-bold text-green-500">ویدیو آپلود شده است</span> : <Video size={32} className="text-gray-400 group-hover:text-blue-500 transition-colors" />}
                   <span className="text-sm font-bold text-gray-500 group-hover:text-blue-600">برای انتخاب و آپلود فایل ویدیویی از هاست خود کلیک کنید</span>
                 </label>
               </div>
@@ -545,6 +553,10 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                     <input type="text" dir="ltr" value={hqData.ig} onChange={e => setHqData({ ...hqData, ig: e.target.value })} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-amber-400" />
                   </div>
                   <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400">آیدی یا لینک فیسبوک</label>
+                    <input type="text" dir="ltr" placeholder="jazirehgandum" value={hqData.fb || ""} onChange={e => setHqData({ ...hqData, fb: e.target.value })} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-amber-400" />
+                  </div>
+                  <div className="flex flex-col gap-2">
                     <label className="text-xs font-bold text-gray-600 dark:text-gray-400">لینک گوگل مپ</label>
                     <input type="url" dir="ltr" value={hqData.mapUrl} onChange={e => setHqData({ ...hqData, mapUrl: e.target.value })} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-amber-400" />
                   </div>
@@ -761,8 +773,20 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                     {(modalType === "partner" || modalType === "cert") && (
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">آپلود تصویر (Logo / Certificate)</label>
-                        <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 cursor-pointer transition-colors group">
-                          <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={(e) => { if (e.target.files && e.target.files[0]) alert(`تصویر ${e.target.files[0].name} آماده آپلود است.`); }} />
+                        {tempFormData.logo && <img src={tempFormData.logo} alt="Preview" className="h-20 object-contain mx-auto" />}
+<label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 cursor-pointer transition-colors group">
+  <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={async(e) => { 
+    const f = e.target.files?.[0]; 
+    if(!f) return; 
+    if(tempFormData.logo) { 
+      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: tempFormData.logo }) }).catch(e => console.error(e)); 
+    } 
+    const fd = new FormData(); 
+    fd.append('file', f); 
+    const r = await fetch('/api/upload', {method:'POST',body:fd}); 
+    const d = await r.json(); 
+    if(d.success) setTempFormData({...tempFormData, logo: d.url}); 
+  }} />
                           <ImageIcon size={32} className="text-gray-400 group-hover:text-amber-500 transition-colors" />
                           <span className="text-sm font-bold text-gray-500 group-hover:text-amber-600">برای انتخاب فایل تصویر کلیک کنید</span>
                         </label>

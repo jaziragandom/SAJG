@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Edit3, Trash2, GripVertical, X, CheckCircle2, Wand2, Loader2, Layers } from "lucide-react";
+import { Plus, Search, Edit3, Trash2, GripVertical, X, CheckCircle2, Wand2, Loader2, Layers, Image as ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getBrands, createBrand, updateBrand, deleteBrand } from "@/actions/brand";
 
@@ -231,12 +231,44 @@ export default function BrandsManager() {
                 {activeTab === "media" && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="flex flex-col gap-3">
-                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400">لینک لوگوی برند</label>
-                      <input type="text" value={formData.logo} onChange={e => setFormData({...formData, logo: e.target.value})} dir="ltr" className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-amber-400 transition-colors" placeholder="https://..." />
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400">لوگوی برند</label>
+                      {formData.logo && <img src={formData.logo} alt="Logo" className="h-20 object-contain mx-auto mb-2" />}
+<label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl h-32 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-amber-400">
+  <input type="file" accept="image/*" className="hidden" onChange={async(e) => { 
+    const f = e.target.files?.[0]; 
+    if(!f) return; 
+    if(formData.logo) { 
+      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.logo }) }).catch(e => console.error(e)); 
+    } 
+    const fd = new FormData(); 
+    fd.append('file', f); 
+    const r = await fetch('/api/upload', {method:'POST',body:fd}); 
+    const d = await r.json(); 
+    if(d.success) setFormData({...formData, logo: d.url}); 
+  }} />
+                      <ImageIcon size={24} className="text-gray-400" />
+                        <span className="text-xs font-bold text-gray-500">برای آپلود کلیک کنید</span>
+                      </label>
                     </div>
                     <div className="flex flex-col gap-3">
-                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400">لینک تصویر کاور (Hero)</label>
-                      <input type="text" value={formData.heroImage} onChange={e => setFormData({...formData, heroImage: e.target.value})} dir="ltr" className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-amber-400 transition-colors" placeholder="https://..." />
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400">تصویر کاور (Hero)</label>
+                      {formData.heroImage && <img src={formData.heroImage} alt="Hero" className="h-20 object-cover rounded-xl mx-auto mb-2 w-full" />}
+<label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl h-32 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-amber-400">
+  <input type="file" accept="image/*" className="hidden" onChange={async(e) => { 
+    const f = e.target.files?.[0]; 
+    if(!f) return; 
+    if(formData.heroImage) { 
+      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.heroImage }) }).catch(e => console.error(e)); 
+    } 
+    const fd = new FormData(); 
+    fd.append('file', f); 
+    const r = await fetch('/api/upload', {method:'POST',body:fd}); 
+    const d = await r.json(); 
+    if(d.success) setFormData({...formData, heroImage: d.url}); 
+  }} />
+                       <ImageIcon size={24} className="text-gray-400" />
+                        <span className="text-xs font-bold text-gray-500">برای آپلود کلیک کنید</span>
+                      </label>
                     </div>
                     <div className="flex flex-col gap-3">
                       <label className="text-xs font-bold text-gray-600 dark:text-gray-400">تم رنگی (کلاس Tailwind)</label>

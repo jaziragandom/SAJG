@@ -7,7 +7,7 @@ export interface IProduct extends Document {
   slug: string;
   mainCat: 'beverage' | 'snack' | 'bakery' | 'all';
   category: string; // دسته‌بندی فرعی
-  status: 'published' | 'draft' | 'out_of_stock';
+  status: string;
   isFeatured: boolean;
   images: {
     main: string;
@@ -34,7 +34,7 @@ const ProductSchema: Schema = new Schema({
   slug: { type: String, required: true, unique: true, lowercase: true },
   mainCat: { type: String, enum: ['beverage', 'snack', 'bakery', 'all'], required: true },
   category: { type: String, required: true },
-  status: { type: String, enum: ['published', 'draft', 'out_of_stock'], default: 'draft' },
+  status: { type: String, default: 'draft' },
   isFeatured: { type: Boolean, default: false },
   
   images: {

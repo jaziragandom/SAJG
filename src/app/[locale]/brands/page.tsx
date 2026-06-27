@@ -1,52 +1,32 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLocale } from "next-intl";
-import { ArrowLeft, ArrowRight, Store } from "lucide-react";
+import { ArrowLeft, ArrowRight, Store, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-
-const brandsDB = [
-  { 
-    id: "m4", 
-    slug: "m4", 
-    faName: "ام فور", 
-    enName: "M4", 
-    faDesc: "برترین تولیدکننده نوشیدنی‌های انرژی‌زا با فرمولاسیون پیشرفته آلمان.", 
-    enDesc: "Top producer of energy drinks with advanced German formulation.", 
-    logo: "https://placehold.co/400x400/f59e0b/ffffff?text=M4+Logo",
-    color: "from-amber-400 to-orange-600"
-  },
-  { 
-    id: "khandan", 
-    slug: "khandan", 
-    faName: "خندان", 
-    enName: "Khandan", 
-    faDesc: "اسنک‌های خوشمزه و سالم تهیه شده از بهترین مواد اولیه برای تمام سنین.", 
-    enDesc: "Delicious and healthy snacks made from the best raw materials for all ages.", 
-    logo: "https://placehold.co/400x400/ea580c/ffffff?text=Khandan+Logo",
-    color: "from-orange-500 to-rose-700"
-  },
-  { 
-    id: "seven-sky", 
-    slug: "seven-sky", 
-    faName: "سون اسکای", 
-    enName: "Seven Sky", 
-    faDesc: "آبمیوه‌های طبیعی و گازدار با طراوت بی‌نظیر و ارگانیک.", 
-    enDesc: "Natural and carbonated juices with unmatched freshness and organic ingredients.", 
-    logo: "https://placehold.co/400x400/10b981/ffffff?text=Seven+Sky",
-    color: "from-emerald-400 to-teal-600"
-  }
-];
+import { getBrands } from "@/actions/brand";
 
 export default function BrandsPage() {
   const locale = useLocale();
   const isRtl = locale === 'fa';
-  
-  // گراف سرعت استاندارد و ملایم (اضافه شده)
+
+  const [brands, setBrands] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // گراف سرعت استاندارد و ملایم 
   const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
-  
-  // ... بقیه کدها
+
+  useEffect(() => {
+    const fetchBrandsData = async () => {
+      const res = await getBrands();
+      if (res.success && res.data) {
+        setBrands(res.data);
+      }
+      setIsLoading(false);
+    };
+    fetchBrandsData();
+  }, []);
 
   return (
     <main 
@@ -55,7 +35,7 @@ export default function BrandsPage() {
     >
       <div className="container mx-auto px-4 md:px-8">
         
-        {/* هدر صفحه (انیمیشن‌ها حفظ شدند) */}
+        {/* هدر صفحه */}
         <div className="text-center max-w-2xl mx-auto mb-20">
           <motion.div
             initial={{ opacity: 0, scale: 0.5 }}
@@ -90,64 +70,79 @@ export default function BrandsPage() {
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {brandsDB.map((brand, index) => {
-            
-            const name = isRtl ? brand.faName : brand.enName;
-            const desc = isRtl ? brand.faDesc : brand.enDesc;
+        {isLoading ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="animate-spin text-amber-500" size={40} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {brands.map((brand, index) => {
+              const name = isRtl ? brand.faName : brand.enName;
+              const desc = isRtl ? brand.faDesc : brand.enDesc;
+              const color = brand.color || "from-gray-400 to-gray-600";
 
-            return (
-              <motion.div
-                key={brand.id}
-                initial={{ opacity: 0, y: 80 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: false, amount: 0.1 }}
-                
-                transition={{ 
-                  y: { duration: 0.8, ease: customEase, delay: index * 0.15 },
-                  opacity: { duration: 0.3, ease: [0, 0, 1, 1], delay: index * 0.15 }
-                }}
-                className="bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800/80 rounded-3xl p-8 flex flex-col items-center text-center group hover:border-amber-400 dark:hover:border-amber-400 transition-[border-color,box-shadow] duration-300 relative overflow-hidden shadow-xs hover:shadow-xl"
-              >
-                
-                {/* هاله رنگی پس‌زمینه کارت هنگام هاور */}
-                <div 
-                  className={`absolute -top-24 -right-24 w-48 h-48 rounded-full bg-linear-to-br ${brand.color} opacity-0 group-hover:opacity-5 blur-2xl transition-opacity duration-500 pointer-events-none`} 
-                />
-
-                {/* لوگو گرد برند */}
-                <div className="w-24 h-24 rounded-full bg-white dark:bg-gray-800 p-1.5 shadow-md border border-gray-100 dark:border-gray-700 group-hover:scale-105 group-hover:border-amber-400 transition-all duration-300 mb-6 overflow-hidden relative z-10">
-                  <img 
-                    src={brand.logo} 
-                    alt={name} 
-                    className="w-full h-full object-contain rounded-full" 
-                  />
-                </div>
-
-                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-3 relative z-10">
-                  {name}
-                </h2>
-                
-                <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 leading-relaxed grow mb-8 font-medium px-2 relative z-10">
-                  {desc}
-                </p>
-
-                <Link 
-                  href={`/${locale}/brands/${brand.slug}`}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-amber-400 hover:text-gray-950 dark:hover:bg-amber-400 dark:hover:text-gray-950 font-bold text-sm rounded-2xl border border-gray-200/60 dark:border-gray-700/50 shadow-xs transition-all group/btn relative z-10"
+              return (
+                <motion.div
+                  key={brand._id}
+                  initial={{ opacity: 0, y: 80 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: false, amount: 0.1 }}
+                  transition={{ 
+                    y: { duration: 0.8, ease: customEase, delay: index * 0.15 },
+                    opacity: { duration: 0.3, ease: [0, 0, 1, 1], delay: index * 0.15 }
+                  }}
+                  className="bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800/80 rounded-3xl p-8 flex flex-col items-center text-center group hover:border-amber-400 dark:hover:border-amber-400 transition-[border-color,box-shadow] duration-300 relative overflow-hidden shadow-xs hover:shadow-xl"
                 >
-                  <span>{isRtl ? "ورود به صفحه برند" : "View Brand Page"}</span>
-                  {isRtl ? (
-                    <ArrowLeft size={16} className="group-hover/btn:-translate-x-1 transition-transform" />
-                  ) : (
-                    <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
-                  )}
-                </Link>
-                
-              </motion.div>
-            );
-          })}
-        </div>
+                  
+                  {/* هاله رنگی پس‌زمینه کارت هنگام هاور */}
+                  <div 
+                    className={`absolute -top-24 -right-24 w-48 h-48 rounded-full bg-linear-to-br ${color} opacity-0 group-hover:opacity-10 blur-2xl transition-opacity duration-500 pointer-events-none`} 
+                  />
+
+                  {/* لوگو گرد برند */}
+                  <div className="w-24 h-24 rounded-full bg-white dark:bg-gray-800 p-2 shadow-md border border-gray-100 dark:border-gray-700 group-hover:scale-105 group-hover:border-amber-400 transition-all duration-300 mb-6 overflow-hidden relative z-10 flex items-center justify-center">
+                    {brand.logo ? (
+                      <img 
+                        src={brand.logo} 
+                        alt={name} 
+                        className="w-full h-full object-contain" 
+                      />
+                    ) : (
+                      <Store className="text-gray-300" size={32} />
+                    )}
+                  </div>
+
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-3 relative z-10">
+                    {name}
+                  </h2>
+                  
+                  <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 leading-relaxed grow mb-8 font-medium px-2 relative z-10 line-clamp-3">
+                    {desc || (isRtl ? "توضیحاتی برای این برند ثبت نشده است." : "No description available.")}
+                  </p>
+
+                  <Link 
+                    href={`/${locale}/brands/${brand.slug}`}
+                    className="w-full flex items-center justify-center gap-2 py-3.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-amber-400 hover:text-gray-950 dark:hover:bg-amber-400 dark:hover:text-gray-950 font-bold text-sm rounded-2xl border border-gray-200/60 dark:border-gray-700/50 shadow-xs transition-all group/btn relative z-10"
+                  >
+                    <span>{isRtl ? "ورود به صفحه برند" : "View Brand Page"}</span>
+                    {isRtl ? (
+                      <ArrowLeft size={16} className="group-hover/btn:-translate-x-1 transition-transform" />
+                    ) : (
+                      <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
+                    )}
+                  </Link>
+                  
+                </motion.div>
+              );
+            })}
+            
+            {!isLoading && brands.length === 0 && (
+              <div className="col-span-full py-12 text-center text-gray-400 font-bold">
+                 {isRtl ? "هیچ برندی یافت نشد." : "No brands found."}
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </main>

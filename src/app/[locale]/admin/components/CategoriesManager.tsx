@@ -6,19 +6,10 @@ import {
   Edit3, GripVertical, Droplets, Sparkles, CheckCircle2, 
   X, Wand2, Loader2, AlertCircle, ArrowLeft, Film
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 import { useAdminShortcuts } from "../hooks/useAdminShortcuts";
 import { getCategories, createCategory, updateCategory, deleteCategory } from "@/actions/category";
 import { getBrands } from "@/actions/brand";
-
-const mainCats = [
-  { id: "all", label: "عمومی (مشترک)", badge: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400" },
-  { id: "beverage", label: "نوشیدنی‌ها", badge: "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400" },
-  { id: "snack", label: "اسنک و تنقلات", badge: "bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400" },
-  { id: "bakery", label: "کیک و بیسکویت", badge: "bg-pink-100 text-pink-700 dark:bg-pink-500/10 dark:text-pink-400" },
-  { id: "media", label: "دسته‌بندی‌های رسانه و گالری", badge: "bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-400" },
-];
 
 const groupMetadata = [
   { id: "main", title: "گروه‌های اصلی محصولات", icon: Layers },
@@ -37,17 +28,25 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
   const [brands, setBrands] = useState<any[]>([]);
   const [localItems, setLocalItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
   const [editModeId, setEditModeId] = useState<string | null>(null);
+  
   const [newItemFaName, setNewItemFaName] = useState("");
   const [newItemEnName, setNewItemEnName] = useState("");
-  const [newItemParent, setNewItemParent] = useState("all");
+  
+  // استیت‌های جدید برای معماری سلسله‌مراتبی
+  const [selectedMain, setSelectedMain] = useState("all");
+  const [selectedSub, setSelectedSub] = useState("all");
 
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
-
+  
   const currentGroupData = groupMetadata.find(g => g.id === activeCategoryId);
   const isBrandsCategory = activeCategoryId === "brands";
+  
+  // دسته‌بندی سطح بالا (نیاز به والد ندارد)
+  const isMainGroup = ["main", "media", "status"].includes(activeCategoryId);
+  // مشخصات تخصصی (هم والد اصلی و هم زیردسته می‌گیرند)
+  const isSpecGroup = ["packaging", "flavor", "weight"].includes(activeCategoryId);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -61,11 +60,10 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
     fetchData();
   }, []);
 
-  // فیلتر کردن آیتم‌های گروه فعلی و مرتب‌سازی بر اساس فیلد order
   useEffect(() => {
     if (!isBrandsCategory) {
       const filtered = categories
-        .filter(c => c.iconName === activeCategoryId) // از iconName برای ذخیره گروه استفاده کردیم
+        .filter(c => c.iconName === activeCategoryId)
         .sort((a, b) => (a.order || 0) - (b.order || 0));
       setLocalItems(filtered);
     }
@@ -103,16 +101,25 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemFaName.trim() || !newItemEnName.trim() || isBrandsCategory) return;
-
-    // ساخت اسلاگ یکتا به صورت خودکار از نام انگلیسی
+    
     const slug = newItemEnName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') + '-' + Math.floor(Math.random() * 1000);
-
+    
+    // محاسبه والد نهایی به صورت هوشمند
+    let finalParent = "all";
+    if (!isMainGroup) {
+       if (isSpecGroup) {
+          finalParent = selectedSub !== "all" ? selectedSub : selectedMain;
+       } else {
+          finalParent = selectedMain; // برای زیردسته‌ها فقط گروه اصلی اعمال می‌شود
+       }
+    }
+    
     const payload = {
       faName: newItemFaName,
       enName: newItemEnName,
       slug: slug,
-      parent: newItemParent,
-      iconName: activeCategoryId, // ترفند اتصال گروه به دیتابیس
+      parent: finalParent,
+      iconName: activeCategoryId,
       order: localItems.length
     };
 
@@ -137,7 +144,23 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
     setEditModeId(item._id);
     setNewItemFaName(item.faName);
     setNewItemEnName(item.enName);
-    setNewItemParent(item.parent);
+    
+    // مهندسی معکوس برای پیدا کردن والدِ والد در حالت ویرایش
+    if (item.parent === 'all') {
+        setSelectedMain('all');
+        setSelectedSub('all');
+    } else {
+        const parentCat = categories.find(c => c.slug === item.parent);
+        if (parentCat) {
+            if (parentCat.iconName === 'main') {
+                setSelectedMain(parentCat.slug);
+                setSelectedSub('all');
+            } else {
+                setSelectedMain(parentCat.parent);
+                setSelectedSub(parentCat.slug);
+            }
+        }
+    }
     document.getElementById('cat-fa-input')?.focus();
   };
 
@@ -153,10 +176,10 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
     setEditModeId(null);
     setNewItemFaName("");
     setNewItemEnName("");
-    setNewItemParent("all");
+    setSelectedMain("all");
+    setSelectedSub("all");
   };
 
-  // --- سیستم مرتب‌سازی Drag and Drop متصل به دیتابیس ---
   const handleDragStart = (index: number) => {
     if (!isBrandsCategory) setDraggedItemIndex(index);
   };
@@ -170,21 +193,27 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
     items.splice(draggedItemIndex, 1);
     items.splice(index, 0, draggedItem);
     
-    setLocalItems(items); // آپدیت فوری رابط کاربری
+    setLocalItems(items);
     setDraggedItemIndex(index);
   };
 
   const handleDragEnd = () => {
     setDraggedItemIndex(null);
-    // آپدیت کردن فیلد order در دیتابیس در پس‌زمینه
     localItems.forEach((item, idx) => {
       updateCategory(item._id, { order: idx });
     });
   };
 
-  const getParentInfo = (parentId: string) => mainCats.find(c => c.id === parentId) || mainCats[0];
+  // تابع خواندن مسیر کامل برای نمایش در جدول
+  const getParentPathLabel = (parentId: string) => {
+      if (parentId === "all") return "عمومی برای همه";
+      const p = categories.find(c => c.slug === parentId);
+      if (!p) return "نامشخص";
+      if (p.iconName === "main") return `گروه: ${p.faName}`;
+      const grandParent = categories.find(c => c.slug === p.parent);
+      return `${grandParent ? grandParent.faName : ''} > ${p.faName}`;
+  };
 
-  // تشخیص اینکه چه دیتایی باید در لیست رندر شود
   const displayItems = isBrandsCategory 
     ? brands.map(b => ({ _id: b._id, faName: b.faName, enName: b.enName, parent: "all" }))
     : localItems;
@@ -213,11 +242,11 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
             <div className="flex items-center gap-3 text-blue-700 dark:text-blue-400">
               <AlertCircle size={24} className="shrink-0" />
               <p className="text-sm font-bold leading-relaxed">
-                برندها دارای صفحات فرانت‌اند اختصاصی (هیرو، متن و لیست محصول) هستند. امکان ویرایش آن‌ها از این بخش وجود ندارد.
+                برندها دارای صفحات فرانت‌اند اختصاصی هستند. ویرایش آن‌ها از این بخش امکان‌پذیر نیست.
               </p>
             </div>
             <a href="?section=brands_sec" className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors text-xs">
-              رفتن به مدیریت برندها <ArrowLeft size={16} />
+              مدیریت برندها <ArrowLeft size={16} />
             </a>
           </div>
         ) : (
@@ -263,17 +292,38 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
             </div>
             
             <div className="flex flex-col md:flex-row gap-4 w-full mt-1">
-              <select 
-                value={newItemParent} 
-                onChange={(e) => setNewItemParent(e.target.value)} 
-                className="grow bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-bold"
-              >
-                {mainCats.map(cat => <option key={cat.id} value={cat.id}>{cat.label}</option>)}
-              </select>
+              
+              {isMainGroup ? (
+                 <div className="grow text-xs text-gray-500 font-bold px-2 py-3">این یک دسته‌بندی سطح بالا است و نیازی به انتخاب والد ندارد.</div>
+              ) : (
+                <>
+                  <select 
+                    value={selectedMain} 
+                    onChange={(e) => { setSelectedMain(e.target.value); setSelectedSub("all"); }} 
+                    className="grow bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-bold text-amber-600"
+                  >
+                    <option value="all">دسته‌بندی عمومی (مشترک)</option>
+                    {categories.filter(c => c.iconName === 'main').map(c => <option key={c.slug} value={c.slug}>{c.faName}</option>)}
+                  </select>
+                  
+                  {isSpecGroup && (
+                    <select 
+                      value={selectedSub} 
+                      onChange={(e) => setSelectedSub(e.target.value)} 
+                      disabled={selectedMain === "all"}
+                      className="grow bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 font-bold text-blue-700 dark:text-blue-400 disabled:opacity-50"
+                    >
+                      <option value="all">{selectedMain === "all" ? "ابتدا گروه اصلی را انتخاب کنید" : "همه زیردسته‌ها"}</option>
+                      {categories.filter(c => c.parent === selectedMain && c.iconName !== 'main').map(c => <option key={c.slug} value={c.slug}>{c.faName}</option>)}
+                    </select>
+                  )}
+                </>
+              )}
+              
               <button 
                 type="submit" 
                 disabled={!newItemFaName.trim() || !newItemEnName.trim()} 
-                className="shrink-0 bg-amber-400 hover:bg-amber-500 disabled:bg-amber-400/50 text-gray-950 px-8 py-3 rounded-xl font-bold transition-colors shadow-lg shadow-amber-400/20 flex items-center gap-2"
+                className="shrink-0 bg-amber-400 hover:bg-amber-500 disabled:bg-amber-400/50 text-gray-950 px-8 py-3 rounded-xl font-bold transition-colors shadow-lg shadow-amber-400/20 flex items-center justify-center gap-2"
               >
                 {editModeId ? "ذخیره تغییرات" : "ثبت آیتم (Enter)"}
               </button>
@@ -286,8 +336,6 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
              <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-amber-500" size={32} /></div>
           ) : (
             displayItems.map((item, index) => {
-              const parentInfo = getParentInfo(item.parent);
-              
               return (
                 <div
                   key={item._id}
@@ -308,9 +356,9 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
                     <span className="text-xs font-mono text-gray-400 mt-0.5">{item.enName}</span>
                   </div>
                   
-                  <div className="hidden md:flex w-40 justify-center">
-                    <span className={`text-[10px] px-3 py-1 rounded-lg font-bold ${parentInfo.badge}`}>
-                      {parentInfo.label}
+                  <div className="hidden md:flex flex-col items-center w-56 justify-center">
+                    <span className={`text-[10px] px-3 py-1 rounded-lg font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300`}>
+                      {getParentPathLabel(item.parent)}
                     </span>
                   </div>
 

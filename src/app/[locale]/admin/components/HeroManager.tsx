@@ -8,23 +8,26 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getHeroSlides, saveHeroSlides } from "@/actions/hero";
+import { getBrands } from "@/actions/brand";
+import { getProducts } from "@/actions/product";
 
 export default function HeroManager() {
   const [slides, setSlides] = useState<any[]>([]);
+  const [brandsList, setBrandsList] = useState<any[]>([]);
+  const [productsList, setProductsList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("texts");
   const [editMode, setEditMode] = useState(false);
-  
   const [formData, setFormData] = useState({ 
     id: 0, 
     faTitle: "", enTitle: "", 
     faSubtitle: "", enSubtitle: "", 
     faDesc: "", enDesc: "",
     color: "from-amber-400 to-orange-600",
-    mainImage: "", leftImage: "", rightImage: ""
+    mainImage: "", leftImage: "", rightImage: "",
+    linkedBrand: "", linkedProduct: "", linkedProductSlug: ""
   });
-
   // استیت‌های مربوط به آپلود هوشمند قطعات معلق (Floaters)
   const [uploadedFloaters, setUploadedFloaters] = useState<any[]>([]);
   const [isProcessingFloaters, setIsProcessingFloaters] = useState(false);
@@ -34,8 +37,14 @@ export default function HeroManager() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    const res = await getHeroSlides();
-    if (res.success) setSlides(res.data);
+    const [slidesRes, brandsRes, productsRes] = await Promise.all([
+      getHeroSlides(),
+      getBrands(),
+      getProducts()
+    ]);
+    if (slidesRes.success) setSlides(slidesRes.data);
+    if (brandsRes?.success) setBrandsList(brandsRes.data);
+    if (productsRes?.success) setProductsList(productsRes.data);
     setIsLoading(false);
   };
 
@@ -55,10 +64,16 @@ export default function HeroManager() {
       return null;
     }
   };
-
   const handleSingleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     if (!e.target.files?.[0]) return;
     setIsUploading({ ...isUploading, [field]: true });
+    
+    const currentUrl = (formData as any)[field];
+    // شرط startsWith برداشته شد تا تمام فرمت‌های آدرس‌دهی شناسایی و حذف شوند
+    if (currentUrl && typeof currentUrl === 'string') {
+      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: currentUrl }) }).catch(err => console.error(err));
+    }
+
     const url = await handleFileUpload(e.target.files[0]);
     if (url) setFormData(prev => ({ ...prev, [field]: url }));
     setIsUploading({ ...isUploading, [field]: false });
@@ -86,7 +101,10 @@ export default function HeroManager() {
       color: slide.color || "from-amber-400 to-orange-600",
       mainImage: slide.mainImage || "", 
       leftImage: slide.leftImage || "", 
-      rightImage: slide.rightImage || ""
+      rightImage: slide.rightImage || "",
+      linkedBrand: slide.linkedBrand || "",
+      linkedProduct: slide.linkedProduct || "",
+      linkedProductSlug: slide.linkedProductSlug || ""
     });
     setUploadedFloaters(slide.floaters || []);
     setActiveTab("texts");
@@ -101,7 +119,8 @@ export default function HeroManager() {
       faSubtitle: "", enSubtitle: "", 
       faDesc: "", enDesc: "", 
       color: "from-amber-400 to-orange-600",
-      mainImage: "", leftImage: "", rightImage: ""
+      mainImage: "", leftImage: "", rightImage: "",
+      linkedBrand: "", linkedProduct: "", linkedProductSlug: ""
     });
     setUploadedFloaters([]);
     setActiveTab("texts");
@@ -116,7 +135,6 @@ export default function HeroManager() {
 
     const slideData = { ...formData, floaters: uploadedFloaters };
     let newSlides;
-    
     if (editMode) {
       newSlides = slides.map(s => s.id === slideData.id ? slideData : s);
     } else {
@@ -146,7 +164,6 @@ export default function HeroManager() {
   };
 
   const handleDragStart = (index: number) => setDraggedItemIndex(index);
-
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
     if (draggedItemIndex === null || draggedItemIndex === index) return;
@@ -169,27 +186,58 @@ export default function HeroManager() {
     if (!files || files.length === 0) return;
     
     setIsProcessingFloaters(true);
+
+    // ۱. حذف فیزیکی قطعات معلق قبلی از سرور (محدودیت پیشوند آدرس حذف شد)
+    if (uploadedFloaters && uploadedFloaters.length > 0) {
+      const uniqueUrls = Array.from(new Set(uploadedFloaters.map(f => f.url)));
+      for (const url of uniqueUrls) {
+        if (typeof url === 'string') {
+          await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: url }) }).catch(e => console.error(e));
+        }
+      }
+    }
+
+    // ۲. آپلود فایل‌های جدید در سرور
     const uploadedUrls: string[] = [];
-    
     for (let i = 0; i < files.length; i++) {
       const url = await handleFileUpload(files[i]);
       if (url) uploadedUrls.push(url);
     }
 
+    // ۳. تکثیر خودکار تا سقف ۸ عدد به همراه توزیع مختصات نامنظم
     if (uploadedUrls.length > 0) {
       const blurs = ["blur-none", "blur-[2px]", "blur-[4px]", "blur-[6px]"];
       const opacities = ["opacity-100", "opacity-80", "opacity-60", "opacity-40"];
       const scales = ["scale-75", "scale-90", "scale-100", "scale-110", "scale-125"];
+      
+      // مختصات کاملا نامنظم برای پراکنده کردن در کل فضای هیرو
+      const presetLayouts = [
+        { top: "15%", left: "10%", initY: -100, baseFloatX: 15, floatY: [0, 10, 0] },
+        { top: "75%", left: "85%", initY: 200, baseFloatX: 10, floatY: [0, -15, 0] },
+        { top: "30%", left: "45%", initY: -150, baseFloatX: 5, floatY: [0, 5, 0] },
+        { top: "65%", left: "35%", initY: 250, baseFloatX: 8, floatY: [0, -5, 0] },
+        { top: "10%", left: "70%", initY: -180, baseFloatX: -12, floatY: [0, 8, 0] },
+        { top: "85%", left: "20%", initY: 150, baseFloatX: -8, floatY: [0, -12, 0] },
+        { top: "50%", left: "15%", initY: -50, baseFloatX: 10, floatY: [0, -8, 0] },
+        { top: "45%", left: "80%", initY: 80, baseFloatX: -6, floatY: [0, 15, 0] },
+      ];
 
       const finalFloaters = [];
       for (let i = 0; i < 8; i++) {
-        const baseUrl = uploadedUrls[i % uploadedUrls.length]; 
+        const baseUrl = uploadedUrls[i % uploadedUrls.length];
+        const layout = presetLayouts[i];
+        
         finalFloaters.push({
           url: baseUrl,
           uniqueId: Date.now() + i,
           blur: blurs[Math.floor(Math.random() * blurs.length)],
           opacity: opacities[Math.floor(Math.random() * opacities.length)],
           scale: scales[Math.floor(Math.random() * scales.length)],
+          top: layout.top,
+          left: layout.left,
+          initY: layout.initY,
+          baseFloatX: layout.baseFloatX,
+          floatY: layout.floatY,
         });
       }
       setUploadedFloaters(finalFloaters);
@@ -236,7 +284,7 @@ export default function HeroManager() {
                 <div className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-amber-500 transition-colors pl-2 border-l border-gray-200 dark:border-gray-700">
                   <GripVertical size={20} />
                 </div>
-                
+                 
                 <div className={`w-14 h-14 rounded-xl bg-linear-to-br ${slide.color} shadow-inner flex items-center justify-center overflow-hidden relative`}>
                   {slide.mainImage ? (
                     <img src={slide.mainImage} className="w-full h-full object-cover opacity-80" alt="" />
@@ -320,7 +368,7 @@ export default function HeroManager() {
                         : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                     }`}
                   >
-                    {tab === "texts" ? "محتوای متنی و رنگ" : "تصاویر و لایه‌های معلق"}
+                    {tab === "texts" ? "محتوای متنی و دکمه" : "تصاویر و لایه‌های معلق"}
                   </button>
                 ))}
               </div>
@@ -430,7 +478,7 @@ export default function HeroManager() {
                       </div>
                     </div>
 
-                    {/* انتخاب تم رنگی (تایلویند گرادیانت) */}
+                    {/* انتخاب تم رنگی */}
                     <div className="flex flex-col gap-2 md:col-span-2 mt-2">
                       <label className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-2">تم رنگی اسلاید (پالت گرادیانت)</label>
                       <div className="flex gap-4">
@@ -453,6 +501,57 @@ export default function HeroManager() {
                       </div>
                     </div>
 
+                    {/* اتصالات دکمه به محصول */}
+                    <div className="flex flex-col gap-2 md:col-span-2 mt-4 border-t border-gray-100 dark:border-gray-800 pt-6">
+                      <label className="text-sm font-black text-gray-900 dark:text-white mb-1">اتصال دکمه به محصول (دیتابیس)</label>
+                      <p className="text-xs text-gray-500 mb-3">محصولی که کاربر با کلیک روی دکمه «مشاهده محصول» در این اسلاید به آن هدایت می‌شود را انتخاب کنید.</p>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-600 dark:text-gray-400">۱. انتخاب برند</label>
+                          {brandsList.length === 0 ? (
+                            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm">
+                              هیچ برندی در دیتابیس ثبت نشده است.
+                            </div>
+                          ) : (
+                            <select
+                              value={formData.linkedBrand}
+                              onChange={(e) => setFormData({...formData, linkedBrand: e.target.value, linkedProduct: "", linkedProductSlug: ""})}
+                              className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400"
+                            >
+                              <option value="">انتخاب برند...</option>
+                              {brandsList.map(b => (
+                                <option key={b._id} value={b._id}>{b.faName}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-600 dark:text-gray-400">۲. انتخاب محصول هدف</label>
+                          {brandsList.length === 0 ? (
+                             <div className="bg-gray-50 dark:bg-gray-800/50 text-gray-400 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm">
+                               نیازمند ثبت برند
+                             </div>
+                          ) : (
+                            <select
+                              value={formData.linkedProduct}
+                              onChange={(e) => {
+                                const selectedProd = productsList.find(p => p._id === e.target.value);
+                                setFormData({...formData, linkedProduct: e.target.value, linkedProductSlug: selectedProd?.slug || ""});
+                              }}
+                              disabled={!formData.linkedBrand}
+                              className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 disabled:opacity-50"
+                            >
+                              <option value="">ابتدا برند را انتخاب کنید...</option>
+                              {productsList.filter(p => p.brandId?._id === formData.linkedBrand || p.brandId === formData.linkedBrand).map(p => (
+                                <option key={p._id} value={p._id}>{p.faTitle}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
                 )}
 
@@ -463,10 +562,10 @@ export default function HeroManager() {
                     {/* محصول اصلی */}
                     <div className="flex flex-col gap-2">
                       <label className="text-sm font-bold text-gray-900 dark:text-white">تصویر محصول اصلی (Focus Point)</label>
-                      <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-44 flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors cursor-pointer group relative overflow-hidden">
+                      <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-44 flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors group overflow-hidden">
                         <input 
                           type="file" 
-                          className="hidden" 
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
                           onChange={(e) => handleSingleImageUpload(e, 'mainImage')} 
                         />
                         {isUploading.mainImage ? (
@@ -484,17 +583,17 @@ export default function HeroManager() {
                             </div>
                           </>
                         )}
-                      </label>
+                      </div>
                     </div>
 
                     {/* محصولات جانبی */}
                     <div className="flex flex-col gap-2">
                       <label className="text-sm font-bold text-gray-900 dark:text-white">تصاویر جانبی (محو شده در چپ و راست)</label>
                       <div className="flex gap-4 h-44">
-                        <label className="flex-1 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors cursor-pointer group p-2 text-center relative overflow-hidden">
+                        <div className="relative flex-1 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors group p-2 text-center overflow-hidden">
                           <input 
                             type="file" 
-                            className="hidden" 
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
                             onChange={(e) => handleSingleImageUpload(e, 'rightImage')} 
                           />
                           {isUploading.rightImage ? (
@@ -508,11 +607,11 @@ export default function HeroManager() {
                               <span className="text-[9px] font-bold text-gray-400 font-mono">PNG - 500x500px</span>
                             </>
                           )}
-                        </label>
-                        <label className="flex-1 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors cursor-pointer group p-2 text-center relative overflow-hidden">
+                        </div>
+                        <div className="relative flex-1 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors group p-2 text-center overflow-hidden">
                           <input 
                             type="file" 
-                            className="hidden" 
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
                             onChange={(e) => handleSingleImageUpload(e, 'leftImage')} 
                           />
                           {isUploading.leftImage ? (
@@ -526,7 +625,7 @@ export default function HeroManager() {
                               <span className="text-[9px] font-bold text-gray-400 font-mono">PNG - 500x500px</span>
                             </>
                           )}
-                        </label>
+                        </div>
                       </div>
                     </div>
 
@@ -551,11 +650,11 @@ export default function HeroManager() {
 
                       <div className="flex items-stretch gap-4">
                         {/* دکمه آپلود */}
-                        <label className="w-40 border-2 border-dashed border-amber-300 dark:border-amber-700/50 rounded-2xl flex flex-col items-center justify-center gap-3 bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-900/10 dark:hover:bg-amber-900/20 transition-colors group p-4 shrink-0 cursor-pointer">
+                        <div className="relative overflow-hidden w-40 border-2 border-dashed border-amber-300 dark:border-amber-700/50 rounded-2xl flex flex-col items-center justify-center gap-3 bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-900/10 dark:hover:bg-amber-900/20 transition-colors group p-4 shrink-0">
                           <input 
                             type="file" 
                             multiple 
-                            className="hidden" 
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
                             onChange={handleActualFloaterUpload} 
                             disabled={isProcessingFloaters} 
                           />
@@ -567,7 +666,7 @@ export default function HeroManager() {
                           <span className="text-xs font-bold text-amber-700 dark:text-amber-500 text-center">
                             {isProcessingFloaters ? "در حال پردازش..." : "آپلود قطعات و تکثیر هوشمند"}
                           </span>
-                        </label>
+                        </div>
 
                         {/* پیش‌نمایش قطعات تکثیر شده */}
                         <div className="grow bg-gray-50 dark:bg-gray-800/30 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center justify-center overflow-hidden relative">
@@ -593,7 +692,7 @@ export default function HeroManager() {
                                       )}
                                     </div>
                                     <span className="text-[8px] font-mono text-gray-400 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded-sm">
-                                      {floater.scale.replace('scale-','')} / {floater.blur.includes('none') ? '0' : floater.blur.replace('blur-[','').replace('px]','')}b
+                                      {floater.scale?.replace('scale-','')} / {floater.blur?.includes('none') ? '0' : floater.blur?.replace('blur-[','').replace('px]','')}b
                                     </span>
                                   </motion.div>
                                 ))}

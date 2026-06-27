@@ -46,18 +46,6 @@ const menuStructure: Record<string, TabMenuType> = {
       { id: "footer_sec", label: "سکشن فوتر", icon: FileText },
     ]
   },
-  about: {
-    label: "درباره شرکت",
-    icon: Info,
-    sidebar: [
-      { id: "history", label: "تاریخچه و ویدیو", icon: Factory },
-      { id: "vision", label: "چشم‌انداز و ماموریت", icon: Target },
-      { id: "stats", label: "آمار و چرا جزیره گندم", icon: BarChart },
-      { id: "partners", label: "شرکا و گواهینامه‌ها", icon: Award },
-      { id: "branches", label: "مدیریت تماس و شعب", icon: MapPin },
-      { id: "agency_forms", label: "مدیریت فرمهای نمایندگی", icon: ClipboardList },
-    ]
-  },
   products: {
     label: "محصولات",
     icon: ShoppingBag,
@@ -98,6 +86,18 @@ const menuStructure: Record<string, TabMenuType> = {
       { id: "blog_all", label: "همه مقالات", icon: LayoutTemplate },
       { id: "blog_published", label: "منتشر شده‌ها", icon: CheckCircle2 },
       { id: "blog_draft", label: "پیش‌نویس‌ها", icon: FileText },
+    ]
+  },
+  about: {
+    label: "درباره شرکت",
+    icon: Info,
+    sidebar: [
+      { id: "history", label: "تاریخچه و ویدیو", icon: Factory },
+      { id: "vision", label: "چشم‌انداز و ماموریت", icon: Target },
+      { id: "stats", label: "آمار و چرا جزیره گندم", icon: BarChart },
+      { id: "partners", label: "شرکا و گواهینامه‌ها", icon: Award },
+      { id: "branches", label: "مدیریت تماس و شعب", icon: MapPin },
+      { id: "agency_forms", label: "مدیریت فرمهای نمایندگی", icon: ClipboardList },
     ]
   },
   settings: {
@@ -361,7 +361,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </AnimatePresence>
           </div>
           
+          
           <div className="mt-auto p-4 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-1.5 shrink-0">
+            
             <Link 
               href={`/${locale}`}
               className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold rounded-xl w-full text-right text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white transition-all"

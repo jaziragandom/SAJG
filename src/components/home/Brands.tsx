@@ -1,22 +1,35 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useTranslations, useLocale } from "next-intl";
-import { ArrowLeft, ArrowRight, Zap, Coffee, Leaf, Droplets, Flame, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Zap, Loader2, Image as ImageIcon } from "lucide-react";
+import Link from "next/link";
+import { getBrands } from "@/actions/brand";
+
+const fallbackBrands = [
+  { _id: "1", faName: "ام‌فور", enName: "M4", faDesc: "انرژی و نشاط با محصولات ام‌فور", enDesc: "Energy and vitality", slug: "#", color: "from-orange-400 to-orange-600", fallbackIcon: Zap },
+  { _id: "2", faName: "خندان", enName: "Khandan", faDesc: "لحظات شاد با تنقلات خندان", enDesc: "Happy moments with Khandan snacks", slug: "#", color: "from-red-500 to-rose-600", fallbackIcon: Zap },
+  { _id: "3", faName: "شیک", enName: "Shik", faDesc: "طعم طبیعی میوه‌ها", enDesc: "Natural taste of fruits", slug: "#", color: "from-green-400 to-emerald-600", fallbackIcon: Zap },
+];
 
 export default function Brands() {
   const t = useTranslations("Brands");
   const locale = useLocale();
   const isRtl = locale === 'fa';
 
-  const brands = [
-    { id: 1, name: t("items.brand1.name"), desc: t("items.brand1.desc"), icon: Zap, color: "text-orange-500", bg: "bg-orange-500/10" },
-    { id: 2, name: t("items.brand2.name"), desc: t("items.brand2.desc"), icon: Flame, color: "text-amber-500", bg: "bg-amber-500/10" },
-    { id: 3, name: t("items.brand3.name"), desc: t("items.brand3.desc"), icon: Sparkles, color: "text-yellow-500", bg: "bg-yellow-500/10" },
-    { id: 4, name: t("items.brand4.name"), desc: t("items.brand4.desc"), icon: Leaf, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-    { id: 5, name: t("items.brand5.name"), desc: t("items.brand5.desc"), icon: Coffee, color: "text-stone-600", bg: "bg-stone-500/10" },
-    { id: 6, name: t("items.brand6.name"), desc: t("items.brand6.desc"), icon: Droplets, color: "text-cyan-500", bg: "bg-cyan-500/10" },
-  ];
+  const [brandsData, setBrandsData] = useState<any[]>(fallbackBrands);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBrands = async () => {
+      const res = await getBrands();
+      if (res.success && res.data && res.data.length > 0) {
+        setBrandsData(res.data.slice(0, 6)); 
+      }
+      setIsLoading(false);
+    };
+    fetchBrands();
+  }, []);
 
   return (
     <section className="py-24 bg-white dark:bg-gray-950 relative overflow-hidden">
@@ -43,39 +56,65 @@ export default function Brands() {
           </motion.p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {brands.map((brand, index) => (
-            <motion.div
-              key={brand.id}
-              // فاصله شروع بیشتر (100 پیکسل) تا شتاب اولیه بهتر دیده شود
-              initial={{ opacity: 0, y: 100 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, amount: 0.1 }}
-              // استفاده از منحنی ریاضی خاص: سرعت انفجاری در شروع و فرود بسیار نرم در پایان
-              transition={{ duration: 0.8, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="group relative bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-8 hover:shadow-2xl hover:shadow-amber-400/5 transition-shadow duration-300 overflow-hidden opacity-0"
-            >
-              <div className="flex items-center gap-4 mb-6 relative z-10">
-                <div className={`w-16 h-16 rounded-2xl ${brand.bg} ${brand.color} flex items-center justify-center`}>
-                  <brand.icon strokeWidth={2.5} size={32} />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-black text-gray-900 dark:text-white">{brand.name}</h3>
-                  <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">{brand.desc}</p>
-                </div>
-              </div>
+        {isLoading ? (
+          <div className="w-full flex justify-center py-12">
+            <Loader2 className="animate-spin text-amber-500" size={40} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {brandsData.map((brand, index) => {
+              const name = isRtl ? brand.faName : brand.enName;
+              const desc = isRtl ? brand.faDesc : brand.enDesc;
               
-              <div className="mt-8 flex justify-end relative z-10">
-                <button className="flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-amber-500 transition-colors">
-                  {t("view_brand")}
-                  {isRtl ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
-                </button>
-              </div>
+              // === اصلاح لینک در اینجا انجام شده است ===
+              const brandLink = brand.slug !== "#" ? `/${locale}/brands/${brand.slug}` : "#";
+              
+              const gradientColor = brand.color || "from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800";
 
-              <div className="absolute inset-0 bg-linear-to-br from-amber-400/0 to-amber-400/0 group-hover:from-amber-400/5 group-hover:to-transparent transition-all duration-500 z-0" />
-            </motion.div>
-          ))}
-        </div>
+              return (
+                <motion.div
+                  key={brand._id || index}
+                  initial={{ opacity: 0, y: 100 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: false, amount: 0.1 }}
+                  transition={{ duration: 0.8, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                  className="group relative bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-8 hover:shadow-2xl hover:shadow-amber-400/5 transition-all duration-300 overflow-hidden opacity-0"
+                >
+                  <Link href={brandLink} className="block h-full cursor-pointer">
+                    <div className="flex items-center gap-4 mb-6 relative z-10">
+                      
+                      <div className={`w-16 h-16 shrink-0 rounded-2xl bg-linear-to-br ${gradientColor} p-0.5 shadow-inner`}>
+                        <div className="w-full h-full bg-white dark:bg-gray-950 rounded-[14px] flex items-center justify-center overflow-hidden p-2">
+                          {brand.logo ? (
+                            <img src={brand.logo} alt={name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300" />
+                          ) : (
+                            <ImageIcon className="text-gray-300 dark:text-gray-700" size={24} />
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-2xl font-black text-gray-900 dark:text-white group-hover:text-amber-500 transition-colors">{name}</h3>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm font-medium line-clamp-2 mt-1 leading-relaxed">
+                          {desc || "توضیحاتی ثبت نشده است."}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-8 flex justify-end relative z-10">
+                      <div className="flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-amber-500 transition-colors">
+                        {t("view_brand")}
+                        {isRtl ? <ArrowLeft size={16} className="transform group-hover:-translate-x-1 transition-transform" /> : <ArrowRight size={16} className="transform group-hover:translate-x-1 transition-transform" />}
+                      </div>
+                    </div>
+
+                    <div className="absolute inset-0 bg-linear-to-br from-amber-400/0 to-amber-400/0 group-hover:from-amber-400/5 group-hover:to-transparent transition-all duration-500 z-0 pointer-events-none" />
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
 
       </div>
     </section>

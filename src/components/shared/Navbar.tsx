@@ -1,77 +1,59 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useLocale } from "next-intl";
 import { 
-  Menu, 
-  X, 
-  ShieldCheck, 
-  ChevronDown, 
-  ChevronLeft,
-  ChevronRight,
-  ArrowLeft, 
-  ArrowRight, 
-  Wheat,
-  Droplets,
-  Sparkles,
-  Tag,
-  LayoutGrid
+  Menu, X, ShieldCheck, ChevronDown, ChevronLeft, ChevronRight,
+  ArrowLeft, ArrowRight, Wheat, Droplets, Sparkles, Tag, LayoutGrid
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import LangSwitch from "./LangSwitch";
-
-// ۱. فراخوانی تگ‌های فیلتر از سیستم مدیریت دسته‌بندی‌ها (برای منوی محصولات)
-import { FILTER_GROUPS } from "@/lib/mockData";
-
-// ۲. شبیه‌سازی دیتابیس مدیریت برندها (برای منوی مستقل برندها با قابلیت Slug)
-const brandsDB = [
-  { id: "m4", slug: "m4", faName: "ام فور", enName: "M4" },
-  { id: "khandan", slug: "khandan", faName: "خندان", enName: "Khandan" },
-  { id: "seven-sky", slug: "seven-sky", faName: "سون اسکای", enName: "Seven Sky" },
-  { id: "nik", slug: "nik", faName: "نیک", enName: "Nik" },
-  { id: "sadaf", slug: "sadaf", faName: "صدف", enName: "Sadaf" },
-];
+import { getNavbarData } from "@/actions/navbar";
 
 export default function Navbar() {
   const locale = useLocale();
   const isRtl = locale === 'fa';
-
-  // گراف سرعت استاندارد و ملایم (کاملاً بدون فنر)
   const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
+  // استیت‌های دریافت اطلاعات زنده از دیتابیس
+  const [brands, setBrands] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [siteLogo, setSiteLogo] = useState<string | null>(null);
 
   const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // استیت‌های مربوط به انیمیشن‌های تعاملی دسکتاپ
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
   const [hoveredNestedLink, setHoveredNestedLink] = useState<string | null>(null);
   
-  // استیت‌های منوی موبایل (چند سطحی)
   const [expandedMobileMenu, setExpandedMobileMenu] = useState<string | null>(null); 
   const [expandedNestedMobile, setExpandedNestedMobile] = useState<string | null>(null);
 
-  // منطق اسکرول هوشمند
+  // فراخوانی زنده اطلاعات بدون درگیری با کش Next.js
+  useEffect(() => {
+    const fetchNav = async () => {
+      const res = await getNavbarData();
+      if (res.success && res.data) {
+        setBrands(res.data.brands || []);
+        setCategories(res.data.categories || []);
+        setSiteLogo(res.data.siteLogo || null);
+      }
+    };
+    fetchNav();
+  }, []);
+
   useMotionValueEvent(scrollY, "change", (latest) => {
     const previous = scrollY.getPrevious() ?? 0;
-    
-    if (latest > 50) {
-      setIsScrolled(true);
-    } else {
-      setIsScrolled(false);
-    }
-
-    if (latest > 150 && latest > previous) {
-      setIsHidden(true); 
-    } else {
-      setIsHidden(false); 
-    }
+    if (latest > 50) setIsScrolled(true);
+    else setIsScrolled(false);
+    if (latest > 150 && latest > previous) setIsHidden(true); 
+    else setIsHidden(false); 
   });
 
-  // تابع اسکرول نرم برای لینک‌های درون‌صفحه‌ای (Anchor Links) در صفحه درباره ما
   const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, hash: string) => {
     if (typeof window !== "undefined" && window.location.pathname.includes('/about')) {
       e.preventDefault();
@@ -84,74 +66,47 @@ export default function Navbar() {
     }
   };
 
-  // ساختار منوی محصولات (استفاده از تگ‌های فیلتر برای هدایت به لیست محصولات)
+  // === تبدیل کدهای استاتیک به داینامیک کامل ===
+  
+  // ۱. پیدا کردن دسته‌بندی‌هایی که در پنل مدیریت به عنوان "گروه اصلی" ساخته‌اید
+  const mainCategories = categories.filter(c => c.iconName === 'main');
+
+  // ۲. ساخت منوی محصولات بر اساس گروه‌های اصلیِ دیتابیس
+  const dynamicProductsMenu = mainCategories.map((mainCat, index) => {
+    const subCats = categories.filter(c => c.parent === mainCat.slug || c.parent === mainCat._id);
+    const icons = [<Droplets size={16} />, <Sparkles size={16} />, <Wheat size={16} />, <LayoutGrid size={16} />];
+    const Icon = icons[index % icons.length];
+
+    return {
+      id: mainCat.slug,
+      fa: mainCat.faName,
+      en: mainCat.enName,
+      icon: Icon,
+      items: subCats,
+      filterKey: "category"
+    };
+  });
+
+  // ۳. چسباندن برندها به انتهای منوی آبشاری محصولات
   const productsNestedMenu = [
-    {
-      id: "beverage",
-      fa: "نوشیدنی‌ها",
-      en: "Beverages",
-      icon: <Droplets size={16} />,
-      items: FILTER_GROUPS.beverage_type,
-      filterKey: "bevType"
-    },
-    {
-      id: "snack",
-      fa: "تنقلات",
-      en: "Snacks",
-      icon: <Sparkles size={16} />,
-      items: FILTER_GROUPS.snack_type,
-      filterKey: "snackType"
-    },
+    ...dynamicProductsMenu,
     {
       id: "brands",
       fa: "برندها",
       en: "Brands",
       icon: <Tag size={16} />,
-      items: FILTER_GROUPS.brands,
+      items: brands, 
       filterKey: "brand"
     }
   ];
 
-  // آرایه گسترده نوبار اصلی
   const navLinks = [
-    { 
-      key: "home", 
-      fa: "صفحه اصلی",
-      en: "Home",
-      href: `/${locale}` 
-    },
-    { 
-      key: "products", 
-      fa: "محصولات",
-      en: "Products",
-      href: `/${locale}/products`,
-      isProductsDropdown: true // منوی آبشاری تودرتو (عملکرد فیلتر)
-    },
-    { 
-      key: "brands", 
-      fa: "برندها",
-      en: "Brands",
-      href: `/${locale}/brands`, 
-      isBrandsMenu: true // منوی مستقل برندها (عملکرد هدایت به صفحات اختصاصی)
-    },
-    { 
-      key: "gallery", 
-      fa: "گالری",
-      en: "Gallery",
-      href: `/${locale}/gallery` // صفحه جدید گالری
-    },
-    { 
-      key: "blog", 
-      fa: "مجله گندم",
-      en: "Blog",
-      href: `/${locale}/blog` 
-    },
-    { 
-      key: "about", 
-      fa: "درباره ما",
-      en: "About Us",
-      href: `/${locale}/about`,
-      subLinks: [
+    { key: "home", fa: "صفحه اصلی", en: "Home", href: `/${locale}` },
+    { key: "products", fa: "محصولات", en: "Products", href: `/${locale}/products`, isProductsDropdown: true },
+    { key: "brands", fa: "برندها", en: "Brands", href: `/${locale}/brands`, isBrandsMenu: true },
+    { key: "gallery", fa: "گالری", en: "Gallery", href: `/${locale}/gallery` },
+    { key: "blog", fa: "مجله گندم", en: "Blog", href: `/${locale}/blog` },
+    { key: "about", fa: "درباره ما", en: "About Us", href: `/${locale}/about`, subLinks: [
         { id: "history", fa: "تاریخچه و معرفی", en: "History & About" },
         { id: "mission", fa: "ماموریت و چشم‌انداز", en: "Mission & Vision" },
         { id: "partners", fa: "شرکای تجاری ما", en: "Our Partners" },
@@ -175,11 +130,19 @@ export default function Navbar() {
       <div className="container mx-auto px-4 md:px-8 flex items-center justify-between">
         
         {/* لوگو */}
-        <Link href={`/${locale}`} className="text-2xl font-black tracking-tighter flex items-center gap-2 z-50 group">
-          <div className="w-10 h-10 bg-amber-400 text-gray-900 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
-            <Wheat size={24} strokeWidth={2.5} />
-          </div>
-          <div className="flex gap-1">
+        <Link href={`/${locale}`} className="text-2xl font-black tracking-tighter flex items-center gap-3 z-50 group">
+          {siteLogo ? (
+            <img 
+              src={siteLogo} 
+              alt="Logo" 
+              className="h-11 w-auto max-w-45 object-contain group-hover:scale-105 transition-transform duration-300" 
+            />
+          ) : (
+            <span className="w-10 h-10 bg-amber-400 text-gray-900 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+              <Wheat size={24} strokeWidth={2.5} />
+            </span>
+          )}
+          <span className="flex gap-1">
             {isRtl ? (
               <>
                 <span className="text-gray-900 dark:text-white drop-shadow-sm transition-colors">جزیره</span>
@@ -191,7 +154,7 @@ export default function Navbar() {
                 <span className="text-amber-400 drop-shadow-sm">GANDOM</span>
               </>
             )}
-          </div>
+          </span>
         </Link>
 
         {/* منوی دسکتاپ */}
@@ -206,7 +169,6 @@ export default function Navbar() {
                 setHoveredNestedLink(null);
               }}
             >
-              {/* نشانگر هاور */}
               {hoveredLink === link.key && (
                 <motion.div
                   layoutId="navbar-indicator"
@@ -225,7 +187,7 @@ export default function Navbar() {
                 )}
               </Link>
 
-              {/* === ۱. منوی آبشاری تودرتو محصولات (عملکرد: فیلتر کردن) === */}
+              {/* === ۱. منوی آبشاری تودرتو محصولات === */}
               <AnimatePresence>
                 {link.isProductsDropdown && hoveredLink === link.key && (
                   <motion.div
@@ -252,7 +214,6 @@ export default function Navbar() {
                             {isRtl ? <ChevronLeft size={16} className="opacity-50" /> : <ChevronRight size={16} className="opacity-50" />}
                           </div>
 
-                          {/* زیرمنوی آبشاری سطح دوم (لینک به فیلترها) */}
                           <AnimatePresence>
                             {hoveredNestedLink === nested.id && nested.items.length > 0 && (
                               <motion.div
@@ -262,15 +223,14 @@ export default function Navbar() {
                                 transition={{ duration: 0.3, ease: customEase }}
                                 className="absolute top-2.5 rtl:right-full rtl:pr-2 ltr:left-full ltr:pl-2 w-56"
                               >
-                                <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-2 shadow-2xl flex flex-col gap-1">
-                                  {nested.items.map((item, idx) => (
+                                <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-2 shadow-2xl flex flex-col gap-1 max-h-75 overflow-y-auto custom-scrollbar">
+                                  {nested.items.map((item: any, idx: number) => (
                                     <Link 
                                       key={idx} 
-                                      // ارسال مقدار فیلتر به عنوان Query Parameter
-                                      href={`/${locale}/products?${nested.filterKey}=${encodeURIComponent(item)}`}
+                                      href={`/${locale}/products?${nested.filterKey}=${encodeURIComponent(item.slug)}`}
                                       className="px-4 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors"
                                     >
-                                      {item}
+                                      {isRtl ? item.faName : item.enName}
                                     </Link>
                                   ))}
                                 </div>
@@ -280,7 +240,6 @@ export default function Navbar() {
                         </div>
                       ))}
 
-                      {/* گزینه تمام محصولات */}
                       <div className="border-t border-gray-100 dark:border-gray-800 mt-1 pt-1">
                         <Link 
                           href={`/${locale}/products`} 
@@ -296,7 +255,7 @@ export default function Navbar() {
                 )}
               </AnimatePresence>
 
-              {/* === ۲. منوی آبشاری مستقل برندها (عملکرد: لینک به صفحات اختصاصی) === */}
+              {/* === ۲. منوی آبشاری مستقل برندها === */}
               <AnimatePresence>
                 {link.isBrandsMenu && hoveredLink === link.key && (
                   <motion.div
@@ -304,14 +263,13 @@ export default function Navbar() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
                     transition={{ duration: 0.3, ease: customEase }}
-                    className="absolute top-full pt-4 right-0 w-48 cursor-default z-40"
+                    className="absolute top-full pt-4 right-0 w-56 cursor-default z-40"
                   >
-                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-3 shadow-2xl flex flex-col gap-1">
+                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-3 shadow-2xl flex flex-col gap-1 max-h-87.5 overflow-y-auto custom-scrollbar">
                       
-                      {/* لینک به صفحه اختصاصی هر برند با استفاده از Slug */}
-                      {brandsDB.map((brand) => (
+                      {brands.map((brand) => (
                         <Link 
-                          key={brand.id} 
+                          key={brand._id || brand.slug} 
                           href={`/${locale}/brands/${brand.slug}`}
                           className="px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors"
                         >
@@ -319,11 +277,10 @@ export default function Navbar() {
                         </Link>
                       ))}
 
-                      {/* دکمه مشاهده لیست تمام برندها */}
                       <div className="border-t border-gray-100 dark:border-gray-800 mt-2 pt-2">
                         <Link 
                           href={`/${locale}/brands`} 
-                          className="px-4 py-2 text-xs font-bold text-amber-500 hover:text-amber-600 flex items-center gap-1 justify-center"
+                          className="px-4 py-3 text-xs font-bold text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl flex items-center gap-1 justify-center transition-colors"
                         >
                           {isRtl ? "مشاهده همه برندها" : "View all brands"}
                           {isRtl ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
@@ -335,7 +292,7 @@ export default function Navbar() {
                 )}
               </AnimatePresence>
 
-              {/* === ۳. منوی آبشاری لنگری درباره ما === */}
+              {/* === ۳. منوی آبشاری درباره ما === */}
               <AnimatePresence>
                 {link.subLinks && hoveredLink === link.key && (
                   <motion.div
@@ -389,7 +346,7 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* --- منوی موبایل (چند سطحی و آکاردئونی) --- */}
+      {/* --- منوی موبایل --- */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div 
@@ -409,7 +366,6 @@ export default function Navbar() {
                     key={index}
                     className="flex flex-col"
                   >
-                    {/* لینک اصلی موبایل */}
                     <Link 
                       href={(link.isProductsDropdown || link.subLinks || link.isBrandsMenu) ? "#" : link.href}
                       className="text-xl font-black text-gray-900 dark:text-white hover:text-amber-500 flex items-center justify-between py-3"
@@ -429,7 +385,6 @@ export default function Navbar() {
                       )}
                     </Link>
 
-                    {/* زیرمنوی کشویی محصولات (دو سطحی - فیلتر سریع) */}
                     <AnimatePresence>
                       {expandedMobileMenu === link.key && link.isProductsDropdown && (
                         <motion.div 
@@ -452,7 +407,6 @@ export default function Navbar() {
                                   <ChevronDown size={14} className={`transition-transform ${expandedNestedMobile === nested.id ? 'rotate-180' : ''}`} />
                                 </button>
                                 
-                                {/* سطح سوم آکاردئون (لینک به فیلترها) */}
                                 <AnimatePresence>
                                   {expandedNestedMobile === nested.id && (
                                     <motion.div 
@@ -460,14 +414,14 @@ export default function Navbar() {
                                       className="overflow-hidden"
                                     >
                                       <div className="flex flex-col gap-1 px-4 py-2 border-l-2 rtl:border-l-0 rtl:border-r-2 border-amber-400/50 mr-4 rtl:mr-6 ltr:ml-6 mt-1 mb-2">
-                                        {nested.items.map((item, idx) => (
+                                        {nested.items.map((item: any, idx: number) => (
                                           <Link 
                                             key={idx} 
-                                            href={`/${locale}/products?${nested.filterKey}=${encodeURIComponent(item)}`} 
+                                            href={`/${locale}/products?${nested.filterKey}=${encodeURIComponent(item.slug)}`} 
                                             onClick={() => setIsMobileMenuOpen(false)} 
                                             className="text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 py-2"
                                           >
-                                            {item}
+                                            {isRtl ? item.faName : item.enName}
                                           </Link>
                                         ))}
                                       </div>
@@ -492,7 +446,6 @@ export default function Navbar() {
                         </motion.div>
                       )}
 
-                      {/* زیرمنوی کشویی مستقل برندها (لینک به صفحات اختصاصی) */}
                       {expandedMobileMenu === link.key && link.isBrandsMenu && (
                         <motion.div 
                           initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
@@ -500,9 +453,9 @@ export default function Navbar() {
                           className="overflow-hidden mb-2"
                         >
                           <div className="flex flex-col gap-2 py-3 px-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
-                            {brandsDB.map((brand) => (
+                            {brands.map((brand) => (
                               <Link 
-                                key={brand.id} 
+                                key={brand._id || brand.slug} 
                                 href={`/${locale}/brands/${brand.slug}`} 
                                 onClick={() => setIsMobileMenuOpen(false)} 
                                 className="text-sm font-bold text-gray-600 dark:text-gray-300 py-2 hover:text-amber-500"
@@ -513,15 +466,15 @@ export default function Navbar() {
                             <Link 
                               href={`/${locale}/brands`} 
                               onClick={() => setIsMobileMenuOpen(false)} 
-                              className="text-xs font-black text-amber-500 py-2 mt-2 border-t border-gray-200 dark:border-gray-700"
+                              className="text-xs font-black text-amber-500 py-2 mt-2 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between"
                             >
                               {isRtl ? "مشاهده همه برندها" : "View all brands"}
+                              {isRtl ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
                             </Link>
                           </div>
                         </motion.div>
                       )}
 
-                      {/* زیرمنوی کشویی درباره ما */}
                       {expandedMobileMenu === link.key && link.subLinks && (
                         <motion.div 
                           initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}

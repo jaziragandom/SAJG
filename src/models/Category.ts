@@ -5,8 +5,9 @@ export interface ICategory extends Document {
   faName: string;
   enName: string;
   parent: 'beverage' | 'snack' | 'bakery' | 'media' | 'all';
-  iconName: string; // برای ذخیره نام آیکون lucide
+  iconName: string;
   order: number;
+  status: 'active' | 'inactive'; // فیلد جدید برای مدیریت نمایش
 }
 
 const CategorySchema: Schema = new Schema({
@@ -15,7 +16,8 @@ const CategorySchema: Schema = new Schema({
   enName: { type: String, required: true },
   parent: { type: String, required: true, index: true },
   iconName: { type: String, default: "Layers" },
-  order: { type: Number, default: 0 }
+  order: { type: Number, default: 0 },
+  status: { type: String, enum: ['active', 'inactive'], default: 'active' }
 }, { timestamps: true });
 
 export default mongoose.models.Category || mongoose.model<ICategory>('Category', CategorySchema);

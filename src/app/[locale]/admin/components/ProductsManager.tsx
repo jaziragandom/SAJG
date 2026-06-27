@@ -1,38 +1,43 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Edit3, Trash2, Image as ImageIcon, GripVertical, X, Upload, CheckCircle2, Wand2, Loader2, Star, KeySquare } from "lucide-react";
+import { Plus, Search, Edit3, Trash2, Image as ImageIcon, GripVertical, X, Upload, CheckCircle2, Wand2, Loader2, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAdminShortcuts } from "../hooks/useAdminShortcuts";
 import { getProducts, createProduct, updateProduct, deleteProduct } from "@/actions/product";
 import { getBrands } from "@/actions/brand";
+import { getCategories } from "@/actions/category";
 
 export default function ProductsManager() {
   const [products, setProducts] = useState<any[]>([]);
   const [brandsList, setBrandsList] = useState<any[]>([]);
+  const [categoriesList, setCategoriesList] = useState<any[]>([]); 
+  
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
   const [editMode, setEditMode] = useState(false);
-  
-  const [formData, setFormData] = useState({ 
-    _id: "", brandId: "", slug: "", faTitle: "", enTitle: "", mainCat: "beverage",
-    faDesc: "", enDesc: "", faFlavor: "", enFlavor: "",
-    faShelfLife: "", enShelfLife: "", faIngredients: "", enIngredients: "",
-    visibilityStatus: "published", isFeatured: false 
-  });
-
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [translatingField, setTranslatingField] = useState<string | null>(null);
+
+  const [formData, setFormData] = useState({ 
+    _id: "", brandId: "", slug: "", faTitle: "", enTitle: "", 
+    mainCat: "", category: "", 
+    faDesc: "", enDesc: "", 
+    flavor: "", weight: "", packaging: "", 
+    faShelfLife: "", enShelfLife: "", faIngredients: "", enIngredients: "",
+    visibilityStatus: "published", isFeatured: false, mainImage: ""
+  });
 
   const tabList = ["basic", "specs", "media"];
 
   const fetchData = async () => {
     setIsLoading(true);
-    const [productsRes, brandsRes] = await Promise.all([getProducts(), getBrands()]);
+    const [productsRes, brandsRes, catsRes] = await Promise.all([getProducts(), getBrands(), getCategories()]);
     if (productsRes.success) setProducts(productsRes.data);
     if (brandsRes.success) setBrandsList(brandsRes.data);
+    if (catsRes?.success) setCategoriesList(catsRes.data);
     setIsLoading(false);
   };
 
@@ -40,7 +45,6 @@ export default function ProductsManager() {
     fetchData();
   }, []);
 
-  // اتصال فایل محصولات به سیستم شورت‌کات مرکزی
   useAdminShortcuts({
     activeTab: activeTab,
     setActiveTab: setActiveTab,
@@ -49,11 +53,26 @@ export default function ProductsManager() {
     onAddNew: () => { if (!isModalOpen) handleAddNew(); }
   });
 
-  const handleDelete = async (id: string) => {
-    if(confirm("آیا از حذف این محصول اطمینان دارید؟")) {
-      const res = await deleteProduct(id);
-      if (res.success) fetchData();
-    }
+  const mainCategories = categoriesList.filter(c => c.iconName === 'main');
+  const subCategories = categoriesList.filter(c => c.parent === formData.mainCat && c.iconName !== 'main');
+  
+  // فیلتر هوشمند مشخصات تخصصی بر اساس وابستگی سلسله مراتبی
+  const filterSpecs = (iconName: string) => {
+    return categoriesList.filter(c => 
+      c.iconName === iconName && 
+      ['all', formData.mainCat, formData.category].includes(c.parent)
+    );
+  };
+
+  const packagingOptions = filterSpecs('packaging');
+  const flavorOptions = filterSpecs('flavor');
+  const weightOptions = filterSpecs('weight');
+  const statusOptions = categoriesList.filter(c => c.iconName === 'status'); // دریافت داینامیک لیبل‌های وضعیت
+
+  const findCatSlug = (faNameOrSlug: string) => {
+    if (!faNameOrSlug) return "";
+    const c = categoriesList.find(x => x.faName === faNameOrSlug || x.slug === faNameOrSlug || x.enName === faNameOrSlug);
+    return c ? c.slug : faNameOrSlug;
   };
 
   const handleEdit = (product: any) => {
@@ -64,17 +83,20 @@ export default function ProductsManager() {
       slug: product.slug || "",
       faTitle: product.faTitle || "", 
       enTitle: product.enTitle || "", 
-      mainCat: product.mainCat || "beverage", 
+      mainCat: product.mainCat || "", 
+      category: product.category || "", 
       visibilityStatus: product.status || "published", 
       isFeatured: product.isFeatured || false,
-      faDesc: "", 
-      enDesc: "", 
-      faFlavor: product.specs?.flavorFa || "", 
-      enFlavor: product.specs?.flavorEn || "",
+      faDesc: product.faDesc || "", 
+      enDesc: product.enDesc || "", 
+      flavor: findCatSlug(product.specs?.flavorFa || ""),
+      weight: findCatSlug(product.specs?.weight || ""),
+      packaging: findCatSlug(product.specs?.packagingFa || ""),
       faShelfLife: product.specs?.shelfLifeFa || "", 
       enShelfLife: product.specs?.shelfLifeEn || "", 
       faIngredients: product.specs?.ingredientsFa || "", 
       enIngredients: product.specs?.ingredientsEn || "",
+      mainImage: product.images?.main || ""
     });
     setActiveTab("basic");
     setIsModalOpen(true);
@@ -82,23 +104,28 @@ export default function ProductsManager() {
 
   const handleAddNew = () => {
     setEditMode(false);
+    const firstMainCat = mainCategories.length > 0 ? mainCategories[0].slug : "";
     setFormData({ 
-      _id: "", brandId: brandsList.length > 0 ? brandsList[0]._id : "", slug: "", faTitle: "", enTitle: "", mainCat: "beverage",
-      faDesc: "", enDesc: "", faFlavor: "", enFlavor: "",
+      _id: "", brandId: brandsList.length > 0 ? brandsList[0]._id : "", slug: "", faTitle: "", enTitle: "", 
+      mainCat: firstMainCat, category: "",
+      faDesc: "", enDesc: "", flavor: "", weight: "", packaging: "",
       faShelfLife: "", enShelfLife: "", faIngredients: "", enIngredients: "",
-      visibilityStatus: "published", isFeatured: false
+      visibilityStatus: "published", isFeatured: false, mainImage: ""
     });
     setActiveTab("basic");
     setIsModalOpen(true);
   };
 
-  // تابع ذخیره فرم که با دکمه Enter روی کیبورد هم اجرا می‌شود
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.faTitle.trim() || !formData.enTitle.trim() || !formData.slug.trim() || !formData.brandId) {
-      alert("پر کردن نام‌ها، اسلاگ و انتخاب برند الزامی است.");
+    if (!formData.faTitle.trim() || !formData.enTitle.trim() || !formData.slug.trim() || !formData.brandId || !formData.mainCat || !formData.category) {
+      alert("پر کردن نام‌ها، اسلاگ، انتخاب برند، گروه اصلی و زیردسته الزامی است.");
       return;
     }
+
+    const selFlavor = categoriesList.find(c => c.slug === formData.flavor);
+    const selPack = categoriesList.find(c => c.slug === formData.packaging);
+    const selWeight = categoriesList.find(c => c.slug === formData.weight);
 
     const payload = {
       brandId: formData.brandId,
@@ -106,18 +133,23 @@ export default function ProductsManager() {
       enTitle: formData.enTitle,
       slug: formData.slug.toLowerCase().replace(/\s+/g, '-'),
       mainCat: formData.mainCat,
-      category: formData.mainCat, 
+      category: formData.category,
       status: formData.visibilityStatus,
       isFeatured: formData.isFeatured,
+      faDesc: formData.faDesc,
+      enDesc: formData.enDesc,
       specs: {
-        flavorFa: formData.faFlavor,
-        flavorEn: formData.enFlavor,
+        flavorFa: selFlavor ? selFlavor.faName : formData.flavor,
+        flavorEn: selFlavor ? selFlavor.enName : formData.flavor,
+        weight: selWeight ? selWeight.faName : formData.weight,
+        packagingFa: selPack ? selPack.faName : formData.packaging,
+        packagingEn: selPack ? selPack.enName : formData.packaging,
         shelfLifeFa: formData.faShelfLife,
         shelfLifeEn: formData.enShelfLife,
         ingredientsFa: formData.faIngredients,
         ingredientsEn: formData.enIngredients,
       },
-      images: { main: "https://placehold.co/400x400/png", gallery: [] } // مقدار پیش‌فرض تصویر برای دیتابیس
+      images: { main: formData.mainImage || "https://placehold.co/400x400/png", gallery: [] }
     };
 
     if (editMode && formData._id) {
@@ -145,10 +177,20 @@ export default function ProductsManager() {
       const translatedText = data[0].map((item: any) => item[0]).join('');
       setFormData(prev => ({ ...prev, [targetKey]: translatedText }));
     } catch (error) {
-      console.error("Translation Error:", error);
       alert("خطا در سیستم ترجمه.");
     } finally {
       setTranslatingField(null);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("آیا از حذف این محصول اطمینان دارید؟")) {
+      const res = await deleteProduct(id);
+      if (res.success) {
+        fetchData();
+      } else {
+        alert(res.error || "خطا در حذف محصول");
+      }
     }
   };
 
@@ -163,13 +205,17 @@ export default function ProductsManager() {
     setDraggedItemIndex(index);
     setProducts(newProducts);
   };
-
   const handleDragEnd = () => setDraggedItemIndex(null);
 
   const filteredProducts = products.filter(p => 
     (p.faTitle && p.faTitle.includes(searchQuery)) || 
     (p.enTitle && p.enTitle.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const getCatName = (slug: string) => {
+    const cat = categoriesList.find(c => c.slug === slug);
+    return cat ? cat.faName : "نامشخص";
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -180,7 +226,7 @@ export default function ProductsManager() {
             لیست محصولات
           </h1>
           <p className="text-xs text-gray-500 mt-2 font-medium flex items-center gap-2">
-            راهنمای کیبورد: <kbd className="bg-gray-100 dark:bg-gray-800 px-1 rounded">Alt+N</kbd> محصول جدید
+            داده‌ها و وابستگی‌های سلسله‌مراتبی کاملاً به Category Manager متصل است.
           </p>
         </div>
         
@@ -215,7 +261,7 @@ export default function ProductsManager() {
                 <th className="px-6 py-4">تصویر</th>
                 <th className="px-6 py-4">عنوان (فارسی / انگلیسی)</th>
                 <th className="px-6 py-4">برند</th>
-                <th className="px-6 py-4">دسته‌بندی</th>
+                <th className="px-6 py-4">دسته‌بندی‌ها</th>
                 <th className="px-6 py-4">وضعیت</th>
                 <th className="px-6 py-4">عملیات</th>
               </tr>
@@ -240,8 +286,12 @@ export default function ProductsManager() {
                     <GripVertical size={18} />
                   </td>
                   <td className="px-6 py-4 relative">
-                    <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400">
-                      <ImageIcon size={20} />
+                    <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 overflow-hidden">
+                      {product.images?.main ? (
+                         <img src={product.images.main} alt="Product" className="w-full h-full object-cover" />
+                      ) : (
+                         <ImageIcon size={20} />
+                      )}
                     </div>
                     {product.isFeatured && (
                       <div className="absolute -top-1 -right-1 bg-amber-400 text-gray-900 p-1 rounded-full shadow-sm" title="محصول ویژه">
@@ -254,16 +304,21 @@ export default function ProductsManager() {
                     <div className="text-xs text-gray-500 font-mono mt-0.5">{product.enTitle}</div>
                   </td>
                   <td className="px-6 py-4 text-gray-600 dark:text-gray-300 font-medium">{product.brandId?.faName || "نامشخص"}</td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-300 font-medium">{product.mainCat === 'beverage' ? 'نوشیدنی' : product.mainCat === 'snack' ? 'اسنک' : 'بیسکویت'}</td>
+                  
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 text-xs font-bold rounded-md ${
-                        product.status === "published" 
-                        ? "bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400" 
-                        : product.status === "draft"
-                        ? "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                        : "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400"
-                    }`}>
-                      {product.status === "published" ? "منتشر شده" : product.status === "draft" ? "پیش‌نویس" : "ناموجود"}
+                    <div className="flex flex-col gap-1">
+                      <span className="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 px-2 py-0.5 rounded text-[10px] w-fit">
+                        گروه: {getCatName(product.mainCat)}
+                      </span>
+                      <span className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 px-2 py-0.5 rounded text-[10px] w-fit">
+                        دسته: {getCatName(product.category)}
+                      </span>
+                    </div>
+                  </td>
+                  
+                  <td className="px-6 py-4">
+                    <span className="px-3 py-1 text-xs font-bold rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 whitespace-nowrap">
+                      {getCatName(product.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -271,8 +326,8 @@ export default function ProductsManager() {
                       <button onClick={() => handleEdit(product)} className="text-gray-400 hover:text-amber-500 transition-colors" title="ویرایش">
                         <Edit3 size={18} />
                       </button>
-                      <button onClick={() => handleDelete(product._id)} className="text-gray-400 hover:text-red-500 transition-colors" title="حذف">
-                         <Trash2 size={18} />
+                      <button onClick={() => handleDelete(String(product._id))} className="text-gray-400 hover:text-red-500 transition-colors" title="حذف">
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </td>
@@ -308,9 +363,6 @@ export default function ProductsManager() {
                   <h2 className="text-lg font-black text-gray-900 dark:text-white">
                     {editMode ? `ویرایش: ${formData.faTitle}` : "ثبت محصول جدید"}
                   </h2>
-                  <span className="hidden sm:flex text-[10px] text-gray-400 font-medium bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded-md gap-2 items-center">
-                    شورت‌کات‌ها: <kbd>Ctrl + ←/→</kbd> تغییر تب | <kbd>Enter</kbd> ذخیره | <kbd>Esc</kbd> خروج
-                  </span>
                 </div>
                 <button type="button" onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-red-500 bg-gray-100 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-full transition-colors">
                   <X size={20} />
@@ -325,16 +377,15 @@ export default function ProductsManager() {
                     onClick={() => setActiveTab(tab)}
                     className={`pb-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
                       activeTab === tab 
-                          ? "border-amber-400 text-amber-500" 
+                        ? "border-amber-400 text-amber-500" 
                         : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                     }`}
                   >
-                   {tab === "basic" ? "اطلاعات پایه" : tab === "specs" ? "مشخصات تخصصی" : "رسانه و ارزش غذایی"}
+                    {tab === "basic" ? "اطلاعات پایه" : tab === "specs" ? "مشخصات تخصصی" : "رسانه و عکس"}
                   </button>
                 ))}
               </div>
 
-              {/* کل فرم را داخل تگ form می‌گذاریم تا کلید اینتر در همه تب‌ها کار کند */}
               <form onSubmit={handleFormSubmit} className="flex flex-col grow overflow-hidden">
                 <div className="p-6 overflow-y-auto grow custom-scrollbar">
                   
@@ -381,17 +432,35 @@ export default function ProductsManager() {
                           className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-mono focus:outline-none focus:border-amber-400" 
                         />
                       </div>
-                     
+                 
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">گروه اصلی محصول</label>
                         <select 
                           value={formData.mainCat}
-                          onChange={(e) => setFormData({...formData, mainCat: e.target.value})}
+                          // وقتی گروه اصلی عوض شد، زیردسته‌ها و مشخصات قبلی را ریست می‌کنیم تا باگ نخوریم
+                          onChange={(e) => setFormData({...formData, mainCat: e.target.value, category: "", packaging: "", flavor: "", weight: ""})}
                           className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-bold text-amber-600"
                         >
-                          <option value="beverage">نوشیدنی‌ها</option>
-                          <option value="snack">اسنک و تنقلات</option>
-                          <option value="bakery">کیک و بیسکویت</option>
+                          <option value="">انتخاب گروه اصلی...</option>
+                          {mainCategories.map(cat => (
+                            <option key={cat.slug} value={cat.slug}>{cat.faName}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-blue-600 dark:text-blue-400">زیردسته محصول (نوع)</label>
+                        <select 
+                          value={formData.category}
+                          // وقتی زیردسته عوض شد، مشخصات مرتبط را هم ریست می‌کنیم
+                          onChange={(e) => setFormData({...formData, category: e.target.value, packaging: "", flavor: "", weight: ""})}
+                          disabled={!formData.mainCat}
+                          className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 font-bold text-blue-700 dark:text-blue-400 disabled:opacity-50"
+                        >
+                          <option value="">{formData.mainCat ? "انتخاب زیردسته..." : "ابتدا گروه اصلی را انتخاب کنید"}</option>
+                          {subCategories.map(cat => (
+                            <option key={cat.slug} value={cat.slug}>{cat.faName}</option>
+                          ))}
                         </select>
                       </div>
 
@@ -416,13 +485,15 @@ export default function ProductsManager() {
                           onChange={(e) => setFormData({...formData, visibilityStatus: e.target.value})}
                           className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-medium"
                         >
-                          <option value="published">منتشر شده (موجود)</option>
-                          <option value="out_of_stock">ناموجود در انبار</option>
-                          <option value="draft">پیش‌نویس (عدم نمایش)</option>
+                          <option value="">انتخاب وضعیت...</option>
+                          {statusOptions.map(cat => (
+                            <option key={cat.slug} value={cat.slug}>{cat.faName}</option>
+                          ))}
                         </select>
                       </div>
 
                       <div className="flex flex-col gap-2 justify-center">
+
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">محصول ویژه (نمایش در صفحه اصلی)</label>
                         <button 
                           type="button"
@@ -437,14 +508,14 @@ export default function ProductsManager() {
                         </button>
                       </div>
 
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 md:col-span-2">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">توضیحات کوتاه (فارسی)</label>
-                        <textarea rows={3} value={formData.faDesc} onChange={e => setFormData({...formData, faDesc: e.target.value})} placeholder="توضیح مختصر محصول..." className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 resize-none"></textarea>
+                        <textarea rows={2} value={formData.faDesc} onChange={e => setFormData({...formData, faDesc: e.target.value})} placeholder="توضیح مختصر محصول..." className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 resize-none"></textarea>
                       </div>
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-2 md:col-span-2">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">توضیحات کوتاه (انگلیسی)</label>
                         <div className="relative">
-                          <textarea rows={3} dir="ltr" value={formData.enDesc} onChange={e => setFormData({...formData, enDesc: e.target.value})} placeholder="Short description..." className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl py-3 pr-4 pl-12 text-sm font-mono focus:outline-none focus:border-amber-400 resize-none"></textarea>
+                          <textarea rows={2} dir="ltr" value={formData.enDesc} onChange={e => setFormData({...formData, enDesc: e.target.value})} placeholder="Short description..." className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl py-3 pr-4 pl-12 text-sm font-mono focus:outline-none focus:border-amber-400 resize-none"></textarea>
                           <button type="button" onClick={() => handleAutoTranslate(formData.faDesc, 'enDesc')} disabled={translatingField === 'enDesc' || !formData.faDesc} className="absolute left-2 top-3 p-2 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors">
                             {translatingField === 'enDesc' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
                           </button>
@@ -456,71 +527,36 @@ export default function ProductsManager() {
                   {activeTab === "specs" && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
                       
-                      {formData.mainCat === "beverage" && (
-                        <>
-                          <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">نوع نوشیدنی</label>
-                            <select className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400">
-                              <option>گازدار</option><option>بدون گاز</option><option>پالپ‌دار</option><option>انرژی‌زا</option>
-                            </select>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">نوع بسته‌بندی</label>
-                            <select className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400">
-                              <option>قوطی فلزی</option><option>بطری PET</option><option>تتراپک</option><option>شیشه</option>
-                            </select>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">حجم (مقدار مشترک)</label>
-                            <input type="text" placeholder="مثال: 250ml" className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400" />
-                          </div>
-                        </>
-                      )}
-
-                      {formData.mainCat === "snack" && (
-                        <>
-                          <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">نوع تنقلات</label>
-                            <select className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400">
-                              <option>پفک</option><option>پاپ‌کورن</option><option>چیپس</option>
-                            </select>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">نوع بسته‌بندی</label>
-                            <select className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400">
-                              <option>پاکت سلفونی</option><option>بسته‌بندی خانواده</option>
-                            </select>
-                          </div>
-                          <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">وزن خالص (مشترک)</label>
-                            <input type="text" placeholder="مثال: 60g" className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400" />
-                          </div>
-                        </>
-                      )}
+                      {/* دراپ‌داون‌های هوشمند که فقط گزینه‌های مرتبط با زیردسته یا گروه اصلی را نشان می‌دهند */}
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">نوع بسته‌بندی</label>
+                        <select value={formData.packaging} onChange={(e) => setFormData({...formData, packaging: e.target.value})} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400">
+                          <option value="">{formData.category ? "انتخاب بسته‌بندی..." : "ابتدا زیردسته را انتخاب کنید"}</option>
+                          {packagingOptions.map(cat => <option key={cat.slug} value={cat.slug}>{cat.faName}</option>)}
+                        </select>
+                      </div>
 
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">طعم (فارسی)</label>
-                        <input autoFocus type="text" value={formData.faFlavor} onChange={e => setFormData({...formData, faFlavor: e.target.value})} placeholder="پرتقال..." className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400" />
+                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">طعم و عصاره</label>
+                        <select value={formData.flavor} onChange={(e) => setFormData({...formData, flavor: e.target.value})} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400">
+                          <option value="">بدون طعم / انتخاب کنید...</option>
+                          {flavorOptions.map(cat => <option key={cat.slug} value={cat.slug}>{cat.faName}</option>)}
+                        </select>
                       </div>
+
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">Flavor (انگلیسی)</label>
-                        <div className="relative">
-                          <input type="text" dir="ltr" value={formData.enFlavor} onChange={e => setFormData({...formData, enFlavor: e.target.value})} placeholder="Orange..." className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl py-3 pr-4 pl-12 text-sm font-mono focus:outline-none focus:border-amber-400" />
-                          <button type="button" onClick={() => handleAutoTranslate(formData.faFlavor, 'enFlavor')} disabled={translatingField === 'enFlavor' || !formData.faFlavor} className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors">
-                            {translatingField === 'enFlavor' ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
-                          </button>
-                        </div>
-                      </div>
-                     
-                      <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">تعداد در بسته (مشترک)</label>
-                        <input type="number" placeholder="مثال: 24" className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400" />
+                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">حجم / وزن</label>
+                        <select value={formData.weight} onChange={(e) => setFormData({...formData, weight: e.target.value})} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400">
+                          <option value="">انتخاب کنید...</option>
+                          {weightOptions.map(cat => <option key={cat.slug} value={cat.slug}>{cat.faName}</option>)}
+                        </select>
                       </div>
                     
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">مدت انقضا (فارسی)</label>
                         <input type="text" value={formData.faShelfLife} onChange={e => setFormData({...formData, faShelfLife: e.target.value})} placeholder="مثال: ۶ ماه" className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400" />
                       </div>
+                      
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">Shelf Life (انگلیسی)</label>
                         <div className="relative">
@@ -552,24 +588,34 @@ export default function ProductsManager() {
                   )}
 
                   {activeTab === "media" && (
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
                       <div className="flex flex-col gap-3">
-                        <label className="text-sm font-bold text-gray-900 dark:text-white">تصویر اصلی محصول (مشترک)</label>
-                        <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-48 flex flex-col items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors cursor-pointer group">
-                          <div className="w-12 h-12 bg-white dark:bg-gray-900 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                        <label className="text-sm font-bold text-gray-900 dark:text-white">تصویر اصلی محصول</label>
+                        {formData.mainImage && <img src={formData.mainImage} className="h-32 object-contain mx-auto" alt="Product" />}
+                        <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-48 flex flex-col items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors cursor-pointer group">
+                          <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={async(e) => { 
+                            const f = e.target.files?.[0];
+                            if(!f) return; 
+                            const fd = new FormData(); 
+                            fd.append('file', f); 
+                            const r = await fetch('/api/upload', {method:'POST',body:fd});
+                            const d = await r.json(); 
+                            if(d.success) setFormData({...formData, mainImage: d.url});
+                          }} />
+                           <div className="w-12 h-12 bg-white dark:bg-gray-900 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
                             <Upload size={20} className="text-amber-500" />
                           </div>
-                          <span className="text-xs font-bold text-gray-500">آپلود عکس بدون پس‌زمینه (PNG)</span>
-                        </div>
+                          <span className="text-xs font-bold text-gray-500">کلیک برای آپلود عکس محصول</span>
+                        </label>
                       </div>
 
                       <div className="flex flex-col gap-3">
-                        <label className="text-sm font-bold text-gray-900 dark:text-white">جدول ارزش غذایی (مشترک)</label>
+                        <label className="text-sm font-bold text-gray-900 dark:text-white">جدول ارزش غذایی</label>
                         <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-48 flex flex-col items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors cursor-pointer group">
                            <div className="w-12 h-12 bg-white dark:bg-gray-900 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
                             <Upload size={20} className="text-gray-400" />
                           </div>
-                          <span className="text-xs font-bold text-gray-500">آپلود لیبل استاندارد غذایی (JPG/PNG)</span>
+                          <span className="text-xs font-bold text-gray-500">آپلود لیبل استاندارد غذایی (بزودی)</span>
                         </div>
                       </div>
                     </div>

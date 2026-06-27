@@ -134,7 +134,6 @@ export default function BlogManager({ currentSection }: { currentSection: string
     }
   };
 
-  // فیلتر مقالات براساس جستجو و سایدبار
   const filteredBlogs = blogs.filter(post => {
     const matchesSearch = post.faTitle?.includes(searchQuery) || post.enTitle?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = activeFilter === "all" ? true : post.status === activeFilter;
@@ -268,17 +267,14 @@ export default function BlogManager({ currentSection }: { currentSection: string
                           </button>
                         </div>
                       </div>
-                      
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-black text-gray-400">اسلاگ URL (شناسه لینک) <span className="text-red-500">*</span></label>
                         <input type="text" dir="ltr" value={formData.slug} onChange={e => setFormData({...formData, slug: e.target.value})} className="border border-gray-200 dark:border-gray-800 rounded-xl p-3 bg-transparent text-sm font-mono outline-none focus:border-amber-400" placeholder="benefits-of-vitamin-c" />
                       </div>
-
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-black text-gray-400">خلاصه مقاله (نمایش در کارت‌ها)</label>
                         <textarea rows={2} value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} className="border border-gray-200 dark:border-gray-800 rounded-xl p-3 bg-transparent text-sm font-bold outline-none focus:border-amber-400 resize-none"></textarea>
                       </div>
-
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between">
                           <label className="text-xs font-black text-gray-400">متن کامل مقاله (ویرایشگر)</label>
@@ -326,18 +322,35 @@ export default function BlogManager({ currentSection }: { currentSection: string
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="flex flex-col gap-4">
                       <label className="text-sm font-black text-gray-900 dark:text-white">تصویر کاور (هدر مقاله)</label>
-                      <input type="text" dir="ltr" placeholder="لینک تصویر هدر" value={formData.coverImage} onChange={e => setFormData({...formData, coverImage: e.target.value})} className="border border-gray-200 dark:border-gray-800 rounded-xl p-3 bg-transparent text-sm font-mono outline-none focus:border-amber-400" />
-                      <div className="border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 hover:border-amber-400 transition-colors cursor-pointer bg-gray-50/50 dark:bg-gray-900/30">
+                      {formData.coverImage && <img src={formData.coverImage} className="w-full h-32 object-cover rounded-xl border border-gray-200 dark:border-gray-700" alt="Cover" />}
+                      <div className="relative overflow-hidden border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 hover:border-amber-400 transition-colors bg-gray-50/50 dark:bg-gray-900/30">
+                        <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={async(e) => { 
+                          const f = e.target.files?.[0]; 
+                          if(!f) return; 
+                          if(formData.coverImage) await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.coverImage }) }).catch(err => console.error(err));
+                          const fd = new FormData(); fd.append('file', f); 
+                          const r = await fetch('/api/upload', {method:'POST',body:fd}); const d = await r.json(); 
+                          if(d.success) setFormData({...formData, coverImage: d.url}); 
+                        }} />
                         <Upload size={24} className="text-gray-400" />
                         <span className="text-xs font-black text-gray-500">آپلود عکس کاور (1920x800)</span>
                       </div>
                     </div>
+
                     <div className="flex flex-col gap-4">
-                      <label className="text-sm font-black text-gray-900 dark:text-white">تصویر بندانگشتی (نمایش در لیست)</label>
-                      <input type="text" dir="ltr" placeholder="لینک تصویر بندانگشتی" value={formData.thumbnailImage} onChange={e => setFormData({...formData, thumbnailImage: e.target.value})} className="border border-gray-200 dark:border-gray-800 rounded-xl p-3 bg-transparent text-sm font-mono outline-none focus:border-amber-400" />
-                      <div className="border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 hover:border-amber-400 transition-colors cursor-pointer bg-gray-50/50 dark:bg-gray-900/30">
+                      <label className="text-sm font-black text-gray-900 dark:text-white">تصویر بندانگشتی (مربع)</label>
+                      {formData.thumbnailImage && <img src={formData.thumbnailImage} className="w-32 h-32 object-cover mx-auto rounded-xl border border-gray-200 dark:border-gray-700" alt="Thumbnail" />}
+                      <div className="relative overflow-hidden border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 hover:border-amber-400 transition-colors bg-gray-50/50 dark:bg-gray-900/30">
+                        <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={async(e) => { 
+                          const f = e.target.files?.[0]; 
+                          if(!f) return; 
+                          if(formData.thumbnailImage) await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.thumbnailImage }) }).catch(err => console.error(err));
+                          const fd = new FormData(); fd.append('file', f); 
+                          const r = await fetch('/api/upload', {method:'POST',body:fd}); const d = await r.json(); 
+                          if(d.success) setFormData({...formData, thumbnailImage: d.url}); 
+                        }} />
                         <Upload size={24} className="text-gray-400" />
-                        <span className="text-xs font-black text-gray-500">آپلود عکس بندانگشتی (مربع)</span>
+                        <span className="text-xs font-black text-gray-500">آپلود عکس بندانگشتی</span>
                       </div>
                     </div>
                   </div>
