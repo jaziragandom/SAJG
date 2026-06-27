@@ -10,11 +10,9 @@ export async function getProducts(filter: any = {}) {
     
     let dbFilter: any = {};
     
-    // اگر از پنل ادمین status ارسال نشد، پیش‌فرض محصولات منتشر شده را می‌آوریم
-    if (filter.status) {
+    // حذف فیلتر اجباری published چون وضعیت‌ها کاملاً داینامیک شده‌اند
+    if (filter.status && filter.status !== 'all') {
         dbFilter.status = filter.status;
-    } else {
-        dbFilter.status = 'published';
     }
 
     // هوشمندسازی دریافت فیلترها از ناوبار

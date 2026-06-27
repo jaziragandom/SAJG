@@ -4,11 +4,11 @@ import React, { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useLocale } from "next-intl";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Play, Layers, Image as ImageIcon, X, Download, LayoutGrid, MonitorPlay, Sparkles, ListVideo } from "lucide-react";
-import { MOCK_MEDIA } from "@/lib/mockData";
+import { Play, Layers, Image as ImageIcon, X, Download, LayoutGrid, MonitorPlay, Sparkles, ListVideo, Loader2 } from "lucide-react";
+import { getGalleryItems } from "@/actions/gallery";
 
 // =====================================================================
-// ۱. کامپوننت اصلی محتوا (گالری) که تمام منطق در آن قرار دارد
+// ۱. کامپوننت اصلی محتوا (گالری) متصل به دیتابیس
 // =====================================================================
 function GalleryContent() {
   const locale = useLocale();
@@ -19,6 +19,10 @@ function GalleryContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // --- استیت‌های دیتابیس ---
+  const [mediaList, setMediaList] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedMedia, setSelectedMedia] = useState<any | null>(null);
   
@@ -27,13 +31,26 @@ function GalleryContent() {
   const [activeEpisode, setActiveEpisode] = useState(0); 
   const [isVideoEnded, setIsVideoEnded] = useState(false);
 
+  // دریافت اطلاعات از دیتابیس
+  useEffect(() => {
+    const fetchMedia = async () => {
+      setIsLoading(true);
+      const res = await getGalleryItems({ status: 'published' });
+      if (res.success) {
+        setMediaList(res.data);
+      }
+      setIsLoading(false);
+    };
+    fetchMedia();
+  }, []);
+
   // --- سیستم همگام‌سازی وضعیت با آدرس URL جهت به اشتراک‌گذاری لینک یکتا ---
   const updateUrlParams = (media: any | null, albumIdx: number, epIdx: number) => {
-    if (typeof window === "undefined") return; // جلوگیری از کرش سرور در Next.js
+    if (typeof window === "undefined") return;
     
     const params = new URLSearchParams(window.location.search);
     if (media) {
-      params.set("mediaId", media.id.toString());
+      params.set("mediaId", String(media._id));
       if (media.type === 'album') {
         params.set("albumIdx", albumIdx.toString());
         params.delete("epIdx");
@@ -55,11 +72,13 @@ function GalleryContent() {
     window.history.pushState(null, '', newUrl);
   };
 
-  // بررسی پارامترهای لینک هنگام لود اولیه صفحه
+  // بررسی پارامترهای لینک هنگام لود اولیه صفحه (هماهنگ شده با دیتابیس)
   useEffect(() => {
+    if (mediaList.length === 0) return; // صبر می‌کنیم تا دیتا لود شود
+
     const mediaId = searchParams.get("mediaId");
     if (mediaId) {
-      const media = MOCK_MEDIA.find(m => m.id.toString() === mediaId);
+      const media = mediaList.find(m => String(m._id) === mediaId);
       if (media) {
         setSelectedMedia(media);
         
@@ -70,7 +89,7 @@ function GalleryContent() {
         if (epIdx) setActiveEpisode(Number(epIdx));
       }
     }
-  }, [searchParams]);
+  }, [searchParams, mediaList]);
 
   const handleMediaSelect = (media: any) => {
     setSelectedMedia(media);
@@ -98,20 +117,17 @@ function GalleryContent() {
     updateUrlParams(selectedMedia, currentAlbumIndex, idx);
   };
 
-  const filteredMedia = activeFilter === "all" ? MOCK_MEDIA : MOCK_MEDIA.filter(m => m.type === activeFilter);
-  
-  // --- انیمیشن کارت‌ها (مستقل برای هر کارت + اعمال Stagger تضمینی) ---
+  const filteredMedia = activeFilter === "all" ? mediaList : mediaList.filter(m => m.type === activeFilter);
+
+  // --- انیمیشن کارت‌ها ---
   const fadeUpItem: Variants = {
     hidden: { opacity: 0, y: 50 },
     show: (index: number) => {
-      // این متغیر زمان تاخیر را محاسبه می‌کند. می‌توانید 0.25 را کم یا زیاد کنید
-      const delayTime = (index % 4) * 0.1; 
-      
+      const delayTime = (index % 4) * 0.1;
       return {
         opacity: 1, 
         y: 0, 
         transition: { 
-          // قرار دادن delay در داخل ویژگی‌ها برای اعمال قطعیِ تاخیر
           y: { duration: 0.7, ease: customEase, delay: delayTime },
           opacity: { duration: 0.28, ease: [0, 0, 1, 1], delay: delayTime }
         } 
@@ -119,40 +135,24 @@ function GalleryContent() {
     }
   };
 
-  // --- انیمیشن‌های هدر با همپوشانی (Overlap) بسیار نرم ---
   const fadeRightItem: Variants = {
     hidden: { opacity: 0, x: isRtl ? 60 : -60 },
-    show: {
-      opacity: 1,
-      x: 0,
-      transition: { duration: 0.8, ease: customEase, delay: 0.0 } // شروع بلافاصله
-    }
+    show: { opacity: 1, x: 0, transition: { duration: 0.8, ease: customEase, delay: 0.0 } }
   };
 
   const fadeLeftItem: Variants = {
     hidden: { opacity: 0, x: isRtl ? -60 : 60 },
-    show: {
-      opacity: 1,
-      x: 0,
-      transition: { duration: 0.8, ease: customEase, delay: 0.15 } // شروع کمی پس از تایتل
-    }
+    show: { opacity: 1, x: 0, transition: { duration: 0.8, ease: customEase, delay: 0.15 } }
   };
 
   const staggerFilters: Variants = {
     hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1, delayChildren: 0.25 } // ریزش دکمه‌ها در اوج انیمیشن متون
-    }
+    show: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.25 } }
   };
 
   const fadeDownItem: Variants = {
     hidden: { opacity: 0, y: -20 },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.6, ease: customEase } 
-    }
+    show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: customEase } }
   };
 
   return (
@@ -174,7 +174,7 @@ function GalleryContent() {
           {isRtl ? "تیزرهای موشن‌گرافیک، پشت صحنه خط تولید و مستندات تصویری" : "Promotional teasers, production line behind-the-scenes, and visual assets"}
         </motion.p>
 
-        {/* فیلترهای ناوبار گالری بر اساس نوع رسانه */}
+        {/* فیلترهای ناوبار گالری */}
         <motion.div 
           variants={staggerFilters}
           className="max-w-3xl mx-auto flex flex-nowrap justify-center items-center gap-2 overflow-x-auto custom-scrollbar pb-2 md:pb-0 w-full px-1"
@@ -203,51 +203,58 @@ function GalleryContent() {
         </motion.div>
       </motion.div>
 
-      {/* گرید فوق‌پویا بنتو با اجرای کاملاً مستقل انیمیشن برای هر کارت */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-[240px] grid-flow-dense">
-        <AnimatePresence mode="popLayout">
-          {filteredMedia.map((media, index) => (
-            <motion.div
-              custom={index} // پاس دادن ایندکس برای اجرای تک‌تک کارت‌ها
-              variants={fadeUpItem}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: false, amount: 0.12 }} 
-              key={media.id}
-              onClick={() => handleMediaSelect(media)}
-              className={`relative rounded-[2rem] overflow-hidden cursor-pointer group shadow-xs hover:shadow-2xl hover:shadow-amber-400/10 transition-[box-shadow,border-color] duration-300 border border-gray-200/40 dark:border-gray-800/40 ${media.isFeatured ? 'sm:col-span-2 sm:row-span-2' : 'col-span-1 row-span-1'}`}
-            >
-              {/* افکت کارت‌های تودرتو عقب‌تر برای آلبوم‌ها */}
-              {media.type === 'album' && (
-                <>
-                  <div className="absolute inset-2 bg-white/40 dark:bg-gray-900/40 rounded-[2rem] -z-20 transform translate-y-3 scale-92 border border-gray-200/30 dark:border-gray-800/30 transition-transform group-hover:translate-y-4"></div>
-                  <div className="absolute inset-1 bg-white/70 dark:bg-gray-900/70 rounded-[2rem] -z-10 transform translate-y-1.5 scale-96 border border-gray-200/30 dark:border-gray-800/30 transition-transform group-hover:translate-y-2"></div>
-                </>
-              )}
-              
-              <img src={media.thumbnail} alt={media.faTitle} className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-103" />
-              
-              {/* ماسک گرادیانت سافت بر روی بنتو */}
-              <div className="absolute inset-0 bg-linear-to-t from-gray-950/95 via-gray-950/20 to-transparent flex flex-col justify-end p-5 md:p-6">
-                <div className="absolute top-4 right-4 bg-white/10 dark:bg-black/30 backdrop-blur-md p-2.5 rounded-full text-white border border-white/10 group-hover:bg-amber-400 group-hover:text-gray-950 transition-colors">
-                  {media.type === 'video' || media.type === 'playlist' ? <Play size={16} className="fill-current" /> : media.type === 'album' ? <Layers size={16} /> : <ImageIcon size={16} />}
+      {/* نمایش وضعیت لودینگ یا گرید رسانه‌ها */}
+      {isLoading ? (
+        <div className="w-full flex justify-center items-center py-32">
+           <Loader2 className="animate-spin text-amber-500" size={48} />
+        </div>
+      ) : (
+        <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-[240px] grid-flow-dense">
+          <AnimatePresence mode="popLayout">
+            {filteredMedia.map((media, index) => (
+              <motion.div
+                custom={index}
+                variants={fadeUpItem}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: false, amount: 0.12 }} 
+                key={media._id}
+                onClick={() => handleMediaSelect(media)}
+                className={`relative rounded-[2rem] overflow-hidden cursor-pointer group shadow-xs hover:shadow-2xl hover:shadow-amber-400/10 transition-[box-shadow,border-color] duration-300 border border-gray-200/40 dark:border-gray-800/40 ${media.isFeatured ? 'sm:col-span-2 sm:row-span-2' : 'col-span-1 row-span-1'}`}
+              >
+                {/* افکت کارت‌های تودرتو برای آلبوم‌ها */}
+                {media.type === 'album' && (
+                  <>
+                    <div className="absolute inset-2 bg-white/40 dark:bg-gray-900/40 rounded-[2rem] -z-20 transform translate-y-3 scale-92 border border-gray-200/30 dark:border-gray-800/30 transition-transform group-hover:translate-y-4"></div>
+                    <div className="absolute inset-1 bg-white/70 dark:bg-gray-900/70 rounded-[2rem] -z-10 transform translate-y-1.5 scale-96 border border-gray-200/30 dark:border-gray-800/30 transition-transform group-hover:translate-y-2"></div>
+                  </>
+                )}
+                
+                <img src={media.thumbnail} alt={media.faTitle} className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-103" />
+                
+                <div className="absolute inset-0 bg-linear-to-t from-gray-950/95 via-gray-950/20 to-transparent flex flex-col justify-end p-5 md:p-6">
+                  <div className="absolute top-4 right-4 bg-white/10 dark:bg-black/30 backdrop-blur-md p-2.5 rounded-full text-white border border-white/10 group-hover:bg-amber-400 group-hover:text-gray-950 transition-colors">
+                    {media.type === 'video' || media.type === 'playlist' ? <Play size={16} className="fill-current" /> : media.type === 'album' ? <Layers size={16} /> : <ImageIcon size={16} />}
+                  </div>
+                  <span className="text-[9px] font-black text-amber-400 mb-1 uppercase tracking-wider">{media.category}</span>
+                  <h3 className={`font-black text-white ${media.isFeatured ? 'text-xl md:text-2xl' : 'text-sm'} leading-tight`}>
+                    {isRtl ? media.faTitle : media.enTitle}
+                  </h3>
                 </div>
-                <span className="text-[9px] font-black text-amber-400 mb-1 uppercase tracking-wider">{media.category}</span>
-                <h3 className={`font-black text-white ${media.isFeatured ? 'text-xl md:text-2xl' : 'text-sm'} leading-tight`}>
-                  {isRtl ? media.faTitle : media.enTitle}
-                </h3>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          {filteredMedia.length === 0 && (
+             <div className="col-span-full py-20 text-center text-gray-500 font-bold">رسانه‌ای یافت نشد.</div>
+          )}
+        </div>
+      )}
 
-      {/* --- لایت‌باکس بزرگ و حالت سینمایی (Theater Mode) برای ویدیوها و آلبوم‌ها --- */}
+      {/* --- لایت‌باکس بزرگ و حالت سینمایی (Theater Mode) --- */}
       <AnimatePresence>
         {selectedMedia && (
           <div className="fixed inset-0 z-100 flex items-center justify-center p-4 md:p-6">
             
-            {/* بک‌گراند بلور کاملاً تیره */}
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
               onClick={closeModal} 
@@ -259,7 +266,6 @@ function GalleryContent() {
               transition={{ duration: 0.5, ease: customEase }}
               className="relative w-full max-w-6xl h-[85vh] md:h-[75vh] flex flex-col bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border border-gray-800/80"
             >
-              {/* دکمه کلوز شیشه‌ای آیفون‌استایل */}
               <button 
                 onClick={closeModal} 
                 className="absolute top-4 left-4 z-50 p-2.5 bg-black/40 text-white hover:bg-red-500 rounded-full transition-colors backdrop-blur-md border border-white/10"
@@ -267,22 +273,21 @@ function GalleryContent() {
                 <X size={18}/>
               </button>
 
-              {/* ساختار ۱: آلبوم تصاویر تعاملی با نوار فیلم پایین صفحه */}
+              {/* ساختار ۱: آلبوم تصاویر و تصاویر تکی */}
               {(selectedMedia.type === 'image' || selectedMedia.type === 'album') && (
                 <div className="flex flex-col w-full h-full relative bg-gray-950">
                   <div className="flex-1 w-full flex items-center justify-center p-4 select-none">
                     <img 
-                      src={selectedMedia.type === 'album' ? selectedMedia.items[currentAlbumIndex] : selectedMedia.imageUrl || selectedMedia.thumbnail} 
+                      src={selectedMedia.type === 'album' ? selectedMedia.items[currentAlbumIndex] : selectedMedia.url || selectedMedia.thumbnail} 
                       alt="HQ Asset" 
                       className="max-w-full max-h-full object-contain rounded-xl drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)]" 
                     />
                   </div>
                   
-                  {/* باکس هدر لایت‌باکس تصاویر */}
                   <div className="absolute top-0 right-0 p-6 bg-linear-to-b from-black/90 via-black/40 to-transparent w-full pointer-events-none">
                     <h2 className="text-lg md:text-xl font-black text-white pr-8">{isRtl ? selectedMedia.faTitle : selectedMedia.enTitle}</h2>
                     <a 
-                      href={selectedMedia.type === 'album' ? selectedMedia.items[currentAlbumIndex] : selectedMedia.imageUrl || selectedMedia.thumbnail} 
+                      href={selectedMedia.type === 'album' ? selectedMedia.items[currentAlbumIndex] : selectedMedia.url || selectedMedia.thumbnail} 
                       download 
                       className="inline-flex items-center gap-1.5 mt-2 text-xs font-black text-amber-400 hover:text-amber-300 pointer-events-auto transition-colors"
                     >
@@ -290,7 +295,6 @@ function GalleryContent() {
                     </a>
                   </div>
 
-                  {/* نوار فیلم پایین (Filmstrip Carousel) برای آلبوم‌ها */}
                   {selectedMedia.type === 'album' && (
                     <div className="h-24 bg-black border-t border-gray-900/60 flex items-center px-4 gap-2 overflow-x-auto custom-scrollbar shrink-0 justify-center">
                       {selectedMedia.items.map((img: string, idx: number) => (
@@ -307,23 +311,23 @@ function GalleryContent() {
                 </div>
               )}
 
-              {/* ساختار ۲: پلیر ویدیویی چند اپیزودی همراه با سایدبار و انداسکرین پیشنهادات */}
+              {/* ساختار ۲: پلیر ویدیویی و پلی‌لیست اپیزودیک */}
               {(selectedMedia.type === 'video' || selectedMedia.type === 'playlist') && (
                 <div className="flex flex-col md:flex-row w-full h-full bg-gray-950">
                   
-                  {/* کانتینر اصلی پلیر */}
                   <div className="relative flex-1 bg-black flex flex-col justify-center">
                     <div className="w-full aspect-video md:flex-1 relative flex items-center justify-center bg-gray-900/40">
+                      
+                      {/* در اینجا باید تگ <video> واقعی پروژه خودتان را قرار دهید */}
                       <MonitorPlay size={48} className="text-gray-800 animate-pulse" />
                       
-                      {/* شبیه‌ساز پایان ویدیو */}
                       {!isVideoEnded && (
                         <button onClick={() => setIsVideoEnded(true)} className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1.5 rounded-lg text-[10px] font-black border border-white/10 hover:bg-amber-400 hover:text-gray-950 transition-all">
-                          شبیه‌سازی دکمه پایان ویدیو
+                          شبیه‌سازی پایان ویدیو
                         </button>
                       )}
 
-                      {/* --- اند‌اسکرین پیشنهادی کاملاً شبیه به یوتیوب (End-Screen System) --- */}
+                      {/* اند‌اسکرین پیشنهادی متصل به دیتابیس */}
                       <AnimatePresence>
                         {isVideoEnded && (
                           <motion.div 
@@ -331,13 +335,13 @@ function GalleryContent() {
                             className="absolute inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-6 z-20"
                           >
                             <h3 className="text-white font-black text-sm md:text-base mb-4 flex items-center gap-2">
-                              <Sparkles className="text-amber-400" size={16}/> {isRtl ? "ویدیوهای پیشنهادی بعدی جزیره گندم" : "Recommended Next Videos"}
+                              <Sparkles className="text-amber-400" size={16}/> {isRtl ? "پیشنهاد بعدی جزیره گندم" : "Recommended Next"}
                             </h3>
                             
                             <div className="grid grid-cols-2 gap-3 max-w-xl w-full">
-                              {MOCK_MEDIA.filter(m => m.type === 'video').slice(0, 2).map(rec => (
+                              {mediaList.filter(m => m.type === 'video' && m._id !== selectedMedia._id).slice(0, 2).map(rec => (
                                 <div 
-                                  key={rec.id} 
+                                  key={rec._id} 
                                   onClick={() => { setSelectedMedia(rec); setIsVideoEnded(false); updateUrlParams(rec, 0, 0); }} 
                                   className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden cursor-pointer hover:border-amber-400 transition-all group/rec"
                                 >
@@ -358,7 +362,6 @@ function GalleryContent() {
                     </div>
                   </div>
 
-                  {/* سایدبار لیست اپیزودها (یوتیوب‌استایل - مخصوص ویدیوهای پلی‌لیست) */}
                   {selectedMedia.type === 'playlist' && (
                     <div className="w-full md:w-80 bg-gray-950 border-t md:border-t-0 md:border-r border-gray-900 flex flex-col h-1/2 md:h-full shrink-0">
                       <div className="p-4 border-b border-gray-900/60 bg-gray-900/10">
@@ -406,7 +409,7 @@ function GalleryContent() {
 export default function GalleryPage() {
   return (
     // قرار دادن محتوا در Suspense الزامی است چون از useSearchParams استفاده کرده‌ایم
-    <Suspense fallback={<div className="min-h-screen w-full bg-gray-50 dark:bg-gray-950 flex items-center justify-center font-bold text-gray-500">در حال بارگذاری گالری...</div>}>
+    <Suspense fallback={<div className="min-h-screen w-full bg-gray-50 dark:bg-gray-950 flex items-center justify-center font-bold text-gray-500"><Loader2 className="animate-spin text-amber-500" size={40} /></div>}>
       <GalleryContent />
     </Suspense>
   );

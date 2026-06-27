@@ -49,9 +49,9 @@ function ProductsContent() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      // دریافت همزمان محصولات منتشر شده و دسته‌بندی‌ها
+      // دریافت همزمان محصولات و دسته‌بندی‌ها با پشتیبانی از وضعیت‌های داینامیک
       const [prodRes, catRes] = await Promise.all([
-        getProducts({ status: 'published' }),
+        getProducts({ status: 'all' }),
         getCategories()
       ]);
       

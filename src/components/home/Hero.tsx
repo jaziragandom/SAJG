@@ -91,8 +91,7 @@ export default function Hero() {
   const descText = isRtl ? slide.faDesc : slide.enDesc;
   const titleFirstWord = titleText.split(" ")[0];
   const titleRest = titleText.split(" ").slice(1).join(" ");
-  
-  const productLink = slide.linkedProductSlug ? `/product/${slide.linkedProductSlug}` : "#";
+  const productLink = slide.linkedProductSlug ? `/${locale}/products/${slide.linkedProductSlug}` : "#";
 
   const fallbackPresets = [
     { top: "15%", left: "10%", initY: -100, baseFloatX: 15, floatY: [0, 10, 0] },

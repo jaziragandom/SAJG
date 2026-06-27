@@ -34,7 +34,7 @@ export default function ProductsManager() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    const [productsRes, brandsRes, catsRes] = await Promise.all([getProducts(), getBrands(), getCategories()]);
+    const [productsRes, brandsRes, catsRes] = await Promise.all([getProducts({ status: 'all' }), getBrands(), getCategories()]);
     if (productsRes.success) setProducts(productsRes.data);
     if (brandsRes.success) setBrandsList(brandsRes.data);
     if (catsRes?.success) setCategoriesList(catsRes.data);
