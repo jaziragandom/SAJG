@@ -1,5 +1,7 @@
 "use client";
 
+import GlobalLoading from "@/components/GlobalLoading";
+import Image from "next/image";
 import { useSearchParams, useRouter } from "next/navigation";
 import React, { useState, useMemo, useEffect, useRef, Suspense } from "react";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
@@ -11,7 +13,7 @@ import { getCategories } from "@/actions/category";
 // استفاده از Suspense برای جلوگیری از ارورهای Next.js هنگام استفاده از useSearchParams
 export default function ProductsPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex justify-center items-center"><Loader2 className="animate-spin text-amber-500" size={40} /></div>}>
+    <Suspense fallback={<GlobalLoading />}>
       <ProductsContent />
     </Suspense>
   );
@@ -264,9 +266,9 @@ function ProductsContent() {
                     className="group flex flex-col h-full"
                  >
                    <a href={`/${locale}/products/${product._id}`} className="flex flex-col h-full bg-white dark:bg-gray-900/40 rounded-[2rem] border border-gray-200/60 dark:border-gray-800/50 hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-400/10 transition-all overflow-hidden relative">  
-                            <div className="relative h-56 shrink-0 w-full bg-linear-to-b from-gray-50/50 to-white dark:from-gray-800/30 dark:to-gray-900/30 p-6 flex items-center justify-center">
-                            <img src={imgUrl} alt={title} className="w-full h-full object-contain group-hover:scale-110 group-hover:-translate-y-1.5 transition-transform duration-700 ease-out drop-shadow-xl" />
-                            
+                            <div className="relative h-56 shrink-0 w-full bg-linear-to-b from-gray-50/50 to-white dark:from-gray-800/30 dark:to-gray-900/30 flex items-center justify-center">
+                             <Image src={imgUrl} alt={title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw" className="object-contain p-6 group-hover:scale-110 group-hover:-translate-y-1.5 transition-transform duration-700 ease-out drop-shadow-xl" />
+
                             <div className="absolute top-4 right-4 flex flex-col gap-2">
                                 {product.isFeatured && (
                                 <span className="bg-amber-400 text-gray-900 text-[9px] font-black px-2.5 py-1 rounded-md flex items-center gap-1 shadow-sm">

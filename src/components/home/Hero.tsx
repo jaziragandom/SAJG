@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { getHeroSlides } from "@/actions/hero";
+import GlobalLoading from "@/components/GlobalLoading";
 
 export default function Hero() {
   const locale = useLocale();
@@ -63,6 +64,7 @@ export default function Hero() {
   ];
 
   const [slidesData, setSlidesData] = useState<any[]>(dynamicHeroSlides);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchSlides = async () => {
@@ -71,6 +73,7 @@ export default function Hero() {
       if (res.success && res.data && res.data.length > 0) {
         setSlidesData(res.data);
       }
+      setIsLoading(false);
     };
     fetchSlides();
   }, []);
@@ -104,6 +107,8 @@ export default function Hero() {
     { top: "45%", left: "80%", initY: 80, baseFloatX: -6, floatY: [0, 15, 0] },
   ];
 
+  if (isLoading) return <GlobalLoading />;
+  
   return (
     <section 
       className="relative w-full flex items-center justify-center overflow-hidden"

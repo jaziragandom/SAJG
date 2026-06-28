@@ -1,5 +1,6 @@
 "use client";
 
+import GlobalLoading from "@/components/GlobalLoading";
 import React, { use, useState, useEffect } from "react";
 import { useLocale } from "next-intl";
 import { ArrowLeft, ArrowRight, PackageOpen, Loader2 } from "lucide-react";
@@ -56,11 +57,7 @@ export default function BrandPage({ params }: { params: Promise<{ id: string }> 
   }, [brandSlug]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-950 pt-20">
-         <Loader2 className="animate-spin text-amber-500" size={40} />
-      </div>
-    );
+    return <GlobalLoading />;
   }
 
   if (!brand) {

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -117,7 +118,8 @@ export default function BlogListPage() {
             >
               <Link href={`/${locale}/blog/${featuredPost.slug}`} className="group relative flex flex-col md:flex-row bg-white/60 dark:bg-gray-950/60 backdrop-blur-2xl border border-white/20 dark:border-gray-800/50 rounded-[2.5rem] overflow-hidden shadow-2xl hover:shadow-amber-500/10 transition-all duration-500">
                 <div className="w-full md:w-3/5 h-64 md:h-112 relative overflow-hidden shrink-0">
-                  <img src={featuredPost.coverImage} alt={featuredPost.faTitle} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                 <Image src={featuredPost.coverImage} alt={featuredPost.faTitle} fill sizes="(max-width: 768px) 100vw, 60vw" className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+
                   <div className="absolute top-6 right-6 bg-amber-400 text-gray-950 text-xs font-black px-4 py-2 rounded-full shadow-lg">مقاله ویژه</div>
                 </div>
                 <div className="p-8 md:p-12 flex flex-col justify-center w-full">

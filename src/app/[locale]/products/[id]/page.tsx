@@ -1,5 +1,6 @@
 "use client";
 
+import GlobalLoading from "@/components/GlobalLoading";
 import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useLocale } from "next-intl";
@@ -89,12 +90,7 @@ export default function ProductDetailsPage() {
   }, [productObj]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-transparent px-4">
-        <Loader2 className="animate-spin text-amber-500 mb-4" size={40} />
-        <p className="text-gray-500 font-bold">{isRtl ? "در حال بارگذاری اطلاعات محصول..." : "Loading product details..."}</p>
-      </div>
-    );
+    return <GlobalLoading />;
   }
 
   if (!productObj) {

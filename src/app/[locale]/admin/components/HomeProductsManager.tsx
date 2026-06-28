@@ -1,5 +1,6 @@
 "use client";
 
+import GlobalLoading from "@/components/GlobalLoading";
 import React, { useState, useEffect } from "react";
 import { CheckCircle2, Wand2, Loader2, LayoutTemplate, Settings2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -59,11 +60,7 @@ export default function HomeProductsManager() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-amber-500" size={40} />
-      </div>
-    );
+    return <GlobalLoading />;
   }
 
   return (

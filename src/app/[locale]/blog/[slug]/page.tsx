@@ -1,11 +1,13 @@
 "use client";
 
+import GlobalLoading from "@/components/GlobalLoading";
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { motion } from "framer-motion";
 import { Clock, Calendar, User, ArrowRight, Share2, Mail, MessageCircle, Heart, Loader2 } from "lucide-react";
+
 
 // اتصال به اکشن دیتابیس
 import { getBlogs } from "@/actions/blog";
@@ -57,12 +59,7 @@ export default function BlogPostPage() {
   });
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-transparent px-4">
-        <Loader2 className="animate-spin text-amber-500 mb-4" size={40} />
-        <p className="text-gray-500 font-bold">در حال بارگذاری مقاله...</p>
-      </div>
-    );
+    return <GlobalLoading />;
   }
 
   if (!post) {

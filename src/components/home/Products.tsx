@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { useRef, useState, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
 import { useTranslations, useLocale } from "next-intl";
@@ -14,6 +15,7 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { Card, CardContent } from "@/components/ui/card";
+import GlobalLoading from "@/components/GlobalLoading";
 
 // اکشن‌های اتصال به دیتابیس (محصولات و تنظیمات سایت)
 import { getProducts } from "@/actions/product";
@@ -149,6 +151,8 @@ export default function Products() {
 
   const subtitleText = isRtl ? (sectionSettings.faSubtitle || t("description")) : (sectionSettings.enSubtitle || t("description"));
 
+  if (isLoading) return <GlobalLoading />;
+  
   return (
     <section ref={sectionRef} className="py-24 bg-gray-50 dark:bg-dark-card/30 relative overflow-hidden">
       <div className="container mx-auto px-4 md:px-8">
@@ -195,109 +199,106 @@ export default function Products() {
         </div>
 
         <div className="relative group px-4 md:px-12">
-          {isLoading ? (
-            <div className="w-full flex justify-center py-20">
-              <Loader2 className="animate-spin text-amber-500" size={40} />
-            </div>
-          ) : (
-            <div dir={isRtl ? "rtl" : "ltr"}>
-              <Carousel 
-                setApi={setApi}
-                opts={{ align: "start", loop: true, direction: isRtl ? "rtl" : "ltr" }} 
-                className="w-full"
+          <div dir={isRtl ? "rtl" : "ltr"}>
+            <Carousel 
+              setApi={setApi}
+              opts={{ align: "start", loop: true, direction: isRtl ? "rtl" : "ltr" }} 
+              className="w-full"
+            >
+              <div 
+                className="w-full" 
+                style={{ 
+                  WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', 
+                  maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' 
+                }}
               >
-                <div 
-                  className="w-full" 
-                  style={{ 
-                    WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', 
-                    maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' 
-                  }}
-                >
-                  <CarouselContent className="-ml-2 md:-ml-4 py-6">
-                    {productsData.map((product, index) => {
-                      const theme = themeList[index % themeList.length];
-                      const title = isRtl ? product.faTitle : product.enTitle;
-                      const desc = isRtl ? product.faDesc : product.enDesc;
-                      const imgUrl = product.images?.main;
-                      
-                      let catLabel = product.mainCat;
-                      if (product.mainCat === 'beverage') catLabel = isRtl ? 'نوشیدنی' : 'Beverage';
-                      if (product.mainCat === 'snack') catLabel = isRtl ? 'اسنک' : 'Snacks';
-                      if (product.mainCat === 'bakery') catLabel = isRtl ? 'کیک و بیسکویت' : 'Bakery';
+                <CarouselContent className="-ml-2 md:-ml-4 py-6">
+                  {productsData.map((product, index) => {
+                    const theme = themeList[index % themeList.length];
+                    const title = isRtl ? product.faTitle : product.enTitle;
+                    const desc = isRtl ? product.faDesc : product.enDesc;
+                    const imgUrl = product.images?.main;
+                    
+                    let catLabel = product.mainCat;
+                    if (product.mainCat === 'beverage') catLabel = isRtl ? 'نوشیدنی' : 'Beverage';
+                    if (product.mainCat === 'snack') catLabel = isRtl ? 'اسنک' : 'Snacks';
+                    if (product.mainCat === 'bakery') catLabel = isRtl ? 'کیک و بیسکویت' : 'Bakery';
 
-                      return (
-                        <CarouselItem key={product._id || index} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/4">
-                          <motion.div 
-                            initial={{ opacity: 0, y: 80 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: false, amount: 0.2 }} 
-                            transition={{ 
-                              duration: 0.7, 
-                              delay: !isDominoDone ? 0.45 + ((index % 4) * 0.15) : 0, 
-                              ease: "easeOut" 
-                            }}
-                            className="p-1 h-full"
-                          >
-                            <Link href={`/${locale}/products/${product._id}`} className="block h-full cursor-pointer">
-                              {/* کلاس group به group/card تغییر کرد تا با گروه بیرونی اسلایدر تداخل نداشته باشد */}
-                              <Card className="relative overflow-hidden h-100 flex flex-col justify-end p-6 border border-gray-800/60 bg-gray-950 transition-all duration-700 ease-out hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:z-10 group/card">
-                                
-                                {imgUrl && (
-                                  <>
-                                    {/* ۱. تغییر opacity با group-hover/card */}
-                                    <div className="absolute inset-0 w-full h-full z-0 overflow-hidden opacity-40 group-hover/card:opacity-60 transition-opacity duration-700">
-                                      <img 
-                                        src={imgUrl} 
-                                        alt="" 
-                                        aria-hidden="true"
-                                        className="w-full h-full object-cover blur-[60px] scale-150 saturate-150" 
-                                      />
-                                    </div>
-                                    
-                                    {/* ۲. تغییر scale با group-hover/card */}
-                                    <div className="absolute inset-0 w-full h-full z-10 overflow-hidden p-4 pb-28">
-                                      <img 
-                                        src={imgUrl} 
-                                        alt={title} 
-                                        className="w-full h-full object-contain transition-transform duration-700 group-hover/card:scale-110 drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)]" 
-                                      />
-                                    </div>
-                                  </>
-                                )}
+                    return (
+                      <CarouselItem key={product._id || index} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/4">
+                        <motion.div 
+                          initial={{ opacity: 0, y: 80 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: false, amount: 0.2 }} 
+                          transition={{ 
+                            duration: 0.7, 
+                            delay: !isDominoDone ? 0.45 + ((index % 4) * 0.15) : 0, 
+                            ease: "easeOut" 
+                          }}
+                          className="p-1 h-full"
+                        >
+                          <Link href={`/${locale}/products/${product._id}`} className="block h-full cursor-pointer">
+                            <Card className="relative overflow-hidden h-100 flex flex-col justify-end p-6 border border-gray-800/60 bg-gray-950 transition-all duration-700 ease-out hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:z-10 group/card">
+                              
+                              {imgUrl && (
+                                <>
+                                  {/* ۱. افکت هاله رنگی پشت عکس با کامپوننت Image */}
+                                  <div className="absolute inset-0 w-full h-full z-0 overflow-hidden opacity-40 group-hover/card:opacity-60 transition-opacity duration-700">
+                                    <Image 
+                                      src={imgUrl} 
+                                      alt="" 
+                                      fill
+                                      sizes="(max-width: 768px) 100vw, 50vw"
+                                      aria-hidden="true"
+                                      className="object-cover blur-[60px] scale-150 saturate-150" 
+                                    />
+                                  </div>
+                                  
+                                  {/* ۲. عکس اصلی محصول با کامپوننت Image */}
+                                  <div className="absolute inset-0 w-full h-full z-10 overflow-hidden">
+                                    <Image 
+                                      src={imgUrl} 
+                                      alt={title} 
+                                      fill
+                                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                                      className="object-contain transition-transform duration-700 group-hover/card:scale-110 drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] p-4 pb-28" 
+                                    />
+                                  </div>
+                                </>
+                              )}
 
-                                <div className="absolute inset-0 bg-linear-to-t from-black/95 via-black/40 to-transparent z-10 pointer-events-none" />
-                                
-                                <CardContent className="relative z-20 p-0 text-white">
-                                  <span className="inline-block px-3 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-xs font-bold uppercase tracking-wider mb-3 shadow-sm">
-                                    {catLabel}
-                                  </span>
-                                  <h3 className="text-2xl font-black mb-2 leading-tight drop-shadow-md">
-                                    {title}
-                                  </h3>
-                                  <p className="text-sm text-gray-300 font-medium line-clamp-2 drop-shadow-sm">
-                                    {desc}
-                                  </p>
-                                </CardContent>
-                              </Card>
-                            </Link>
-                          </motion.div>
-                        </CarouselItem>
-                      )
-                    })}
-                  </CarouselContent>
-                </div>
-                
-                <div className={`hidden md:flex absolute top-1/2 -translate-y-1/2 z-20 touch-none ${prevBtnPosition}`} onPointerDown={() => startPress('prev')} onPointerUp={stopPress} onPointerLeave={stopPress}>
-                  <CarouselPrevious className="relative inset-auto translate-y-0 h-12 w-12 border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-colors shadow-xl btn-prev-carousel active:scale-[0.98] active:translate-y-0" />
-                </div>
-                
-                <div className={`hidden md:flex absolute top-1/2 -translate-y-1/2 z-20 touch-none ${nextBtnPosition}`} onPointerDown={() => startPress('next')} onPointerUp={stopPress} onPointerLeave={stopPress}>
-                  <CarouselNext className="relative inset-auto translate-y-0 h-12 w-12 border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-colors shadow-xl btn-next-carousel active:scale-[0.98] active:translate-y-0" />
-                </div>
+                              <div className="absolute inset-0 bg-linear-to-t from-black/95 via-black/40 to-transparent z-10 pointer-events-none" />
+                              
+                              <CardContent className="relative z-20 p-0 text-white">
+                                <span className="inline-block px-3 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-xs font-bold uppercase tracking-wider mb-3 shadow-sm">
+                                  {catLabel}
+                                </span>
+                                <h3 className="text-2xl font-black mb-2 leading-tight drop-shadow-md">
+                                  {title}
+                                </h3>
+                                <p className="text-sm text-gray-300 font-medium line-clamp-2 drop-shadow-sm">
+                                  {desc}
+                                </p>
+                              </CardContent>
+                            </Card>
+                          </Link>
+                        </motion.div>
+                      </CarouselItem>
+                    )
+                  })}
+                </CarouselContent>
+              </div>
+              
+              <div className={`hidden md:flex absolute top-1/2 -translate-y-1/2 z-20 touch-none ${prevBtnPosition}`} onPointerDown={() => startPress('prev')} onPointerUp={stopPress} onPointerLeave={stopPress}>
+                <CarouselPrevious className="relative inset-auto translate-y-0 h-12 w-12 border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-colors shadow-xl btn-prev-carousel active:scale-[0.98] active:translate-y-0" />
+              </div>
+              
+              <div className={`hidden md:flex absolute top-1/2 -translate-y-1/2 z-20 touch-none ${nextBtnPosition}`} onPointerDown={() => startPress('next')} onPointerUp={stopPress} onPointerLeave={stopPress}>
+                <CarouselNext className="relative inset-auto translate-y-0 h-12 w-12 border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-colors shadow-xl btn-next-carousel active:scale-[0.98] active:translate-y-0" />
+              </div>
 
-              </Carousel>
-            </div>
-          )}
+            </Carousel>
+          </div>
         </div>
 
         <div className="flex justify-center mt-10" dir={isRtl ? "rtl" : "ltr"}>
