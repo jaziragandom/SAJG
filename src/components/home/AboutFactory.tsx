@@ -141,7 +141,14 @@ export default function AboutFactory() {
             </div>
 
             {/* ستون ویدیو */}
-            <motion.div variants={fadeInUp} className="relative w-full h-96 lg:h-auto grow flex">
+            {/* ستون ویدیو */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, amount: 0.1 }}
+              transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }} // تاخیر بسیار کم و سرعت بیشتر
+              className="relative w-full h-96 lg:h-auto grow flex"
+            >
               <div className="absolute inset-0 bg-zinc-900 rounded-3xl overflow-hidden shadow-lg z-10 flex items-center justify-center group">
                 
                 {isVideoPlaying ? (
