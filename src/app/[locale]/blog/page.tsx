@@ -1,19 +1,34 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Clock, Calendar, ArrowUpLeft } from "lucide-react";
+import { Clock, Calendar, ArrowUpLeft, Loader2 } from "lucide-react";
 import { useLocale } from "next-intl";
-import { MOCK_BLOG_POSTS } from "@/lib/mockData";
+
+// اتصال به اکشن دیتابیس
+import { getBlogs } from "@/actions/blog";
 
 export default function BlogListPage() {
   const locale = useLocale();
   
-  // استیت مدیریت فیلتر دسته‌بندی‌ها
   const [activeCategory, setActiveCategory] = useState("all");
+  const [posts, setPosts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // لیست دسته‌بندی‌ها برای نمایش در دکمه‌های فیلتر
+  // دریافت مقالات از دیتابیس
+  useEffect(() => {
+    const fetchPosts = async () => {
+      // فقط مقالات منتشر شده را دریافت می‌کنیم
+      const res = await getBlogs({ status: "published" });
+      if (res.success && res.data) {
+        setPosts(res.data);
+      }
+      setIsLoading(false);
+    };
+    fetchPosts();
+  }, []);
+
   const categories = [
     { id: "all", label: "همه مقالات" },
     { id: "health", label: "سبک زندگی و سلامت" },
@@ -21,17 +36,13 @@ export default function BlogListPage() {
     { id: "products", label: "معرفی محصولات" }
   ];
 
-  // فیلتر کردن مقالات بر اساس انتشار و سپس بر اساس دسته‌بندی فعال
-  const publishedPosts = MOCK_BLOG_POSTS.filter(p => p.status === "published");
-  const filteredPosts = publishedPosts.filter(p => activeCategory === "all" || p.category === activeCategory);
+  const filteredPosts = posts.filter(p => activeCategory === "all" || p.category === activeCategory);
   
   const featuredPost = filteredPosts[0];
   const otherPosts = filteredPosts.slice(1);
 
-  // گراف سرعت ترمزدار (سریع در ابتدا، آرام در انتها)
   const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-  // انیمیشن تایتل (از راست به چپ)
   const titleAnim = {
     initial: { opacity: 0, x: 80 },
     whileInView: { opacity: 1, x: 0 },
@@ -39,7 +50,6 @@ export default function BlogListPage() {
     transition: { opacity: { duration: 0.4, delay: 0.1 }, x: { duration: 1, ease: customEase, delay: 0.1 } }
   };
 
-  // انیمیشن توضیحات (از چپ به راست) - شروع با کمی تاخیر نسبت به تایتل
   const descAnim = {
     initial: { opacity: 0, x: -80 },
     whileInView: { opacity: 1, x: 0 },
@@ -47,7 +57,6 @@ export default function BlogListPage() {
     transition: { opacity: { duration: 0.4, delay: 0.3 }, x: { duration: 1, ease: customEase, delay: 0.3 } }
   };
 
-  // انیمیشن دکمه‌های فیلتر (از پایین به بالا) - بعد از توضیحات
   const filterAnim = {
     initial: { opacity: 0, y: 30 },
     whileInView: { opacity: 1, y: 0 },
@@ -58,7 +67,6 @@ export default function BlogListPage() {
   return (
     <main className="min-h-screen bg-transparent pt-32 pb-24 px-6 md:px-12 lg:px-20 max-w-6xl mx-auto" dir="rtl">
       
-      {/* بخش هدر صفحه */}
       <div className="mb-16 text-center overflow-hidden py-4">
         <motion.h1 {...titleAnim} className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">
           مجله گندم
@@ -67,7 +75,6 @@ export default function BlogListPage() {
           داستان‌ها، اخبار و مقالات تخصصی از دنیای نوشیدنی‌ها و سبک زندگی سالم.
         </motion.p>
 
-        {/* فیلتر دسته‌بندی‌ها */}
         <motion.div {...filterAnim} className="flex flex-wrap items-center justify-center gap-3 mt-8">
           {categories.map(cat => (
             <button
@@ -85,7 +92,12 @@ export default function BlogListPage() {
         </motion.div>
       </div>
 
-      {filteredPosts.length === 0 ? (
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="animate-spin text-amber-500 mb-4" size={40} />
+          <p className="text-gray-500 font-bold">در حال دریافت مقالات...</p>
+        </div>
+      ) : filteredPosts.length === 0 ? (
         <motion.div 
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} 
           className="py-20 text-center border-2 border-dashed border-gray-200/50 dark:border-gray-800/50 rounded-[2.5rem] bg-white/20 dark:bg-gray-900/20 backdrop-blur-xl"
@@ -94,10 +106,9 @@ export default function BlogListPage() {
         </motion.div>
       ) : (
         <>
-          {/* مقاله ویژه (Featured Article) */}
           {featuredPost && (
             <motion.div 
-              key={`featured-${featuredPost.id}`} // اضافه کردن کلید برای اجرای مجدد انیمیشن هنگام تغییر فیلتر
+              key={`featured-${featuredPost._id}`}
               initial={{ opacity: 0, y: 60 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: false, amount: 0.2 }}
@@ -111,7 +122,7 @@ export default function BlogListPage() {
                 </div>
                 <div className="p-8 md:p-12 flex flex-col justify-center w-full">
                   <div className="flex items-center gap-4 text-xs font-bold text-gray-500 dark:text-gray-400 mb-4">
-                    <span className="flex items-center gap-1.5"><Calendar size={14}/> {featuredPost.date}</span>
+                    <span className="flex items-center gap-1.5"><Calendar size={14}/> {new Date(featuredPost.createdAt).toLocaleDateString('fa-IR')}</span>
                     <span className="flex items-center gap-1.5"><Clock size={14}/> {featuredPost.readTime}</span>
                   </div>
                   <h2 className="text-2xl md:text-4xl font-black text-gray-900 dark:text-white mb-4 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors leading-tight">
@@ -128,11 +139,10 @@ export default function BlogListPage() {
             </motion.div>
           )}
 
-          {/* گرید سایر مقالات */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {otherPosts.map((post, index) => (
               <motion.div 
-                key={`grid-${post.id}`}
+                key={`grid-${post._id}`}
                 initial={{ opacity: 0, y: 60 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: false, amount: 0.1, margin: "50px" }}
@@ -156,7 +166,7 @@ export default function BlogListPage() {
                       {post.excerpt}
                     </p>
                     <div className="mt-auto flex items-center justify-between text-[11px] font-bold text-gray-500 dark:text-gray-400 border-t border-gray-200/50 dark:border-gray-800/50 pt-4">
-                      <span className="flex items-center gap-1.5"><Calendar size={14}/> {post.date}</span>
+                      <span className="flex items-center gap-1.5"><Calendar size={14}/> {new Date(post.createdAt).toLocaleDateString('fa-IR')}</span>
                       <span className="flex items-center gap-1.5"><Clock size={14}/> {post.readTime}</span>
                     </div>
                   </div>

@@ -12,15 +12,28 @@ import ThemeToggle from "./ThemeToggle";
 import LangSwitch from "./LangSwitch";
 import { getNavbarData } from "@/actions/navbar";
 
-export default function Navbar() {
+// ۱. تعریف تایپ برای پراپ‌هایی که از NavbarWrapper می‌آیند
+interface NavbarProps {
+  brands?: any[];
+  categories?: any[];
+  siteLogo?: string | null;
+}
+
+// ۲. دریافت پراپ‌ها و اختصاص نام‌های موقت برای جلوگیری از تداخل با استیت‌ها
+export default function Navbar({ 
+  brands: initialBrands = [], 
+  categories: initialCategories = [], 
+  siteLogo: initialSiteLogo = null 
+}: NavbarProps) {
   const locale = useLocale();
   const isRtl = locale === 'fa';
+
   const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-  // استیت‌های دریافت اطلاعات زنده از دیتابیس
-  const [brands, setBrands] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [siteLogo, setSiteLogo] = useState<string | null>(null);
+  // استیت‌های دریافت اطلاعات زنده از دیتابیس (مقادیر اولیه از پراپ‌ها گرفته می‌شوند)
+  const [brands, setBrands] = useState<any[]>(initialBrands);
+  const [categories, setCategories] = useState<any[]>(initialCategories);
+  const [siteLogo, setSiteLogo] = useState<string | null>(initialSiteLogo);
 
   const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -127,6 +140,7 @@ export default function Navbar() {
           : "bg-transparent py-5"
       }`}
     >
+  
       <div className="container mx-auto px-4 md:px-8 flex items-center justify-between">
         
         {/* لوگو */}
@@ -464,10 +478,10 @@ export default function Navbar() {
                               </Link>
                             ))}
                             <Link 
-                              href={`/${locale}/brands`} 
+                               href={`/${locale}/brands`} 
                               onClick={() => setIsMobileMenuOpen(false)} 
                               className="text-xs font-black text-amber-500 py-2 mt-2 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between"
-                            >
+                             >
                               {isRtl ? "مشاهده همه برندها" : "View all brands"}
                               {isRtl ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
                             </Link>

@@ -7,6 +7,12 @@ import {
   Plus, Trash2, Edit3, Image as ImageIcon, Wand2, Loader2, Factory, X, BarChart, Video, ClipboardList, Eye
 } from "lucide-react";
 import { getSiteContent, saveSiteContent } from "@/actions/siteContent";
+import * as LucideIcons from "lucide-react";
+
+const DynamicIcon = ({ name, size = 24 }: { name: string, size?: number }) => {
+  const IconComponent = (LucideIcons as any)[name] || LucideIcons.HelpCircle;
+  return <IconComponent size={size} />;
+};
 
 interface CorporateManagerProps {
   currentSection: string;
@@ -32,6 +38,7 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
   });
 
   // --- دیتای داینامیک و تیک‌های نمایش ---
+  const [features, setFeatures] = useState<any[]>([]); // ویژگی‌های کارخانه
   const [visibility, setVisibility] = useState({ showPartners: true, showCerts: true });
   const [whyUs, setWhyUs] = useState<any[]>([]);
   const [stats, setStats] = useState<any[]>([]);
@@ -41,8 +48,20 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
   const [agencyRequests, setAgencyRequests] = useState<any[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<"partner" | "cert" | "branch" | "why" | "stat" | "request_details" | null>(null);
+  const [modalType, setModalType] = useState<"partner" | "cert" | "branch" | "why" | "stat" | "request_details" | "feature" | null>(null);
   const [tempFormData, setTempFormData] = useState<any>({});
+
+  // لیست آیکن‌های مجاز برای انتخاب در پنل
+  const iconOptions = [
+    { value: "Globe", label: "کره زمین (Globe)" },
+    { value: "Leaf", label: "برگ (Leaf)" },
+    { value: "ShieldCheck", label: "سپر تیک‌دار (Shield)" },
+    { value: "Factory", label: "کارخانه (Factory)" },
+    { value: "Zap", label: "رعد و برق (Zap)" },
+    { value: "Activity", label: "نمودار فعالیت (Activity)" },
+    { value: "Users", label: "کاربران (Users)" },
+    { value: "Star", label: "ستاره (Star)" }
+  ];
 
   // فراخوانی کلی اطلاعات از دیتابیس در اولین رندر
   useEffect(() => {
@@ -57,7 +76,10 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
         getSiteContent('corporate_agency')
       ]);
 
-      if (introRes?.data) setIntroData(introRes.data);
+      if (introRes?.data) {
+        setIntroData(introRes.data);
+        setFeatures(introRes.data.features || []);
+      }
       if (strategyRes?.data) setStrategyData(strategyRes.data);
       if (statsRes?.data) {
         setStats(statsRes.data.stats || []);
@@ -103,13 +125,12 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
       setTempFormData({ ...item });
     } else {
       setTempFormData({
-        id: Date.now(), faName: "", enName: "", faTitle: "", enTitle: "",
+        id: Date.now(), faName: "", enName: "", faTitle: "", enTitle: "", descFA: "", descEN: "", icon: "",
         value: "", phone: "", email: "", wa: "", tg: "", url: "",
         faAddress: "", enAddress: "", mapUrl: "", logo: "", img: ""
       });
     }
 
-    // وقتی مدیر روی مشاهده فرم کلیک می‌کند، وضعیت آن به بررسی شده تغییر کند و در دیتابیس ذخیره شود
     if (type === "request_details" && item && item.status === "pending") {
       const updatedRequests = agencyRequests.map(req => req.id === item.id ? { ...req, status: "reviewed" } : req);
       setAgencyRequests(updatedRequests);
@@ -147,6 +168,11 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
       setStats(newArr);
       const res = await saveSiteContent('corporate_stats', { stats: newArr, whyUs });
       success = res.success;
+    } else if (modalType === "feature") {
+      const newArr = features.some(f => f.id === tempFormData.id) ? features.map(f => f.id === tempFormData.id ? tempFormData : f) : [...features, tempFormData];
+      setFeatures(newArr);
+      const res = await saveSiteContent('corporate_intro', { ...introData, features: newArr });
+      success = res.success;
     }
 
     if (!success) alert("خطا در ذخیره‌سازی آیتم");
@@ -179,6 +205,10 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
         const newArr = agencyRequests.filter(r => r.id !== id);
         setAgencyRequests(newArr);
         await saveSiteContent('corporate_agency', newArr);
+      } else if (type === "feature") {
+        const newArr = features.filter(f => f.id !== id);
+        setFeatures(newArr);
+        await saveSiteContent('corporate_intro', { ...introData, features: newArr });
       }
     }
   };
@@ -292,7 +322,7 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               onSubmit={async e => {
                 e.preventDefault();
-                const res = await saveSiteContent('corporate_intro', introData);
+                const res = await saveSiteContent('corporate_intro', { ...introData, features });
                 if (res.success) alert("اطلاعات معرفی شرکت با موفقیت ذخیره شد!");
                 else alert(res.error);
               }}
@@ -317,21 +347,47 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
               <div className="flex flex-col gap-2 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 mt-2">
                 <label className="text-xs font-bold text-gray-600 dark:text-gray-400">آپلود ویدیوی پس‌زمینه (MP4)</label>
                 <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-3 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800 cursor-pointer transition-colors group">
-  <input type="file" accept="video/mp4" className="hidden" onChange={async(e) => { 
-    const f = e.target.files?.[0]; 
-    if(!f) return; 
-    if(introData.videoUrl) { 
-      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: introData.videoUrl }) }).catch(e => console.error(e)); 
-    } 
-    const fd = new FormData(); 
-    fd.append('file', f); 
-    const r = await fetch('/api/upload', {method:'POST',body:fd}); 
-    const d = await r.json(); 
-    if(d.success) { setIntroData({...introData, videoUrl: d.url}); alert('ویدیو جدید آپلود و ویدیوی قبلی حذف شد!'); } 
-  }} />
+                  <input type="file" accept="video/mp4" className="hidden" onChange={async(e) => { 
+                    const f = e.target.files?.[0]; 
+                    if(!f) return; 
+                    if(introData.videoUrl) { 
+                      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: introData.videoUrl }) }).catch(e => console.error(e)); 
+                    } 
+                    const fd = new FormData(); 
+                    fd.append('file', f); 
+                    const r = await fetch('/api/upload', {method:'POST',body:fd}); 
+                    const d = await r.json(); 
+                    if(d.success) { setIntroData({...introData, videoUrl: d.url}); alert('ویدیو جدید آپلود و ویدیوی قبلی حذف شد!'); } 
+                  }} />
                   {introData.videoUrl ? <span className="text-sm font-bold text-green-500">ویدیو آپلود شده است</span> : <Video size={32} className="text-gray-400 group-hover:text-blue-500 transition-colors" />}
                   <span className="text-sm font-bold text-gray-500 group-hover:text-blue-600">برای انتخاب و آپلود فایل ویدیویی از هاست خود کلیک کنید</span>
                 </label>
+              </div>
+
+              {/* بخش مدیریت ویژگی‌های کارخانه */}
+              <div className="border border-gray-200 dark:border-gray-800 rounded-3xl p-6 bg-gray-50/50 dark:bg-gray-800/30 mt-4">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <Factory className="text-blue-500" size={20} /> ویژگی‌های کارخانه (چهار مستطیل)
+                  </h3>
+                  <button type="button" onClick={() => openModal("feature")} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-blue-500 hover:text-white transition-colors">
+                    <Plus size={16} /> افزودن ویژگی
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {features.map(f => (
+                    <div key={f.id} className="bg-white dark:bg-gray-800 p-4 rounded-2xl flex justify-between items-center border border-gray-100 dark:border-gray-700 hover:border-blue-400 transition-colors shadow-sm">
+                      <div>
+                        <p className="text-sm font-bold text-gray-900 dark:text-white">{f.faTitle}</p>
+                        <p className="text-xs text-gray-500 font-mono mt-1">{f.enTitle}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => openModal("feature", f)} className="p-1.5 bg-gray-50 dark:bg-gray-700 text-gray-500 hover:text-blue-500 rounded-lg transition-colors"><Edit3 size={16} /></button>
+                        <button type="button" onClick={() => deleteItem("feature", f.id)} className="p-1.5 bg-gray-50 dark:bg-gray-700 text-gray-500 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="flex justify-end pt-4">
@@ -374,7 +430,7 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                   <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <Award className="text-amber-500" size={20} /> کارت‌های «چرا جزیره گندم؟»
                   </h3>
-                  <button onClick={() => openModal("why")} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-amber-400 dark:hover:bg-amber-400 transition-colors">
+                  <button onClick={() => openModal("why")} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-amber-400 hover:text-gray-900 transition-colors">
                     <Plus size={16} /> افزودن دلیل
                   </button>
                 </div>
@@ -399,7 +455,7 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                   <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <BarChart className="text-amber-500" size={20} /> آمار و ارقام شرکت
                   </h3>
-                  <button onClick={() => openModal("stat")} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-amber-400 dark:hover:bg-amber-400 transition-colors">
+                  <button onClick={() => openModal("stat")} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-amber-400 hover:text-gray-900 transition-colors">
                     <Plus size={16} /> افزودن آمار
                   </button>
                 </div>
@@ -463,7 +519,7 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                   <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <Users className="text-amber-500" size={20} /> لیست مشتریان و شرکا
                   </h3>
-                  <button onClick={() => openModal("partner")} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-amber-400 dark:hover:bg-amber-400 transition-colors">
+                  <button onClick={() => openModal("partner")} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-amber-400 hover:text-gray-900 transition-colors">
                     <Plus size={16} /> افزودن شریک
                   </button>
                 </div>
@@ -488,7 +544,7 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                   <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <Award className="text-amber-500" size={20} /> گواهینامه‌ها و افتخارات
                   </h3>
-                  <button onClick={() => openModal("cert")} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-amber-400 dark:hover:bg-amber-400 transition-colors">
+                  <button onClick={() => openModal("cert")} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-amber-400 hover:text-gray-900 transition-colors">
                     <Plus size={16} /> افزودن گواهینامه
                   </button>
                 </div>
@@ -576,7 +632,7 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                   <h3 className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <MapPin className="text-amber-500" size={20} /> لیست شعب و نمایندگی‌ها
                   </h3>
-                  <button onClick={() => openModal("branch")} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-amber-400 dark:hover:bg-amber-400 transition-colors">
+                  <button onClick={() => openModal("branch")} className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-amber-400 hover:text-gray-900 transition-colors">
                     <Plus size={16} /> افزودن شعبه
                   </button>
                 </div>
@@ -728,6 +784,44 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                       </div>
                     </div>
 
+                    {/* فیلد انتخاب آیکن برای چرا ما و ویژگی کارخانه */}
+                    {(modalType === "why" || modalType === "feature") && (
+                      <div className="flex flex-col gap-3 col-span-full mt-2">
+                        <label className="text-xs font-bold text-gray-500">انتخاب آیکن (Icon)</label>
+                        <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+                          {iconOptions.map(opt => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setTempFormData({ ...tempFormData, icon: opt.value })}
+                              className={`flex flex-col items-center justify-center gap-2 p-3 rounded-2xl border transition-all ${
+                                tempFormData.icon === opt.value 
+                                  ? "bg-amber-100 border-amber-500 text-amber-600 dark:bg-amber-900/40 dark:border-amber-400 dark:text-amber-400 shadow-md scale-105" 
+                                  : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              }`}
+                              title={opt.label}
+                            >
+                              <DynamicIcon name={opt.value} size={28} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* فیلد توضیحات کوتاه برای ویژگی کارخانه */}
+                    {modalType === "feature" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 col-span-full">
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-500">توضیح کوتاه (فارسی)</label>
+                          <input type="text" value={tempFormData.descFA || ""} onChange={e => setTempFormData({ ...tempFormData, descFA: e.target.value })} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:border-amber-400 outline-none" />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-bold text-gray-500">توضیح کوتاه (انگلیسی)</label>
+                          <input type="text" dir="ltr" value={tempFormData.descEN || ""} onChange={e => setTempFormData({ ...tempFormData, descEN: e.target.value })} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:border-amber-400 outline-none font-mono" />
+                        </div>
+                      </div>
+                    )}
+
                     {modalType === "stat" && (
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-gray-500">مقدار عددی آمار (مثلاً 50)</label>
@@ -774,19 +868,19 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                       <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">آپلود تصویر (Logo / Certificate)</label>
                         {tempFormData.logo && <img src={tempFormData.logo} alt="Preview" className="h-20 object-contain mx-auto" />}
-<label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 cursor-pointer transition-colors group">
-  <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={async(e) => { 
-    const f = e.target.files?.[0]; 
-    if(!f) return; 
-    if(tempFormData.logo) { 
-      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: tempFormData.logo }) }).catch(e => console.error(e)); 
-    } 
-    const fd = new FormData(); 
-    fd.append('file', f); 
-    const r = await fetch('/api/upload', {method:'POST',body:fd}); 
-    const d = await r.json(); 
-    if(d.success) setTempFormData({...tempFormData, logo: d.url}); 
-  }} />
+                        <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 cursor-pointer transition-colors group">
+                          <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={async(e) => { 
+                            const f = e.target.files?.[0]; 
+                            if(!f) return; 
+                            if(tempFormData.logo) { 
+                              await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: tempFormData.logo }) }).catch(e => console.error(e)); 
+                            } 
+                            const fd = new FormData(); 
+                            fd.append('file', f); 
+                            const r = await fetch('/api/upload', {method:'POST',body:fd}); 
+                            const d = await r.json(); 
+                            if(d.success) setTempFormData({...tempFormData, logo: d.url}); 
+                          }} />
                           <ImageIcon size={32} className="text-gray-400 group-hover:text-amber-500 transition-colors" />
                           <span className="text-sm font-bold text-gray-500 group-hover:text-amber-600">برای انتخاب فایل تصویر کلیک کنید</span>
                         </label>

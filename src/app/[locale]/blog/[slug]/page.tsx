@@ -2,29 +2,39 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, notFound } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { motion } from "framer-motion";
-import { Clock, Calendar, User, ArrowRight, Share2, Mail, MessageCircle, Heart} from "lucide-react";
-import { MOCK_BLOG_POSTS } from "@/lib/mockData";
+import { Clock, Calendar, User, ArrowRight, Share2, Mail, MessageCircle, Heart, Loader2 } from "lucide-react";
+
+// اتصال به اکشن دیتابیس
+import { getBlogs } from "@/actions/blog";
 
 export default function BlogPostPage() {
   const params = useParams();
+  const router = useRouter();
   const locale = useLocale();
   const slug = params?.slug as string;
+  
   const [post, setPost] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // فراخوانی مقاله بر اساس اسلاگ از دیتابیس
   useEffect(() => {
-    if (slug) {
-      const foundPost = MOCK_BLOG_POSTS.find(p => p.slug === slug);
-      if (!foundPost || foundPost.status !== "published") notFound();
-      else setPost(foundPost);
-    }
+    const fetchSinglePost = async () => {
+      if (slug) {
+        const res = await getBlogs({ slug: slug, status: "published" });
+        if (res.success && res.data && res.data.length > 0) {
+          setPost(res.data[0]);
+        }
+      }
+      setIsLoading(false);
+    };
+    fetchSinglePost();
   }, [slug]);
 
   const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-  // انیمیشن‌های اختصاصی ورود المان‌ها
   const titleAnim = {
     initial: { opacity: 0, x: 80 },
     whileInView: { opacity: 1, x: 0 },
@@ -46,12 +56,35 @@ export default function BlogPostPage() {
     transition: { opacity: { duration: 0.3, delay: 0.5 + (index * 0.15) }, y: { duration: 0.8, ease: customEase, delay: 0.5 + (index * 0.15) } }
   });
 
-  if (!post) return null;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-transparent px-4">
+        <Loader2 className="animate-spin text-amber-500 mb-4" size={40} />
+        <p className="text-gray-500 font-bold">در حال بارگذاری مقاله...</p>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-transparent px-4">
+        <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-4">
+          مقاله‌ای با این آدرس یافت نشد!
+        </h2>
+        <button 
+          onClick={() => router.push(`/${locale}/blog`)}
+          className="bg-amber-400 text-gray-950 px-6 py-3 rounded-full font-black text-xs flex items-center gap-2"
+        >
+          <ArrowRight size={16} /> 
+          بازگشت به مجله گندم
+        </button>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-transparent pt-28 pb-24 px-6 md:px-12 max-w-6xl mx-auto" dir="rtl">
       
-      {/* هدر مقاله */}
       <article className="max-w-4xl mx-auto">
         <div className="overflow-hidden py-2">
           <Link href={`/${locale}/blog`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-amber-500 transition-colors mb-8">
@@ -70,12 +103,11 @@ export default function BlogPostPage() {
 
           <div className="flex flex-wrap items-center gap-6 text-sm font-bold text-gray-600 dark:text-gray-400 mb-10 pb-6 border-b border-gray-200/50 dark:border-gray-800/50 overflow-hidden">
             <motion.span {...detailsAnim(0)} className="flex items-center gap-2"><User size={16} className="text-gray-400"/> {post.author}</motion.span>
-            <motion.span {...detailsAnim(1)} className="flex items-center gap-2"><Calendar size={16} className="text-gray-400"/> {post.date}</motion.span>
+            <motion.span {...detailsAnim(1)} className="flex items-center gap-2"><Calendar size={16} className="text-gray-400"/> {new Date(post.createdAt).toLocaleDateString('fa-IR')}</motion.span>
             <motion.span {...detailsAnim(2)} className="flex items-center gap-2"><Clock size={16} className="text-gray-400"/> {post.readTime} مطالعه</motion.span>
           </div>
         </div>
 
-        {/* تصویر کاور */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.98, y: 40 }} 
           whileInView={{ opacity: 1, scale: 1, y: 0 }} 
@@ -86,7 +118,6 @@ export default function BlogPostPage() {
           <img src={post.coverImage} alt={post.faTitle} className="w-full h-full object-cover rounded-[2rem]" />
         </motion.div>
 
-        {/* محتوای متنی مقاله */}
         <motion.div 
           initial={{ opacity: 0, y: 40 }} 
           whileInView={{ opacity: 1, y: 0 }} 
@@ -99,10 +130,11 @@ export default function BlogPostPage() {
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
 
-          {/* باکس اشتراک‌گذاری */}
           <div className="mt-16 pt-8 border-t border-gray-200/50 dark:border-gray-800/50 flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex gap-2">
-              <span className="text-xs font-bold text-gray-500 bg-gray-100/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-md">#{post.seo?.keywords?.split(',')[0] || 'گندم'}</span>
+              <span className="text-xs font-bold text-gray-500 bg-gray-100/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-md">
+                #{post.seo?.keywords ? post.seo.keywords.split(',')[0] : 'گندم'}
+              </span>
             </div>
             
             <div className="flex items-center gap-4">
@@ -120,7 +152,6 @@ export default function BlogPostPage() {
         </motion.div>
       </article>
 
-      {/* بخش دیدگاه‌ها (Comments) */}
       <motion.div 
         initial={{ opacity: 0, y: 40 }} 
         whileInView={{ opacity: 1, y: 0 }} 
@@ -146,7 +177,6 @@ export default function BlogPostPage() {
         </form>
 
         <div className="space-y-6">
-          {/* نمونه یک کامنت ثبت شده */}
           <div className="bg-white/40 dark:bg-gray-900/40 rounded-2xl p-5 border border-gray-100/50 dark:border-gray-800/50">
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-3">
@@ -165,7 +195,6 @@ export default function BlogPostPage() {
         </div>
       </motion.div>
 
-      {/* باکس خبرنامه */}
       <motion.div 
         initial={{ opacity: 0, y: 40 }} 
         whileInView={{ opacity: 1, y: 0 }} 

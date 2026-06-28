@@ -256,15 +256,14 @@ function ProductsContent() {
 
                 return (
                     <motion.div
-                        initial={{ opacity: 0, y: 60 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: false, amount: 0.15 }}
-                        transition={{ duration: 0.7, ease: customEase, delay: (index % 4) * 0.05 }}
-                        key={product._id}
-                        className="group flex flex-col h-full"
-                    >
-                        <a href={`/${locale}/products/${product.slug}`} className="flex flex-col h-full bg-white dark:bg-gray-900/40 rounded-[2rem] border border-gray-200/60 dark:border-gray-800/50 hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-400/10 transition-all overflow-hidden relative">
-                            
+                    initial={{ opacity: 0, y: 60 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: false, amount: 0.15 }}
+                    transition={{ duration: 0.7, ease: customEase, delay: (index % 4) * 0.05 }}
+                    key={product._id} // تغییر اول: id به _id
+                    className="group flex flex-col h-full"
+                 >
+                   <a href={`/${locale}/products/${product._id}`} className="flex flex-col h-full bg-white dark:bg-gray-900/40 rounded-[2rem] border border-gray-200/60 dark:border-gray-800/50 hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-400/10 transition-all overflow-hidden relative">  
                             <div className="relative h-56 shrink-0 w-full bg-linear-to-b from-gray-50/50 to-white dark:from-gray-800/30 dark:to-gray-900/30 p-6 flex items-center justify-center">
                             <img src={imgUrl} alt={title} className="w-full h-full object-contain group-hover:scale-110 group-hover:-translate-y-1.5 transition-transform duration-700 ease-out drop-shadow-xl" />
                             

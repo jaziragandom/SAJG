@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useLocale } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
@@ -8,8 +8,9 @@ import {
   ArrowLeft, FileText, Download, Star, Package, Droplets, Sparkles, Scale, 
   Activity, ShieldCheck, Printer, X, Calendar, Hash, Info, List, Loader2, Image as ImageIcon
 } from "lucide-react";
-
-import { getProducts } from "@/actions/product";
+import { MOCK_PRODUCTS } from "../../../../lib/mockData";
+import { getProductById } from "@/actions/product";
+import { getCategories } from "@/actions/category";
 
 export default function ProductDetailsPage() {
   const locale = useLocale();
@@ -18,31 +19,74 @@ export default function ProductDetailsPage() {
   const router = useRouter();
   
   const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
-  
   const [isDatasheetOpen, setIsDatasheetOpen] = useState(false);
   const [animateSpecs, setAnimateSpecs] = useState(false);
-
-  // --- استیت مربوط به تب‌های عکس ---
+  
+  // استیت مربوط به تب‌های عکس
   const [activeImageTab, setActiveImageTab] = useState<'main' | 'nutrition'>('main');
-
+  
   const [productObj, setProductObj] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // استیت‌های ذخیره نام واقعی دسته‌بندی و وضعیت تأمین
+  const [catName, setCatName] = useState<string | null>(null);
+  const [statusName, setStatusName] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchSingleProduct = async () => {
-      setIsLoading(true);
-      const productSlug = params.slug || params.id; 
-      
-      const res = await getProducts({ slug: productSlug });
-      if (res.success && res.data && res.data.length > 0) {
-        setProductObj(res.data[0]); 
-        setAnimateSpecs(true);
+    const fetchProductDetails = async () => {
+      const currentId = params.id as string;
+      if (!currentId) return;
+
+      let finalProduct = null;
+
+      if (currentId.length >= 20) {
+        const res = await getProductById(currentId);
+        if (res?.success && res.data) {
+          finalProduct = res.data;
+        }
+      } else {
+        const mockProduct = MOCK_PRODUCTS.find(p => p.id === Number(currentId));
+        if (mockProduct) {
+          finalProduct = mockProduct;
+        }
       }
+
+      if (finalProduct) {
+        setProductObj(finalProduct);
+
+        // تبدیل اسلاگ خام به نام واقعی دسته‌بندی و وضعیت تأمین
+        try {
+          const catsRes = await getCategories();
+          if (catsRes?.success) {
+            const allCats = catsRes.data;
+            
+            if (finalProduct.category) {
+              const matchedCat = allCats.find((c: any) => c.slug === finalProduct.category);
+              setCatName(matchedCat ? (isRtl ? matchedCat.faName : matchedCat.enName) : finalProduct.category);
+            }
+            
+            if (finalProduct.status) {
+              const matchedStatus = allCats.find((c: any) => c.slug === finalProduct.status);
+              setStatusName(matchedStatus ? (isRtl ? matchedStatus.faName : matchedStatus.enName) : finalProduct.status);
+            }
+          }
+        } catch (e) {
+          setCatName(finalProduct.category);
+          setStatusName(finalProduct.status);
+        }
+      }
+      
       setIsLoading(false);
     };
 
-    fetchSingleProduct();
-  }, [params]);
+    fetchProductDetails();
+  }, [params.id, isRtl]);
+
+  useEffect(() => {
+    if (productObj) {
+      setAnimateSpecs(true);
+    }
+  }, [productObj]);
 
   if (isLoading) {
     return (
@@ -70,30 +114,21 @@ export default function ProductDetailsPage() {
     );
   }
 
-  const p = productObj;
+  const p: any = productObj;
   
-  const mainImage = p.images?.main || "https://placehold.co/400x400/png";
-  const nutritionImage = p.nutritionImg || p.specs?.nutritionImg || null; // دریافت عکس ارزش غذایی از دیتابیس
+  const pImg = p.images?.main || p.img || "https://placehold.co/400x400/png";
+  const nutritionImage = p.nutritionImg || p.specs?.nutritionImg || null;
+  
+  const pBrand = p.brandId?.faName || p.brandId?.enName || p.brand || (isRtl ? "نامشخص" : "Unknown");
+  const pWeight = p.specs?.weight || p.weight || (isRtl ? "نامشخص" : "N/A");
+  const pFlavor = (isRtl ? p.specs?.flavorFa : p.specs?.flavorEn) || p.flavor || (isRtl ? "نامشخص" : "N/A");
+  const pPackaging = (isRtl ? p.specs?.packagingFa : p.specs?.packagingEn) || p.packaging || (isRtl ? "نامشخص" : "N/A");
 
-  const brandName = p.brandId?.faName || p.brandId?.enName || (isRtl ? "برند نامشخص" : "Unknown Brand");
-  const categoryLabel = p.category || (isRtl ? "عمومی" : "General");
-  const weightLabel = p.specs?.weight || (isRtl ? "نامشخص" : "Unknown");
-  const flavorLabel = isRtl ? (p.specs?.flavorFa || "ساده") : (p.specs?.flavorEn || "Plain");
-  const packagingLabel = isRtl ? (p.specs?.packagingFa || "استاندارد") : (p.specs?.packagingEn || "Standard");
-
-  const description = isRtl ? 
-    (p.faDesc || "این محصول با استفاده از بهترین مواد اولیه و فرمولاسیون اختصاصی جزیره گندم تولید شده است.") : 
-    (p.enDesc || "This product is made using the finest ingredients and Wheat Island's exclusive formulation.");
-  
-  const ingredients = isRtl ? 
-    (p.specs?.ingredientsFa || "ترکیبات ثبت نشده است.") : 
-    (p.specs?.ingredientsEn || "Ingredients not registered.");
-  
-  const shelfLife = isRtl ? 
-    (p.specs?.shelfLifeFa || "ثبت نشده") : 
-    (p.specs?.shelfLifeEn || "Not registered");
-  
-  const packCount = p.packCount || (isRtl ? "نامشخص" : "Unknown");
+  const description = isRtl ?
+    (p.faDesc || "این محصول با استفاده از بهترین مواد اولیه و فرمولاسیون اختصاصی جزیره گندم تولید شده است. طراحی استاندارد و طعم بی‌نظیر این محصول، آن را به یکی از محبوب‌ترین انتخاب‌های مصرف‌کنندگان تبدیل کرده است.") : (p.enDesc || "This product is made using the finest ingredients and Wheat Island's exclusive formulation. Its standard design and unique flavor make it a favorite choice among consumers.");
+  const ingredients = isRtl ? (p.specs?.ingredientsFa || p.faIngredients || "آب تصفیه شده، شکر، اسید سیتریک، طعم‌دهنده طبیعی، ویتامین ث، پایدارکننده.") : (p.specs?.ingredientsEn || p.enIngredients || "Purified water, Sugar, Citric acid, Natural flavors, Vitamin C, Stabilizer.");
+  const shelfLife = isRtl ? (p.specs?.shelfLifeFa || p.faShelfLife || "۶ ماه پس از تولید") : (p.specs?.shelfLifeEn || p.enShelfLife || "6 Months after production");
+  const packCount = p.packCount || (isRtl ? "۲۴ عدد در کارتن" : "24 pieces per box");
 
   const handlePrintDatasheet = () => {
     window.print();
@@ -144,8 +179,8 @@ export default function ProductDetailsPage() {
             transition={{ duration: 0.5, ease: customEase }}
             className="lg:col-span-5 w-full sticky top-24 flex flex-col items-center justify-center min-h-87.5 md:min-h-112.5"
           >
-            {/* کادر نمایش عکس */}
-            <div className="relative w-full aspect-square flex items-center justify-center select-none mb-6">
+            {/* کادر نمایش عکس با حفظ ارتفاع واکنش‌گرا */}
+            <div className="relative w-full h-87.5 112.5 lg:h-137.5 max-h-[70vh] flex items-center justify-center select-none mb-6">
               <AnimatePresence mode="wait">
                 {activeImageTab === 'main' ? (
                   <motion.div 
@@ -156,9 +191,8 @@ export default function ProductDetailsPage() {
                     transition={{ duration: 0.3, ease: customEase }}
                     className="relative w-full h-full flex items-center justify-center"
                   >
-                    {/* عکس بلر شده سمت چپ (از مرکز باز می‌شود و کوچکتر است) */}
                     <motion.img 
-                      src={mainImage} alt={isRtl ? p.faTitle : p.enTitle}
+                      src={pImg} alt={isRtl ? p.faTitle : p.enTitle}
                       initial={{ opacity: 0, x: 0, rotate: 0, scale: 0.5 }}
                       whileInView={{ opacity: 0.4, x: -70, rotate: -12, scale: 0.65 }}
                       viewport={{ once: false, amount: 0.1 }}
@@ -166,9 +200,8 @@ export default function ProductDetailsPage() {
                       className="absolute w-full h-full object-contain blur-[2px] brightness-90 dark:brightness-75 pointer-events-none z-10 select-none"
                     />
                     
-                    {/* عکس بلر شده سمت راست (از مرکز باز می‌شود و کوچکتر است) */}
                     <motion.img 
-                      src={mainImage} alt={isRtl ? p.faTitle : p.enTitle}
+                      src={pImg} alt={isRtl ? p.faTitle : p.enTitle}
                       initial={{ opacity: 0, x: 0, rotate: 0, scale: 0.5 }}
                       whileInView={{ opacity: 0.4, x: 70, rotate: 12, scale: 0.65 }}
                       viewport={{ once: false, amount: 0.1 }}
@@ -176,9 +209,8 @@ export default function ProductDetailsPage() {
                       className="absolute w-full h-full object-contain blur-[2px] brightness-90 dark:brightness-75 pointer-events-none z-10 select-none"
                     />
                     
-                    {/* عکس اصلی (از پایین با یک افکت نرم بالا می‌آید) */}
                     <motion.img 
-                      src={mainImage} alt={isRtl ? p.faTitle : p.enTitle}
+                      src={pImg} alt={isRtl ? p.faTitle : p.enTitle}
                       initial={{ opacity: 0, y: 30, scale: 0.85 }}
                       whileInView={{ opacity: 1, y: 0, scale: 1 }}
                       viewport={{ once: false, amount: 0.1 }}
@@ -245,19 +277,22 @@ export default function ProductDetailsPage() {
             >
               <motion.div variants={fadeUpItem} className="flex flex-wrap items-center gap-2 mb-2">
                 <span className="text-xs font-black text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-200/30 dark:border-amber-500/20">
-                  {isRtl ? "برند: " : "Brand: "} {brandName}
+                  {isRtl ? "برند: " : "Brand: "} {pBrand}
                 </span>
-                <span className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-xl">
-                  {categoryLabel}
-                </span>
+                
+                {catName && (
+                  <span className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-xl">
+                    {catName}
+                  </span>
+                )}
               </motion.div>
 
               <motion.h2 variants={fadeUpItem} className="text-2xl md:text-4xl font-black text-gray-900 dark:text-white leading-tight">
                 {isRtl ? p.faTitle : p.enTitle}
               </motion.h2>
-              <motion.p variants={fadeUpItem} className="text-sm md:text-base font-mono text-gray-400 dark:text-gray-500 tracking-wide">
-                {isRtl ? p.enTitle : p.faTitle}
-              </motion.p>
+              
+              {/* حذف متن نام زبان دوم طبق خواسته شما انجام شد */}
+              
               <motion.p variants={fadeUpItem} className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mt-2">
                 {description}
               </motion.p>
@@ -276,7 +311,7 @@ export default function ProductDetailsPage() {
                 <Scale size={16} className="text-gray-400" />
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase">{isRtl ? "وزن / حجم" : "Weight / Volume"}</p>
-                  <p className="text-xs md:text-sm font-black text-gray-900 dark:text-white mt-1">{weightLabel}</p>
+                  <p className="text-xs md:text-sm font-black text-gray-900 dark:text-white mt-1">{pWeight}</p>
                 </div>
               </motion.div>
 
@@ -284,7 +319,7 @@ export default function ProductDetailsPage() {
                 <Sparkles size={16} className="text-gray-400" />
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase">{isRtl ? "طعم و عصاره" : "Flavor"}</p>
-                  <p className="text-xs md:text-sm font-black text-gray-900 dark:text-white mt-1">{flavorLabel}</p>
+                  <p className="text-xs md:text-sm font-black text-gray-900 dark:text-white mt-1">{pFlavor}</p>
                 </div>
               </motion.div>
 
@@ -292,7 +327,7 @@ export default function ProductDetailsPage() {
                 <Package size={16} className="text-gray-400" />
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase">{isRtl ? "بسته‌بندی" : "Packaging"}</p>
-                  <p className="text-xs md:text-sm font-black text-gray-900 dark:text-white mt-1">{packagingLabel}</p>
+                  <p className="text-xs md:text-sm font-black text-gray-900 dark:text-white mt-1">{pPackaging}</p>
                 </div>
               </motion.div>
 
@@ -317,7 +352,7 @@ export default function ProductDetailsPage() {
                 <div>
                   <p className="text-[10px] font-bold text-gray-400 uppercase">{isRtl ? "وضعیت تأمین" : "Supply Status"}</p>
                   <p className="text-xs md:text-sm font-black text-emerald-500 mt-1">
-                    {p.status === 'published' ? (isRtl ? 'موجود' : 'In Stock') : p.status}
+                    {statusName || p.status || (isRtl ? "نامشخص" : "Unknown")}
                   </p>
                 </div>
               </motion.div>
@@ -430,7 +465,7 @@ export default function ProductDetailsPage() {
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Product Technical Datasheet (TDS)</p>
                   </div>
                   <div className="text-left">
-                    <p className="text-[10px] font-bold text-gray-400">شناسه کالا: #00{p._id ? String(p._id).slice(-4) : "9"}9</p>
+                    <p className="text-[10px] font-bold text-gray-400">شناسه کالا: #00{p._id || p.id}9</p>
                     <p className="text-[10px] font-bold text-gray-400 mt-0.5">تاریخ صدور: {new Date().toLocaleDateString(isRtl ? 'fa-IR' : 'en-US')}</p>
                   </div>
                 </div>
@@ -439,10 +474,9 @@ export default function ProductDetailsPage() {
                   <div className="col-span-2 flex flex-col gap-2">
                     <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">{isRtl ? "شناسنامه فنی کالا" : "Product ID"}</span>
                     <h4 className="text-xl font-black text-gray-950">{isRtl ? p.faTitle : p.enTitle}</h4>
-                    <p className="text-xs font-mono text-gray-400 mt-0.5">{isRtl ? p.enTitle : p.faTitle}</p>
                   </div>
                   <div className="flex justify-end h-24 w-full">
-                    <img src={mainImage} alt={p.faTitle} className="h-full object-contain mix-blend-multiply" />
+                    <img src={pImg} alt={p.faTitle} className="h-full object-contain mix-blend-multiply" />
                   </div>
                 </div>
 
@@ -461,19 +495,19 @@ export default function ProductDetailsPage() {
                       <tbody className="divide-y divide-gray-200 font-medium text-gray-700">
                         <tr>
                           <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "برند / دسته‌بندی" : "Brand / Category"}</td>
-                          <td className="px-4 py-3 font-mono">{brandName} - {categoryLabel}</td>
+                          <td className="px-4 py-3 font-mono">{pBrand} - {catName || p.category || "-"}</td>
                         </tr>
                         <tr className="bg-gray-50/50">
                           <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "وزن خالص / حجم ظرف" : "Net Weight / Volume"}</td>
-                          <td className="px-4 py-3 font-mono">{weightLabel}</td>
+                          <td className="px-4 py-3 font-mono">{pWeight}</td>
                         </tr>
                         <tr>
                           <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "بسته‌بندی / تعداد در کارتن" : "Packaging / Pack Count"}</td>
-                          <td className="px-4 py-3">{packagingLabel} - {packCount}</td>
+                          <td className="px-4 py-3">{pPackaging} - {packCount}</td>
                         </tr>
                         <tr className="bg-gray-50/50">
                           <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "طعم و عصاره پایه" : "Base Flavor"}</td>
-                          <td className="px-4 py-3">{flavorLabel}</td>
+                          <td className="px-4 py-3">{pFlavor}</td>
                         </tr>
                         <tr>
                           <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "ترکیبات اصلی" : "Main Ingredients"}</td>
