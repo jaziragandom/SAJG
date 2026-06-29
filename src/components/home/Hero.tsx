@@ -69,33 +69,30 @@ export default function Hero() {
   useEffect(() => {
     const fetchSlides = async () => {
       const res = await getHeroSlides();
-      let currentSlides = dynamicHeroSlides; // همان دیتای پیش‌فرض شما
+      let currentSlides = dynamicHeroSlides;
 
       if (res.success && res.data && res.data.length > 0) {
         currentSlides = res.data;
         setSlidesData(currentSlides);
       }
 
-      // ترفند حرفه‌ای: نگه داشتن لودینگ تا زمان دانلود کامل عکس اصلی هیرو
       const firstSlide = currentSlides[0];
       if (firstSlide && firstSlide.mainImage) {
         const img = new window.Image();
-        img.src = firstSlide.mainImage; // شروع دانلود عکس در پس‌زمینه مرورگر
+        img.src = firstSlide.mainImage;
 
-        // وقتی عکس کاملاً دانلود شد، لودینگ را بردار
+        // تغییر طلایی: تضمین حداقل ۲.۵ ثانیه نمایش انیمیشن لوگو
         img.onload = () => {
-          // ۵۰۰ میلی‌ثانیه هم برای زیبایی انیمیشن لوگو و نرمی کار صبر می‌کنیم
           setTimeout(() => {
             setIsLoading(false);
-          }, 500);
+          }, 2500);
         };
 
-        // اگر لینک عکس خراب بود، سایت روی لودینگ گیر نکند
         img.onerror = () => {
-          setIsLoading(false);
+          setTimeout(() => setIsLoading(false), 2500);
         };
       } else {
-        setIsLoading(false);
+        setTimeout(() => setIsLoading(false), 2500);
       }
     };
 

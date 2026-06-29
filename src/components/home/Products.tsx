@@ -68,7 +68,6 @@ export default function Products() {
   const [isDominoDone, setIsDominoDone] = useState(false);
 
   // دریافت همزمان تنظیمات صفحه اصلی و محصولات بر اساس آن تنظیمات
-  // دریافت همزمان تنظیمات صفحه اصلی و محصولات بر اساس آن تنظیمات
   useEffect(() => {
     const fetchData = async () => {
       const settingsRes = await getSiteContent("home_products_settings");
@@ -93,20 +92,20 @@ export default function Products() {
         setProductsData(loadedProducts);
       }
 
-      // ترفند پیش‌بارگذاری: نگه داشتن لودینگ تا دانلود اولین عکس محصول
+      // تضمین حداقل زمان نمایش برای بخش محصولات
       if (loadedProducts.length > 0 && loadedProducts[0].images?.main) {
         const img = new window.Image();
         img.src = loadedProducts[0].images.main;
         
         img.onload = () => {
-          setTimeout(() => setIsLoading(false), 500);
+          setTimeout(() => setIsLoading(false), 2500);
         };
         
         img.onerror = () => {
-          setIsLoading(false);
+          setTimeout(() => setIsLoading(false), 2500);
         };
       } else {
-        setIsLoading(false);
+        setTimeout(() => setIsLoading(false), 2500);
       }
     };
     fetchData();
