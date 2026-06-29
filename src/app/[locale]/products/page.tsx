@@ -13,7 +13,7 @@ import { getCategories } from "@/actions/category";
 // استفاده از Suspense برای جلوگیری از ارورهای Next.js هنگام استفاده از useSearchParams
 export default function ProductsPage() {
   return (
-    <Suspense fallback={<GlobalLoading />}>
+    <Suspense fallback={<div className="min-h-screen flex justify-center items-center"><Loader2 className="animate-spin text-amber-500" size={40} /></div>}>
       <ProductsContent />
     </Suspense>
   );

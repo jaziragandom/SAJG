@@ -70,6 +70,11 @@ export default function Products() {
   // دریافت همزمان تنظیمات صفحه اصلی و محصولات بر اساس آن تنظیمات
   useEffect(() => {
     const fetchData = async () => {
+      const isHomeProductsLoaded = sessionStorage.getItem('home_products_loaded');
+      if (isHomeProductsLoaded) {
+        setIsLoading(false);
+      }
+
       const settingsRes = await getSiteContent("home_products_settings");
       let currentSettings = { displayType: "featured", maxItems: "8", faTitle: "", enTitle: "", faSubtitle: "", enSubtitle: "" };
       
@@ -92,20 +97,31 @@ export default function Products() {
         setProductsData(loadedProducts);
       }
 
-      // تضمین حداقل زمان نمایش برای بخش محصولات
-      if (loadedProducts.length > 0 && loadedProducts[0].images?.main) {
-        const img = new window.Image();
-        img.src = loadedProducts[0].images.main;
-        
-        img.onload = () => {
-          setTimeout(() => setIsLoading(false), 2500);
-        };
-        
-        img.onerror = () => {
-          setTimeout(() => setIsLoading(false), 2500);
-        };
-      } else {
-        setTimeout(() => setIsLoading(false), 2500);
+      // اجرای لودینگ فقط برای بار اول
+      if (!isHomeProductsLoaded) {
+        if (loadedProducts.length > 0 && loadedProducts[0].images?.main) {
+          const img = new window.Image();
+          img.src = loadedProducts[0].images.main;
+          
+          img.onload = () => {
+            setTimeout(() => {
+              sessionStorage.setItem('home_products_loaded', 'true');
+              setIsLoading(false);
+            }, 2500);
+          };
+          
+          img.onerror = () => {
+            setTimeout(() => {
+              sessionStorage.setItem('home_products_loaded', 'true');
+              setIsLoading(false);
+            }, 2500);
+          };
+        } else {
+          setTimeout(() => {
+            sessionStorage.setItem('home_products_loaded', 'true');
+            setIsLoading(false);
+          }, 2500);
+        }
       }
     };
     fetchData();

@@ -68,6 +68,12 @@ export default function Hero() {
 
   useEffect(() => {
     const fetchSlides = async () => {
+      // بررسی حافظه: آیا لودینگ قبلاً اجرا شده؟
+      const isHeroLoaded = sessionStorage.getItem('hero_loaded');
+      if (isHeroLoaded) {
+        setIsLoading(false); // اگر دیده بود، بدون مکث سایت را نشان بده
+      }
+
       const res = await getHeroSlides();
       let currentSlides = dynamicHeroSlides;
 
@@ -76,23 +82,32 @@ export default function Hero() {
         setSlidesData(currentSlides);
       }
 
-      const firstSlide = currentSlides[0];
-      if (firstSlide && firstSlide.mainImage) {
-        const img = new window.Image();
-        img.src = firstSlide.mainImage;
+      // فقط اگر کاربر بار اول است که سایت را باز کرده، تأخیر و انیمیشن را اجرا کن
+      if (!isHeroLoaded) {
+        const firstSlide = currentSlides[0];
+        if (firstSlide && firstSlide.mainImage) {
+          const img = new window.Image();
+          img.src = firstSlide.mainImage;
 
-        // تغییر طلایی: تضمین حداقل ۲.۵ ثانیه نمایش انیمیشن لوگو
-        img.onload = () => {
+          img.onload = () => {
+            setTimeout(() => {
+              sessionStorage.setItem('hero_loaded', 'true');
+              setIsLoading(false);
+            }, 2500);
+          };
+
+          img.onerror = () => {
+            setTimeout(() => {
+              sessionStorage.setItem('hero_loaded', 'true');
+              setIsLoading(false);
+            }, 2500);
+          };
+        } else {
           setTimeout(() => {
+            sessionStorage.setItem('hero_loaded', 'true');
             setIsLoading(false);
           }, 2500);
-        };
-
-        img.onerror = () => {
-          setTimeout(() => setIsLoading(false), 2500);
-        };
-      } else {
-        setTimeout(() => setIsLoading(false), 2500);
+        }
       }
     };
 
@@ -115,7 +130,7 @@ export default function Hero() {
   const descText = isRtl ? slide.faDesc : slide.enDesc;
   const titleFirstWord = titleText.split(" ")[0];
   const titleRest = titleText.split(" ").slice(1).join(" ");
-  const productLink = slide.linkedProductSlug ? `/${locale}/products/${slide.linkedProductSlug}` : "#";
+const productLink = slide.linkedProduct ? `/${locale}/products/${slide.linkedProduct}` : "#";
 
   const fallbackPresets = [
     { top: "15%", left: "10%", initY: -100, baseFloatX: 15, floatY: [0, 10, 0] },
@@ -268,7 +283,7 @@ export default function Hero() {
           </div>
 
           {/* متن‌ها - بدون ماسک */}
-          <div className="w-full md:w-[45%] h-[50%] md:h-full flex flex-col justify-center items-start text-right z-30 pt-32 mt-12 md:pt-0 md:mt-0 relative">
+          <div className={`w-full md:w-[45%] h-[50%] md:h-full flex flex-col justify-center items-start ${isRtl ? 'text-right' : 'text-left'} z-30 pt-32 mt-12 md:pt-0 md:mt-0 relative`}>
             
             <motion.div
               initial={{ opacity: 0, x: isRtl ? 50 : -50 }}

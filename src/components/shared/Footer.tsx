@@ -37,8 +37,7 @@ const localTranslations = {
     contact_info: "ارتباط با ما",
     newsletter: { title: "خبرنامه", desc: "برای اطلاع از جدیدترین‌ها عضو شوید.", placeholder: "ایمیل شما..." },
     copyright: "تمامی حقوق برای گروه جزیره گندم محفوظ است.",
-    privacy: "حریم خصوصی",
-    terms: "شرایط و ضوابط"
+    
   },
   en: {
     about_desc: "Jazirah Gandum, a pioneer in producing and supplying the best food products.",
@@ -47,8 +46,7 @@ const localTranslations = {
     contact_info: "Contact Us",
     newsletter: { title: "Newsletter", desc: "Subscribe for the latest updates.", placeholder: "Your email..." },
     copyright: "All rights reserved.",
-    privacy: "Privacy Policy",
-    terms: "Terms & Conditions"
+   
   }
 };
 
@@ -361,10 +359,6 @@ export default function Footer({ siteLogo = null, contactInfo, footerTexts }: Fo
                 ? (footerTexts?.copyrightFa || `© ${new Date().getFullYear()} گروه جزیره گندم. ${t("copyright")}`) 
                 : (footerTexts?.copyrightEn || `© ${new Date().getFullYear()} Jazirah Gandum Group. ${t("copyright")}`)}
             </p>
-            <div className="flex gap-4">
-              <Link href={`/${locale}/privacy`} className="hover:text-primary dark:hover:text-white transition-colors">{t("privacy")}</Link>
-              <Link href={`/${locale}/terms`} className="hover:text-primary dark:hover:text-white transition-colors">{t("terms")}</Link>
-            </div>
           </motion.div>
         </motion.div>
       </footer>
