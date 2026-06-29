@@ -68,9 +68,9 @@ export default function Products() {
   const [isDominoDone, setIsDominoDone] = useState(false);
 
   // دریافت همزمان تنظیمات صفحه اصلی و محصولات بر اساس آن تنظیمات
+  // دریافت همزمان تنظیمات صفحه اصلی و محصولات بر اساس آن تنظیمات
   useEffect(() => {
     const fetchData = async () => {
-      // ۱. دریافت تنظیمات این سکشن از دیتابیس
       const settingsRes = await getSiteContent("home_products_settings");
       let currentSettings = { displayType: "featured", maxItems: "8", faTitle: "", enTitle: "", faSubtitle: "", enSubtitle: "" };
       
@@ -79,28 +79,35 @@ export default function Products() {
         setSectionSettings(currentSettings);
       }
 
-      // ۲. آماده‌سازی فیلتر محصولات بر اساس تنظیمات
-      // تغییر مهم: وضعیت اجباری published برداشته شد تا با منطق داینامیک بک‌اند سازگار شود
       const filter: any = {}; 
       if (currentSettings.displayType === 'featured') {
         filter.isFeatured = true;
       }
       
-      console.log("🚀 [FRONTEND] فیلتر ارسال شده به بک‌اند:", filter);
-
-      // ۳. دریافت محصولات از دیتابیس
       const productsRes = await getProducts(filter);
-      
-      console.log("📦 [FRONTEND] پاسخ دریافتی از اکشن getProducts:", productsRes);
-      
+      let loadedProducts = fallbackProducts;
+
       if (productsRes.success && productsRes.data && productsRes.data.length > 0) {
-        // اعمال محدودیت تعداد (Max Items)
         const limit = parseInt(currentSettings.maxItems) || 8;
-        setProductsData(productsRes.data.slice(0, limit));
-      } else {
-        console.warn("⚠️ [FRONTEND] هیچ محصولی با این فیلترها یافت نشد یا خطا رخ داده است. نمایش دیتای فیک.");
+        loadedProducts = productsRes.data.slice(0, limit);
+        setProductsData(loadedProducts);
       }
-      setIsLoading(false);
+
+      // ترفند پیش‌بارگذاری: نگه داشتن لودینگ تا دانلود اولین عکس محصول
+      if (loadedProducts.length > 0 && loadedProducts[0].images?.main) {
+        const img = new window.Image();
+        img.src = loadedProducts[0].images.main;
+        
+        img.onload = () => {
+          setTimeout(() => setIsLoading(false), 500);
+        };
+        
+        img.onerror = () => {
+          setIsLoading(false);
+        };
+      } else {
+        setIsLoading(false);
+      }
     };
     fetchData();
   }, []);
