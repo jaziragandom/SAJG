@@ -158,11 +158,11 @@ export default function Products() {
 
   const subtitleText = isRtl ? (sectionSettings.faSubtitle || t("description")) : (sectionSettings.enSubtitle || t("description"));
 
-  if (isLoading) return <GlobalLoading />;
   
-  return (
-    <section ref={sectionRef} className="py-24 bg-gray-50 dark:bg-dark-card/30 relative overflow-hidden">
-      <div className="container mx-auto px-4 md:px-8">
+return (
+    <>
+      {isLoading && <GlobalLoading />}
+      <section ref={sectionRef} className="py-24 bg-gray-50 dark:bg-dark-card/30 relative overflow-hidden">      <div className="container mx-auto px-4 md:px-8">
         
         <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6 overflow-hidden">
           <div className="max-w-2xl">
@@ -329,5 +329,6 @@ export default function Products() {
 
       </div>
     </section>
+    </>
   );
 }

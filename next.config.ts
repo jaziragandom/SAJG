@@ -31,6 +31,13 @@ const nextConfig: NextConfig = {
         hostname: 'localhost',
         port: '3000',
         pathname: '/**',
+      },
+      // اضافه شدن اجازه دسترسی به عکس‌های تستی
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+        port: '',
+        pathname: '/**',
       }
     ],
   }

@@ -130,12 +130,12 @@ export default function Hero() {
     { top: "50%", left: "15%", initY: -50, baseFloatX: 10, floatY: [0, -8, 0] },
     { top: "45%", left: "80%", initY: 80, baseFloatX: -6, floatY: [0, 15, 0] },
   ];
-
-  if (isLoading) return <GlobalLoading />;
   
-  return (
-    <section 
-      className="relative w-full flex items-center justify-center overflow-hidden"
+ return (
+    <>
+      {isLoading && <GlobalLoading />}
+      <section 
+        className="relative w-full flex items-center justify-center overflow-hidden"
       style={{ height: "100svh", minHeight: "700px" }}
     >
       <AnimatePresence mode="wait">
@@ -357,6 +357,7 @@ export default function Hero() {
         ))}
       </div>
 
-    </section>
+   </section>
+    </>
   );
 }
