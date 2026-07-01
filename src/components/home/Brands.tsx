@@ -65,6 +65,7 @@ export default function Brands() {
             {brandsData.map((brand, index) => {
               const name = isRtl ? brand.faName : brand.enName;
               const desc = isRtl ? brand.faDesc : brand.enDesc;
+              const logoToUse = isRtl ? brand.logoFa : brand.logoEn;
               
               // === اصلاح لینک در اینجا انجام شده است ===
               const brandLink = brand.slug !== "#" ? `/${locale}/brands/${brand.slug}` : "#";
@@ -85,8 +86,8 @@ export default function Brands() {
                       
                       <div className={`w-16 h-16 shrink-0 rounded-2xl bg-linear-to-br ${gradientColor} p-0.5 shadow-inner`}>
                         <div className="w-full h-full bg-white dark:bg-gray-950 rounded-[14px] flex items-center justify-center overflow-hidden p-2">
-                          {brand.logo ? (
-                            <img src={brand.logo} alt={name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300" />
+                          {logoToUse ? (
+                            <img src={logoToUse} alt={name} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300" />
                           ) : (
                             <ImageIcon className="text-gray-300 dark:text-gray-700" size={24} />
                           )}

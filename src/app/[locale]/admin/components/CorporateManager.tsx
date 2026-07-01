@@ -4,15 +4,39 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Target, Users, Award, MapPin, CheckCircle2,
-  Plus, Trash2, Edit3, Image as ImageIcon, Wand2, Loader2, Factory, X, BarChart, Video, ClipboardList, Eye
+  Plus, Trash2, Edit3, Image as ImageIcon, Wand2, Loader2, Factory, X, BarChart, Film, ClipboardList, Eye,
+  Music2, MessageSquare, Share2, Send, MessageCircle
 } from "lucide-react";
 import { getSiteContent, saveSiteContent } from "@/actions/siteContent";
 import * as LucideIcons from "lucide-react";
+
+// --- Custom Brand Icons ---
+const BrandInstagram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>;
+const BrandFacebook = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>;
+const BrandTwitter = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>;
+const BrandLinkedin = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>;
+const BrandYoutube = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 7.1C2.5 7.1 2 9.4 2 12c0 2.6.5 4.9.5 4.9.3 1.1 1.2 2 2.3 2.3 2.6.5 7.2.5 7.2.5s4.6 0 7.2-.5c1.1-.3 2-1.2 2.3-2.3.5-2.3.5-4.9.5-4.9s-.5-2.6-.5-4.9c-.3-1.1-1.2-2-2.3-2.3-2.6-.5-7.2-.5-7.2-.5s-4.6 0-7.2.5C3.7 5.1 2.8 6 2.5 7.1z"/><path d="M9.8 15.5l6.4-3.5-6.4-3.5v7z"/></svg>;
+const BrandAparat = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>;
 
 const DynamicIcon = ({ name, size = 24 }: { name: string, size?: number }) => {
   const IconComponent = (LucideIcons as any)[name] || LucideIcons.HelpCircle;
   return <IconComponent size={size} />;
 };
+
+// لیست کامل شبکه‌های اجتماعی با آیکن‌های مربوطه
+const socialPlatformsList = [
+  { id: 'whatsapp', label: 'واتس‌اپ (WhatsApp)', icon: <MessageCircle size={16} /> },
+  { id: 'telegram', label: 'تلگرام (Telegram)', icon: <Send size={16} /> },
+  { id: 'instagram', label: 'اینستاگرام (Instagram)', icon: <BrandInstagram size={16} /> },
+  { id: 'facebook', label: 'فیسبوک (Facebook)', icon: <BrandFacebook size={16} /> },
+  { id: 'twitter', label: 'توییتر (X)', icon: <BrandTwitter size={16} /> },
+  { id: 'youtube', label: 'یوتیوب (YouTube)', icon: <BrandYoutube size={16} /> },
+  { id: 'linkedin', label: 'لینکدین (LinkedIn)', icon: <BrandLinkedin size={16} /> },
+  { id: 'tiktok', label: 'تیک‌تاک (TikTok)', icon: <Music2 size={16} /> },
+  { id: 'aparat', label: 'آپارات (Aparat)', icon: <BrandAparat size={16} /> },
+  { id: 'eitaa', label: 'ایتا (Eitaa)', icon: <MessageSquare size={16} /> },
+  { id: 'rubika', label: 'روبیکا (Rubika)', icon: <Share2 size={16} /> }
+];
 
 interface CorporateManagerProps {
   currentSection: string;
@@ -33,12 +57,11 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
   });
 
   const [hqData, setHqData] = useState({
-    faName: "", enName: "", phone: "", email: "", wa: "", tg: "", fb: "", ig: "",
+    faName: "", enName: "", phone: "", email: "", socials: [] as any[],
     faAddress: "", enAddress: "", mapUrl: ""
   });
 
-  // --- دیتای داینامیک و تیک‌های نمایش ---
-  const [features, setFeatures] = useState<any[]>([]); // ویژگی‌های کارخانه
+  const [features, setFeatures] = useState<any[]>([]);
   const [visibility, setVisibility] = useState({ showPartners: true, showCerts: true });
   const [whyUs, setWhyUs] = useState<any[]>([]);
   const [stats, setStats] = useState<any[]>([]);
@@ -50,8 +73,10 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<"partner" | "cert" | "branch" | "why" | "stat" | "request_details" | "feature" | null>(null);
   const [tempFormData, setTempFormData] = useState<any>({});
+  
+  // استیت مربوط به اضافه کردن شبکه اجتماعی در فرم (شعب و دفتر مرکزی)
+  const [newSocial, setNewSocial] = useState({ platform: 'instagram', value: '' });
 
-  // لیست آیکن‌های مجاز برای انتخاب در پنل
   const iconOptions = [
     { value: "Globe", label: "کره زمین (Globe)" },
     { value: "Leaf", label: "برگ (Leaf)" },
@@ -63,7 +88,6 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
     { value: "Star", label: "ستاره (Star)" }
   ];
 
-  // فراخوانی کلی اطلاعات از دیتابیس در اولین رندر
   useEffect(() => {
     const fetchAllData = async () => {
       setIsPageLoading(true);
@@ -91,8 +115,27 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
         setCertificates(partnersRes.data.certificates || []);
       }
       if (hqRes?.data) {
-        setHqData(hqRes.data.hqData || {});
-        setBranches(hqRes.data.branches || []);
+        let parsedHqData = hqRes.data.hqData || {};
+        // مایگریشن: انتقال دیتای قدیمی شبکه‌های اجتماعی به آرایه جدید
+        if (!parsedHqData.socials) {
+          parsedHqData.socials = [];
+          if (parsedHqData.wa) parsedHqData.socials.push({ platform: 'whatsapp', value: parsedHqData.wa });
+          if (parsedHqData.tg) parsedHqData.socials.push({ platform: 'telegram', value: parsedHqData.tg });
+          if (parsedHqData.ig) parsedHqData.socials.push({ platform: 'instagram', value: parsedHqData.ig });
+          if (parsedHqData.fb) parsedHqData.socials.push({ platform: 'facebook', value: parsedHqData.fb });
+        }
+        setHqData(parsedHqData);
+        
+        let parsedBranches = hqRes.data.branches || [];
+        parsedBranches = parsedBranches.map((b: any) => {
+          if (!b.socials) {
+            b.socials = [];
+            if (b.wa) b.socials.push({ platform: 'whatsapp', value: b.wa });
+            if (b.tg) b.socials.push({ platform: 'telegram', value: b.tg });
+          }
+          return b;
+        });
+        setBranches(parsedBranches);
       }
       if (agencyRes?.data) setAgencyRequests(agencyRes.data || []);
 
@@ -101,7 +144,6 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
     fetchAllData();
   }, []);
 
-  // تابع جادویی ترجمه با استفاده از Google Translate
   const handleTranslate = async (sourceText: string, fieldName: string, stateUpdater: any) => {
     if (!sourceText || !sourceText.trim()) return;
     setTranslatingField(fieldName);
@@ -126,10 +168,12 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
     } else {
       setTempFormData({
         id: Date.now(), faName: "", enName: "", faTitle: "", enTitle: "", descFA: "", descEN: "", icon: "",
-        value: "", phone: "", email: "", wa: "", tg: "", url: "",
+        value: "", phone: "", email: "", url: "", socials: [],
         faAddress: "", enAddress: "", mapUrl: "", logo: "", img: ""
       });
     }
+
+    setNewSocial({ platform: 'instagram', value: '' });
 
     if (type === "request_details" && item && item.status === "pending") {
       const updatedRequests = agencyRequests.map(req => req.id === item.id ? { ...req, status: "reviewed" } : req);
@@ -142,7 +186,6 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
 
   const saveDynamicItem = async () => {
     let success = false;
-
     if (modalType === "partner") {
       const newArr = partners.some(p => p.id === tempFormData.id) ? partners.map(p => p.id === tempFormData.id ? tempFormData : p) : [...partners, tempFormData];
       setPartners(newArr);
@@ -267,6 +310,78 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
     );
   };
 
+  // تابع هوشمند برای تمیز کردن و اعتبارسنجی مقادیر شبکه‌های اجتماعی
+  const handleAddSocial = (targetState: any, setTargetState: any) => {
+    if (!newSocial.value.trim()) return;
+    
+    let cleanVal = newSocial.value.trim();
+    // اگر واتساپ باشد، فقط اعداد و + را نگه می‌دارد
+    if (newSocial.platform === 'whatsapp') {
+      cleanVal = cleanVal.replace(/[^0-9+]/g, '');
+    } else {
+      // برای بقیه پلتفرم‌ها، اگر کاربر لینک کامل را گذاشته بود، نام کاربری را استخراج می‌کند
+      cleanVal = cleanVal.replace(/^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+\.[a-z]+)\//, '');
+      cleanVal = cleanVal.replace(/^@/, '');
+      cleanVal = cleanVal.split('?')[0]; // حذف پارامترهای اضافی مثل ?igshid=...
+    }
+
+    const updatedSocials = [...(targetState.socials || []), { platform: newSocial.platform, value: cleanVal }];
+    setTargetState({ ...targetState, socials: updatedSocials });
+    setNewSocial({ platform: 'instagram', value: '' });
+  };
+
+  const removeSocial = (index: number, targetState: any, setTargetState: any) => {
+    const updatedSocials = [...(targetState.socials || [])];
+    updatedSocials.splice(index, 1);
+    setTargetState({ ...targetState, socials: updatedSocials });
+  };
+
+  const renderSocialManager = (targetState: any, setTargetState: any) => (
+    <div className="flex flex-col gap-4 border border-gray-200 dark:border-gray-700 p-5 rounded-2xl bg-gray-50 dark:bg-gray-800">
+      <label className="text-sm font-bold text-gray-700 dark:text-gray-300">مدیریت شبکه‌های اجتماعی</label>
+      
+      <div className="flex flex-col sm:flex-row gap-3">
+        <select 
+          value={newSocial.platform} 
+          onChange={(e) => setNewSocial({ ...newSocial, platform: e.target.value })}
+          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2 text-sm outline-none focus:border-amber-400"
+        >
+          {socialPlatformsList.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+        </select>
+        <input 
+          type="text" 
+          dir="ltr"
+          placeholder="آیدی، لینک یا شماره" 
+          value={newSocial.value} 
+          onChange={(e) => setNewSocial({ ...newSocial, value: e.target.value })}
+          className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2 text-sm font-mono outline-none focus:border-amber-400"
+        />
+        <button 
+          type="button" 
+          onClick={() => handleAddSocial(targetState, setTargetState)}
+          className="bg-amber-400 hover:bg-amber-500 text-gray-900 px-6 py-2 rounded-xl font-bold transition-colors text-sm shrink-0"
+        >
+          افزودن
+        </button>
+      </div>
+
+      {(targetState.socials || []).length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {(targetState.socials || []).map((social: any, idx: number) => {
+            const platformInfo = socialPlatformsList.find(p => p.id === social.platform);
+            return (
+              <div key={idx} className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-600 px-3 py-1.5 rounded-lg shadow-sm">
+                <span className="text-gray-500">{platformInfo?.icon}</span>
+                <span className="text-xs font-mono" dir="ltr">{social.value}</span>
+                <button type="button" onClick={() => removeSocial(idx, targetState, setTargetState)} className="text-red-400 hover:text-red-600 transition-colors ml-1 mr-2"><X size={14}/></button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
   let headerTitle = "پروفایل جامع شرکت";
   let HeaderIcon = Building2;
   let headerDesc = "مدیریت اطلاعات و محتوای صفحات شرکت";
@@ -349,17 +464,18 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                 <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-3 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800 cursor-pointer transition-colors group">
                   <input type="file" accept="video/mp4" className="hidden" onChange={async(e) => { 
                     const f = e.target.files?.[0]; 
-                    if(!f) return; 
+                    if(!f) return;
                     if(introData.videoUrl) { 
-                      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: introData.videoUrl }) }).catch(e => console.error(e)); 
+                      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: introData.videoUrl }) }).catch(e => console.error(e));
                     } 
-                    const fd = new FormData(); 
+                    const fd = new FormData();
                     fd.append('file', f); 
                     const r = await fetch('/api/upload', {method:'POST',body:fd}); 
                     const d = await r.json(); 
-                    if(d.success) { setIntroData({...introData, videoUrl: d.url}); alert('ویدیو جدید آپلود و ویدیوی قبلی حذف شد!'); } 
+                    if(d.success) { setIntroData({...introData, videoUrl: d.url});
+                      alert('ویدیو جدید آپلود و ویدیوی قبلی حذف شد!'); } 
                   }} />
-                  {introData.videoUrl ? <span className="text-sm font-bold text-green-500">ویدیو آپلود شده است</span> : <Video size={32} className="text-gray-400 group-hover:text-blue-500 transition-colors" />}
+                  {introData.videoUrl ? <span className="text-sm font-bold text-green-500">ویدیو آپلود شده است</span> : <Film size={32} className="text-gray-400 group-hover:text-blue-500 transition-colors" />}
                   <span className="text-sm font-bold text-gray-500 group-hover:text-blue-600">برای انتخاب و آپلود فایل ویدیویی از هاست خود کلیک کنید</span>
                 </label>
               </div>
@@ -596,26 +712,15 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                     <label className="text-xs font-bold text-gray-600 dark:text-gray-400">ایمیل (Email)</label>
                     <input type="email" dir="ltr" value={hqData.email} onChange={e => setHqData({ ...hqData, email: e.target.value })} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-amber-400" />
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400">شماره واتس‌اپ</label>
-                    <input type="text" dir="ltr" placeholder="989120000000" value={hqData.wa} onChange={e => setHqData({ ...hqData, wa: e.target.value })} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-amber-400" />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400">آیدی تلگرام</label>
-                    <input type="text" dir="ltr" placeholder="jazirehgandom" value={hqData.tg} onChange={e => setHqData({ ...hqData, tg: e.target.value })} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-amber-400" />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400">آیدی اینستاگرام</label>
-                    <input type="text" dir="ltr" value={hqData.ig} onChange={e => setHqData({ ...hqData, ig: e.target.value })} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-amber-400" />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400">آیدی یا لینک فیسبوک</label>
-                    <input type="text" dir="ltr" placeholder="jazirehgandum" value={hqData.fb || ""} onChange={e => setHqData({ ...hqData, fb: e.target.value })} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-amber-400" />
-                  </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 col-span-full">
                     <label className="text-xs font-bold text-gray-600 dark:text-gray-400">لینک گوگل مپ</label>
                     <input type="url" dir="ltr" value={hqData.mapUrl} onChange={e => setHqData({ ...hqData, mapUrl: e.target.value })} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-mono outline-none focus:border-amber-400" />
                   </div>
+                </div>
+                
+                {/* مدریت داینامیک شبکه‌های اجتماعی دفتر مرکزی */}
+                <div className="mb-6">
+                   {renderSocialManager(hqData, setHqData)}
                 </div>
 
                 {renderBilingualField("آدرس دفتر مرکزی", "HQ Address", "faAddress", "enAddress", hqData, setHqData, true)}
@@ -642,7 +747,7 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                       <div className="flex flex-col gap-1">
                         <p className="text-base font-bold text-gray-900 dark:text-white">{b.faName}</p>
                         <p className="text-xs text-gray-500 font-mono">{b.enName}</p>
-                        <p className="text-sm font-bold text-amber-600 dark:text-amber-500 font-mono mt-2">{b.phone}</p>
+                        <p className="text-sm font-bold text-amber-600 dark:text-amber-500 font-mono mt-2" dir="ltr">{b.phone}</p>
                       </div>
                       <div className="flex gap-2">
                         <button onClick={() => openModal("branch", b)} className="p-2 bg-gray-50 dark:bg-gray-700 text-gray-500 hover:text-amber-500 rounded-lg transition-colors"><Edit3 size={16} /></button>
@@ -677,7 +782,7 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
 
                       <div>
                         <h4 className="font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
-                          {req.name} <span className="text-xs font-mono text-gray-400">({req.phone})</span>
+                          {req.name} <span className="text-xs font-mono text-gray-400" dir="ltr">({req.phone})</span>
                         </h4>
                         <p className="text-xs text-gray-500 flex items-center gap-2">
                           <MapPin size={12} /> {req.province} <span className="mx-2 opacity-30">|</span> <span>ثبت شده در: {req.date || "نامشخص"}</span>
@@ -834,9 +939,11 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="flex flex-col gap-2"><label className="text-xs font-bold text-gray-600 dark:text-gray-400">تلفن شعبه</label><input type="text" dir="ltr" value={tempFormData.phone || ""} onChange={e => setTempFormData({ ...tempFormData, phone: e.target.value })} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:border-amber-400 outline-none font-mono" /></div>
                           <div className="flex flex-col gap-2"><label className="text-xs font-bold text-gray-600 dark:text-gray-400">ایمیل شعبه</label><input type="email" dir="ltr" value={tempFormData.email || ""} onChange={e => setTempFormData({ ...tempFormData, email: e.target.value })} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:border-amber-400 outline-none font-mono" /></div>
-                          <div className="flex flex-col gap-2"><label className="text-xs font-bold text-gray-600 dark:text-gray-400">واتس‌اپ شعبه</label><input type="text" dir="ltr" value={tempFormData.wa || ""} onChange={e => setTempFormData({ ...tempFormData, wa: e.target.value })} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:border-amber-400 outline-none font-mono" /></div>
-                          <div className="flex flex-col gap-2"><label className="text-xs font-bold text-gray-600 dark:text-gray-400">آیدی تلگرام شعبه</label><input type="text" dir="ltr" value={tempFormData.tg || ""} onChange={e => setTempFormData({ ...tempFormData, tg: e.target.value })} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:border-amber-400 outline-none font-mono" /></div>
                           <div className="flex flex-col gap-2 col-span-full"><label className="text-xs font-bold text-gray-600 dark:text-gray-400">لینک گوگل مپ</label><input type="url" dir="ltr" value={tempFormData.mapUrl || ""} onChange={e => setTempFormData({ ...tempFormData, mapUrl: e.target.value })} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:border-amber-400 outline-none font-mono" /></div>
+                        </div>
+                        
+                        <div className="mb-2 mt-2">
+                           {renderSocialManager(tempFormData, setTempFormData)}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -870,16 +977,16 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
                         {tempFormData.logo && <img src={tempFormData.logo} alt="Preview" className="h-20 object-contain mx-auto" />}
                         <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 cursor-pointer transition-colors group">
                           <input type="file" accept="image/png, image/jpeg" className="hidden" onChange={async(e) => { 
-                            const f = e.target.files?.[0]; 
+                            const f = e.target.files?.[0];
                             if(!f) return; 
                             if(tempFormData.logo) { 
-                              await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: tempFormData.logo }) }).catch(e => console.error(e)); 
+                              await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: tempFormData.logo }) }).catch(e => console.error(e));
                             } 
-                            const fd = new FormData(); 
+                            const fd = new FormData();
                             fd.append('file', f); 
                             const r = await fetch('/api/upload', {method:'POST',body:fd}); 
                             const d = await r.json(); 
-                            if(d.success) setTempFormData({...tempFormData, logo: d.url}); 
+                            if(d.success) setTempFormData({...tempFormData, logo: d.url});
                           }} />
                           <ImageIcon size={32} className="text-gray-400 group-hover:text-amber-500 transition-colors" />
                           <span className="text-sm font-bold text-gray-500 group-hover:text-amber-600">برای انتخاب فایل تصویر کلیک کنید</span>

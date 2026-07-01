@@ -15,7 +15,7 @@ export default function BrandsManager() {
   const [searchQuery, setSearchQuery] = useState("");
   
   const [formData, setFormData] = useState({ 
-    _id: "", slug: "", faName: "", enName: "", faDesc: "", enDesc: "", logo: "", heroImage: "", color: "from-gray-400 to-gray-600"
+    _id: "", slug: "", faName: "", enName: "", faDesc: "", enDesc: "", logoFa: "", logoEn: "", logo: "", heroImage: "", color: "from-gray-400 to-gray-600"
   });
 
   const fetchBrandsData = async () => {
@@ -42,7 +42,6 @@ export default function BrandsManager() {
         fetchBrandsData();
       } else alert(res.error);
     } else {
-      // هنگام ساخت برند جدید، آیدی باید خالی باشد تا مونگودی‌بی خودش آیدی بسازد
       const { _id, ...newBrandData } = formData;
       const res = await createBrand(newBrandData);
       if (res.success) {
@@ -60,14 +59,20 @@ export default function BrandsManager() {
   };
 
   const handleEdit = (brand: any) => {
-    setFormData(brand);
+    // گرفتن مقادیر قبلی برای سازگاری برندهایی که از قبل در دیتابیس ثبت شده بودند
+    setFormData({
+      ...brand,
+      logoFa: brand.logoFa || brand.logo || "",
+      logoEn: brand.logoEn || brand.logo || "",
+      logo: brand.logo || ""
+    });
     setEditMode(true);
     setActiveTab("basic");
     setIsModalOpen(true);
   };
 
   const handleAddNew = () => {
-    setFormData({ _id: "", slug: "", faName: "", enName: "", faDesc: "", enDesc: "", logo: "", heroImage: "", color: "from-gray-400 to-gray-600" });
+    setFormData({ _id: "", slug: "", faName: "", enName: "", faDesc: "", enDesc: "", logoFa: "", logoEn: "", logo: "", heroImage: "", color: "from-gray-400 to-gray-600" });
     setEditMode(false);
     setActiveTab("basic");
     setIsModalOpen(true);
@@ -229,48 +234,74 @@ export default function BrandsManager() {
                 )}
 
                 {activeTab === "media" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* لوگوی فارسی */}
                     <div className="flex flex-col gap-3">
-                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400">لوگوی برند</label>
-                      {formData.logo && <img src={formData.logo} alt="Logo" className="h-20 object-contain mx-auto mb-2" />}
-<label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl h-32 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-amber-400">
-  <input type="file" accept="image/*" className="hidden" onChange={async(e) => { 
-    const f = e.target.files?.[0]; 
-    if(!f) return; 
-    if(formData.logo) { 
-      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.logo }) }).catch(e => console.error(e)); 
-    } 
-    const fd = new FormData(); 
-    fd.append('file', f); 
-    const r = await fetch('/api/upload', {method:'POST',body:fd}); 
-    const d = await r.json(); 
-    if(d.success) setFormData({...formData, logo: d.url}); 
-  }} />
-                      <ImageIcon size={24} className="text-gray-400" />
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400">لوگوی برند (نسخه فارسی)</label>
+                      {formData.logoFa && <img src={formData.logoFa} alt="Logo Fa" className="h-20 object-contain mx-auto mb-2" />}
+                      <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl h-32 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-amber-400">
+                        <input type="file" accept="image/*" className="hidden" onChange={async(e) => { 
+                          const f = e.target.files?.[0]; 
+                          if(!f) return; 
+                          if(formData.logoFa) { 
+                            await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.logoFa }) }).catch(e => console.error(e)); 
+                          } 
+                          const fd = new FormData(); 
+                          fd.append('file', f); 
+                          const r = await fetch('/api/upload', {method:'POST',body:fd}); 
+                          const d = await r.json(); 
+                          if(d.success) setFormData({...formData, logoFa: d.url}); 
+                        }} />
+                        <ImageIcon size={24} className="text-gray-400" />
                         <span className="text-xs font-bold text-gray-500">برای آپلود کلیک کنید</span>
                       </label>
                     </div>
+
+                    {/* لوگوی انگلیسی */}
+                    <div className="flex flex-col gap-3">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400">لوگوی برند (نسخه انگلیسی)</label>
+                      {formData.logoEn && <img src={formData.logoEn} alt="Logo En" className="h-20 object-contain mx-auto mb-2" />}
+                      <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl h-32 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-amber-400">
+                        <input type="file" accept="image/*" className="hidden" onChange={async(e) => { 
+                          const f = e.target.files?.[0]; 
+                          if(!f) return; 
+                          if(formData.logoEn) { 
+                            await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.logoEn }) }).catch(e => console.error(e)); 
+                          } 
+                          const fd = new FormData(); 
+                          fd.append('file', f); 
+                          const r = await fetch('/api/upload', {method:'POST',body:fd}); 
+                          const d = await r.json(); 
+                          if(d.success) setFormData({...formData, logoEn: d.url}); 
+                        }} />
+                        <ImageIcon size={24} className="text-gray-400" />
+                        <span className="text-xs font-bold text-gray-500">برای آپلود کلیک کنید</span>
+                      </label>
+                    </div>
+
+                    {/* کاور */}
                     <div className="flex flex-col gap-3">
                       <label className="text-xs font-bold text-gray-600 dark:text-gray-400">تصویر کاور (Hero)</label>
                       {formData.heroImage && <img src={formData.heroImage} alt="Hero" className="h-20 object-cover rounded-xl mx-auto mb-2 w-full" />}
-<label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl h-32 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-amber-400">
-  <input type="file" accept="image/*" className="hidden" onChange={async(e) => { 
-    const f = e.target.files?.[0]; 
-    if(!f) return; 
-    if(formData.heroImage) { 
-      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.heroImage }) }).catch(e => console.error(e)); 
-    } 
-    const fd = new FormData(); 
-    fd.append('file', f); 
-    const r = await fetch('/api/upload', {method:'POST',body:fd}); 
-    const d = await r.json(); 
-    if(d.success) setFormData({...formData, heroImage: d.url}); 
-  }} />
-                       <ImageIcon size={24} className="text-gray-400" />
+                      <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl h-32 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-amber-400">
+                        <input type="file" accept="image/*" className="hidden" onChange={async(e) => { 
+                          const f = e.target.files?.[0]; 
+                          if(!f) return; 
+                          if(formData.heroImage) { 
+                            await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.heroImage }) }).catch(e => console.error(e)); 
+                          } 
+                          const fd = new FormData(); 
+                          fd.append('file', f); 
+                          const r = await fetch('/api/upload', {method:'POST',body:fd}); 
+                          const d = await r.json(); 
+                          if(d.success) setFormData({...formData, heroImage: d.url}); 
+                        }} />
+                        <ImageIcon size={24} className="text-gray-400" />
                         <span className="text-xs font-bold text-gray-500">برای آپلود کلیک کنید</span>
                       </label>
                     </div>
-                    <div className="flex flex-col gap-3">
+
+                    <div className="flex flex-col gap-3 col-span-1 md:col-span-3">
                       <label className="text-xs font-bold text-gray-600 dark:text-gray-400">تم رنگی (کلاس Tailwind)</label>
                       <input type="text" value={formData.color} onChange={e => setFormData({...formData, color: e.target.value})} dir="ltr" className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-amber-400 transition-colors" placeholder="from-amber-400 to-orange-600" />
                     </div>

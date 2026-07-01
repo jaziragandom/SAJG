@@ -33,7 +33,7 @@ const localTranslations = {
   fa: {
     about_desc: "جزیره گندم، پیشگام در تولید و عرضه بهترین محصولات غذایی با کیفیت جهانی.",
     quick_links: "لینک‌های سریع",
-    links: { about: "درباره ما", products: "محصولات", factory: "کارخانجات", agencies: "نمایندگی‌ها", blog: "مجله گندم" },
+    links: { about: "درباره ما", products: "محصولات", factory: "برند ها", agencies: "نمایندگی‌ها", blog: "مجله گندم" },
     contact_info: "ارتباط با ما",
     newsletter: { title: "خبرنامه", desc: "برای اطلاع از جدیدترین‌ها عضو شوید.", placeholder: "ایمیل شما..." },
     copyright: "تمامی حقوق برای گروه جزیره گندم محفوظ است.",
@@ -42,7 +42,7 @@ const localTranslations = {
   en: {
     about_desc: "Jazirah Gandum, a pioneer in producing and supplying the best food products.",
     quick_links: "Quick Links",
-    links: { about: "About Us", products: "Products", factory: "Factories", agencies: "Agencies", blog: "Blog" },
+    links: { about: "About Us", products: "Products", factory: "Brands", agencies: "Agencies", blog: "Blog" },
     contact_info: "Contact Us",
     newsletter: { title: "Newsletter", desc: "Subscribe for the latest updates.", placeholder: "Your email..." },
     copyright: "All rights reserved.",
@@ -294,7 +294,7 @@ export default function Footer({ siteLogo = null, contactInfo, footerTexts }: Fo
                 <li><Link href={`/${locale}/about`} className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.about")}</Link></li>
                 <li><Link href={`/${locale}/products`} className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.products")}</Link></li>
                 <li><Link href={`/${locale}/brands`} className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.factory")}</Link></li>
-                <li><Link href={`/${locale}/gallery`} className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.agencies")}</Link></li>
+                <li><Link href={`/${locale}/about#contact`} className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.agencies")}</Link></li>
                 <li><Link href={`/${locale}/blog`} className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.blog")}</Link></li>
               </ul>
             </motion.div>

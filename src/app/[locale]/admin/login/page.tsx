@@ -202,7 +202,7 @@ export default function AdminLogin() {
         </form>
 
         <div className="mt-8 text-center border-t border-white/5 pt-4">
-          <span className="text-[10px] text-gray-500 font-bold tracking-wider uppercase">Secure Shield v1.5 | Jazirah Gandom</span>
+          <span className="text-[10px] text-gray-500 font-bold tracking-wider uppercase">Secure Shield v1.5 | Jazirah Gandum</span>
         </div>
       </motion.div>
     </div>

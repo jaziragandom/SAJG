@@ -20,11 +20,8 @@ export default async function FooterWrapper() {
     phone: hqData?.phone || "+93 790 71 00 15",
     email: hqData?.email || "info@jazirah-gandum.com",
     faAddress: hqData?.faAddress || "دفتر مرکزی، جزیره گندم",
-    enAddress: hqData?.enAddress || "HQ Office, Jazirah Gandom",
-    wa: hqData?.wa || "#",
-    tg: hqData?.tg || "#",
-    ig: hqData?.ig || "#",
-    fb: hqData?.fb || "#",
+    enAddress: hqData?.enAddress || "HQ Office, Jazirah Gandum",
+    socials: hqData?.socials || []
   };
 
   const footerTexts = {

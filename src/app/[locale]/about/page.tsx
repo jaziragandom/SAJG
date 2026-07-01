@@ -7,17 +7,48 @@ import * as LucideIcons from "lucide-react";
 import { getSiteContent } from "@/actions/siteContent";
 import { 
   Building2, Target, Users, Award, MapPin, Download, X, 
-  Mail, Phone, ShieldCheck, MapPinned, MessageCircle, Send, Briefcase, CheckCircle2 
+  Mail, Phone, ShieldCheck, MapPinned, MessageCircle, Send, Briefcase, CheckCircle2,
+  Music2, MessageSquare, Share2
 } from "lucide-react";
 
-// --- آیکون‌های اختصاصی شبکه‌های اجتماعی ---
-function Instagram(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>; }
-function Facebook(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>; }
+// --- آیکون‌های اختصاصی شبکه‌های اجتماعی (جایگزین موارد حذف شده از Lucide) ---
+const BrandInstagram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>;
+const BrandFacebook = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>;
+const BrandTwitter = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>;
+const BrandLinkedin = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>;
+const BrandYoutube = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 7.1C2.5 7.1 2 9.4 2 12c0 2.6.5 4.9.5 4.9.3 1.1 1.2 2 2.3 2.3 2.6.5 7.2.5 7.2.5s4.6 0 7.2-.5c1.1-.3 2-1.2 2.3-2.3.5-2.3.5-4.9.5-4.9s-.5-2.6-.5-4.9c-.3-1.1-1.2-2-2.3-2.3-2.6-.5-7.2-.5-7.2-.5s-4.6 0-7.2.5C3.7 5.1 2.8 6 2.5 7.1z"/><path d="M9.8 15.5l6.4-3.5-6.4-3.5v7z"/></svg>;
+const BrandAparat = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>;
 
-// --- کامپوننت رندر داینامیک آیکن ---
+// --- کامپوننت رندر داینامیک آیکن شرکت ---
 const DynamicIcon = ({ name, size = 36 }: { name: string, size?: number }) => {
   const IconComponent = (LucideIcons as any)[name] || LucideIcons.CheckCircle;
   return <IconComponent size={size} />;
+};
+
+// --- سیستم یکپارچه رندر شبکه‌های اجتماعی با دیپ لینک ---
+const SocialIconResolver = ({ platform, value }: { platform: string, value: string }) => {
+  let Icon: any = MessageCircle;
+  let url = value;
+  
+  switch(platform) {
+    case 'whatsapp': Icon = MessageCircle; url = `https://wa.me/${value}`; break;
+    case 'telegram': Icon = Send; url = `https://t.me/${value}`; break;
+    case 'instagram': Icon = BrandInstagram; url = `https://instagram.com/${value}`; break;
+    case 'facebook': Icon = BrandFacebook; url = `https://facebook.com/${value}`; break;
+    case 'twitter': Icon = BrandTwitter; url = `https://twitter.com/${value}`; break;
+    case 'youtube': Icon = BrandYoutube; url = `https://youtube.com/@${value}`; break;
+    case 'linkedin': Icon = BrandLinkedin; url = `https://linkedin.com/in/${value}`; break;
+    case 'tiktok': Icon = Music2; url = `https://tiktok.com/@${value}`; break;
+    case 'aparat': Icon = BrandAparat; url = `https://aparat.com/${value}`; break;
+    case 'eitaa': Icon = MessageSquare; url = `https://eitaa.com/${value}`; break;
+    case 'rubika': Icon = Share2; url = `https://rubika.ir/${value}`; break;
+  }
+  
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="flex-1 flex justify-center py-2.5 hover:text-amber-400 transition-colors">
+       <Icon size={22} />
+    </a>
+  );
 };
 
 // --- کامپوننت شمارنده (Counter) ---
@@ -50,20 +81,18 @@ function Counter({ value, title }: { value: number; title: string }) {
 // --- انیمیشن‌های اصلی ---
 const fadeInUp = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } } };
 const staggerContainer = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.2 } } };
-
-// انیمیشن‌های مارکی
-const marqueeFA = { animate: { x: ["0%", "50%"], transition: { repeat: Infinity, duration: 80, ease: "linear" as const } } };
-const marqueeEN = { animate: { x: ["0%", "-50%"], transition: { repeat: Infinity, duration: 80, ease: "linear" as const } } };
-const marqueeRevFA = { animate: { x: ["50%", "0%"], transition: { repeat: Infinity, duration: 90, ease: "linear" as const } } };
-const marqueeRevEN = { animate: { x: ["-50%", "0%"], transition: { repeat: Infinity, duration: 90, ease: "linear" as const } } };
+const marqueeFA = { animate: { x: ["0%", "50%"], transition: { repeat: Infinity, duration: 360, ease: "linear" as const } } };
+const marqueeEN = { animate: { x: ["0%", "-50%"], transition: { repeat: Infinity, duration: 360, ease: "linear" as const } } };
+const marqueeRevFA = { animate: { x: ["50%", "0%"], transition: { repeat: Infinity, duration: 360, ease: "linear" as const } } };
+const marqueeRevEN = { animate: { x: ["-50%", "0%"], transition: { repeat: Infinity, duration: 360, ease: "linear" as const } } };
 
 export default function AboutPage() {
   const locale = useLocale();
   const isRtl = locale === 'fa';
-  
+
   const [selectedCert, setSelectedCert] = useState<string | null>(null);
   const [isAgencyModalOpen, setIsAgencyModalOpen] = useState(false);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false); 
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   // --- استیت‌های داینامیک ---
   const [introData, setIntroData] = useState<any>({});
@@ -74,7 +103,7 @@ export default function AboutPage() {
   const [partnersList, setPartnersList] = useState<any[]>([]);
   const [certificatesList, setCertificatesList] = useState<any[]>([]);
   const [visibility, setVisibility] = useState({ showPartners: true, showCerts: true });
-  const [hqData, setHqData] = useState<any>({});
+  const [hqData, setHqData] = useState<any>({ socials: [] });
   const [branchesList, setBranchesList] = useState<any[]>([]);
 
   useEffect(() => {
@@ -103,8 +132,26 @@ export default function AboutPage() {
           setCertificatesList(partnersRes.data.certificates || []);
         }
         if (hqRes?.data) {
-          setHqData(hqRes.data.hqData || {});
-          setBranchesList(hqRes.data.branches || []);
+          let parsedHqData = hqRes.data.hqData || {};
+          if (!parsedHqData.socials) {
+             parsedHqData.socials = [];
+             if (parsedHqData.wa) parsedHqData.socials.push({ platform: 'whatsapp', value: parsedHqData.wa });
+             if (parsedHqData.tg) parsedHqData.socials.push({ platform: 'telegram', value: parsedHqData.tg });
+             if (parsedHqData.ig) parsedHqData.socials.push({ platform: 'instagram', value: parsedHqData.ig });
+             if (parsedHqData.fb) parsedHqData.socials.push({ platform: 'facebook', value: parsedHqData.fb });
+          }
+          setHqData(parsedHqData);
+          
+          let parsedBranches = hqRes.data.branches || [];
+          parsedBranches = parsedBranches.map((b: any) => {
+            if (!b.socials) {
+              b.socials = [];
+              if (b.wa) b.socials.push({ platform: 'whatsapp', value: b.wa });
+              if (b.tg) b.socials.push({ platform: 'telegram', value: b.tg });
+            }
+            return b;
+          });
+          setBranchesList(parsedBranches);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -120,7 +167,8 @@ export default function AboutPage() {
     const blob = new Blob([vcfData], { type: "text/vcard" });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = url; link.setAttribute("download", `${name}.vcf`);
+    link.href = url;
+    link.setAttribute("download", `${name}.vcf`);
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
@@ -132,7 +180,6 @@ export default function AboutPage() {
     }
   };
 
-  // تابع هوشمند برای دو رنگ کردن تیتر (کلمه آخر به رنگ نارنجی درمی‌آید)
   const renderHighlightedTitle = (title: string) => {
     if (!title) return null;
     const words = title.trim().split(" ");
@@ -156,7 +203,7 @@ export default function AboutPage() {
         {/* ۱. معرفی شرکت */}
         <motion.div variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.2 }} className="scroll-mt-28 flex flex-col items-center text-center">
           <motion.div variants={fadeInUp} className="p-3 bg-amber-400/10 rounded-2xl mb-4 mx-auto w-max"><Building2 size={40} className="text-amber-500" /></motion.div>
-          <motion.h1 variants={fadeInUp} className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-6">{isRtl ? "درباره جزیره گندم" : "About Jazireh Gandom"}</motion.h1>
+          <motion.h1 variants={fadeInUp} className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-6">{isRtl ? "درباره جزیره گندم" : "About Jazirah Gandum"}</motion.h1>
           <motion.p variants={fadeInUp} className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed max-w-4xl mx-auto text-justify md:text-center">
             {isRtl ? introData.aboutFa : introData.aboutEn}
           </motion.p>
@@ -227,18 +274,12 @@ export default function AboutPage() {
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: false, amount: 0.1 }}
-              transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }} // تاخیر بسیار کم و سرعت بیشتر
+              transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
               className="relative w-full h-96 lg:h-auto grow flex"
             >
               <div className="absolute inset-0 bg-zinc-900 rounded-3xl overflow-hidden shadow-lg z-10 flex items-center justify-center group">
-                
                 {isVideoPlaying ? (
-                  <video 
-                    src={introData.videoUrl} 
-                    controls 
-                    autoPlay 
-                    className="w-full h-full object-cover rounded-3xl"
-                  />
+                  <video src={introData.videoUrl} controls autoPlay className="w-full h-full object-cover rounded-3xl" />
                 ) : (
                   <>
                     <div className="absolute inset-0 bg-linear-to-tr from-black/70 to-transparent z-10" />
@@ -251,7 +292,6 @@ export default function AboutPage() {
                     </div>
                   </>
                 )}
-                
               </div>
             </motion.div>
           </div>
@@ -259,7 +299,7 @@ export default function AboutPage() {
 
         {/* ۵. چرا جزیره گندم؟ */}
         <motion.div variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.1 }}>
-          <motion.h2 variants={fadeInUp} className="text-2xl font-black text-gray-900 dark:text-white mb-6 text-center">{isRtl ? "چرا جزیره گندم؟" : "Why Jazireh Gandom?"}</motion.h2>
+          <motion.h2 variants={fadeInUp} className="text-2xl font-black text-gray-900 dark:text-white mb-6 text-center">{isRtl ? "چرا جزیره گندم؟" : "Why Jazirah Gandum?"}</motion.h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {whyUsList.map(item => (
               <motion.div key={item.id} variants={fadeInUp} className="bg-amber-400/5 border border-amber-400/20 p-6 rounded-3xl flex flex-col items-center text-center gap-4 text-amber-700 dark:text-amber-400 hover:bg-amber-400/10 transition-colors">
@@ -281,8 +321,14 @@ export default function AboutPage() {
             <motion.div variants={fadeInUp} className="relative w-full overflow-hidden flex items-center" style={{ maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}>
               <motion.div animate={isRtl ? marqueeFA.animate : marqueeEN.animate} className="flex w-max gap-6 py-2">
                 {dupPartners.map((partner, idx) => (
-                  <a key={idx} href={partner.url} target="_blank" rel="noopener noreferrer" className="relative w-40 h-20 shrink-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm border border-gray-100 dark:border-gray-800 rounded-2xl flex items-center justify-center hover:border-amber-400 transition-all group/card">
-                    <img src={partner.logo} alt={partner.faName} className="max-w-24 max-h-10 opacity-60 group-hover/card:opacity-100 transition-opacity grayscale group-hover/card:grayscale-0" />
+                  <a key={idx} href={partner.url} target="_blank" rel="noopener noreferrer" className="relative w-40 shrink-0 flex flex-col items-center justify-center transition-all group/card py-2 gap-2">
+                    <img src={partner.logo} alt={isRtl ? partner.faName : partner.enName} className="max-w-24 max-h-10 opacity-60 group-hover/card:opacity-100 transition-opacity grayscale group-hover/card:grayscale-0 mb-1" />
+                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200 text-center">
+                      {isRtl ? partner.faName : partner.enName}
+                    </span>
+                    <span className={`text-xs text-gray-500 text-center ${isRtl ? 'font-mono' : ''}`}>
+                      {isRtl ? partner.enName : partner.faName}
+                    </span>
                   </a>
                 ))}
               </motion.div>
@@ -319,7 +365,10 @@ export default function AboutPage() {
                   <input type="text" placeholder={isRtl ? "نام کامل شما" : "Full Name"} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-5 py-4 focus:border-amber-400 outline-none" />
                   <input type="email" placeholder={isRtl ? "آدرس ایمیل" : "Email Address"} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-5 py-4 focus:border-amber-400 outline-none" />
                   <textarea rows={5} placeholder={isRtl ? "پیام خود را بنویسید..." : "Your Message..."} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-5 py-4 focus:border-amber-400 outline-none resize-none"></textarea>
-                  <button type="submit" className="w-full bg-amber-400 hover:bg-amber-500 text-gray-900 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors mt-2 text-lg"><Send size={20} /> {isRtl ? "ارسال پیام" : "Send Message"}</button>
+                  <button type="submit" className="w-full bg-amber-400 hover:bg-amber-500 text-gray-900 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors mt-2 text-lg">
+                    <Send size={20} className={isRtl ? "transform -scale-x-100" : ""} /> 
+                    {isRtl ? "ارسال پیام" : "Send Message"}
+                  </button>
                 </form>
               </div>
             </motion.div>
@@ -328,17 +377,25 @@ export default function AboutPage() {
               <div className="relative z-10">
                 <h3 className="text-2xl font-black text-amber-400 mb-8 flex items-center gap-3"><Building2 size={28}/> {isRtl ? hqData.faName : hqData.enName}</h3>
                 <div className="flex flex-col gap-6 mb-10">
-                  <a href={`tel:${hqData.phone}`} className="flex items-center gap-4 text-gray-300 hover:text-amber-400 transition-colors group"><div className="p-3 bg-white/10 rounded-xl group-hover:bg-amber-400 group-hover:text-gray-900 transition-colors"><Phone size={20}/></div><span dir="ltr" className="font-mono font-medium text-xl">{hqData.phone}</span></a>
-                  <a href={`mailto:${hqData.email}`} className="flex items-center gap-4 text-gray-300 hover:text-amber-400 transition-colors group"><div className="p-3 bg-white/10 rounded-xl group-hover:bg-amber-400 group-hover:text-gray-900 transition-colors"><Mail size={20}/></div><span className="font-mono text-base">{hqData.email}</span></a>
-                  <a href={hqData.mapUrl} target="_blank" className="flex items-start gap-4 text-gray-300 hover:text-amber-400 transition-colors group"><div className="p-3 bg-white/10 rounded-xl group-hover:bg-amber-400 group-hover:text-gray-900 transition-colors shrink-0"><MapPinned size={20}/></div><span className="text-base leading-relaxed mt-1">{isRtl ? hqData.faAddress : hqData.enAddress}</span></a>
+                  <a href={`tel:${hqData.phone}`} className="flex items-center gap-4 text-gray-300 hover:text-amber-400 transition-colors group">
+                     <div className="p-3 bg-white/10 rounded-xl group-hover:bg-amber-400 group-hover:text-gray-900 transition-colors"><Phone size={20}/></div>
+                     <bdi dir="ltr" className="font-mono font-medium text-xl">{hqData.phone}</bdi>
+                  </a>
+                  <a href={`mailto:${hqData.email}`} className="flex items-center gap-4 text-gray-300 hover:text-amber-400 transition-colors group">
+                     <div className="p-3 bg-white/10 rounded-xl group-hover:bg-amber-400 group-hover:text-gray-900 transition-colors"><Mail size={20}/></div>
+                     <span className="font-mono text-base">{hqData.email}</span>
+                  </a>
+                  <a href={hqData.mapUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-4 text-gray-300 hover:text-amber-400 transition-colors group">
+                     <div className="p-3 bg-white/10 rounded-xl group-hover:bg-amber-400 group-hover:text-gray-900 transition-colors shrink-0"><MapPinned size={20}/></div>
+                     <span className="text-base leading-relaxed mt-1">{isRtl ? hqData.faAddress : hqData.enAddress}</span>
+                  </a>
                 </div>
               </div>
-              <div className="relative z-10 w-full flex justify-between items-center bg-white/5 p-2 rounded-2xl border border-white/10 backdrop-blur-md">
-                <a href={`https://wa.me/${hqData.wa}`} target="_blank" className="flex-1 flex justify-center py-2.5 hover:text-amber-400 transition-colors"><MessageCircle size={22}/></a>
-                <a href={`https://t.me/${hqData.tg}`} target="_blank" className="flex-1 flex justify-center py-2.5 hover:text-amber-400 transition-colors"><Send size={22}/></a>
-                <a href={`https://instagram.com/${hqData.ig}`} target="_blank" className="flex-1 flex justify-center py-2.5 hover:text-amber-400 transition-colors"><Instagram size={22}/></a>
-                <a href={`https://facebook.com/${hqData.fb}`} target="_blank" className="flex-1 flex justify-center py-2.5 hover:text-amber-400 transition-colors"><Facebook size={22}/></a>
-                <a href={hqData.mapUrl} target="_blank" className="flex-1 flex justify-center py-2.5 hover:text-amber-400 transition-colors"><MapPin size={22}/></a>
+              <div className="relative z-10 w-full flex justify-between items-center bg-white/5 p-2 rounded-2xl border border-white/10 backdrop-blur-md overflow-x-auto hide-scrollbar">
+                {(hqData.socials || []).map((social: any, idx: number) => (
+                   <SocialIconResolver key={idx} platform={social.platform} value={social.value} />
+                ))}
+                <a href={hqData.mapUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex justify-center py-2.5 hover:text-amber-400 transition-colors"><MapPin size={22}/></a>
                 <button onClick={() => downloadVCF(hqData)} className="md:hidden flex-1 flex justify-center py-2.5 text-amber-400 hover:text-white transition-colors"><Download size={22}/></button>
               </div>
             </motion.div>
@@ -354,14 +411,21 @@ export default function AboutPage() {
               <motion.div key={branch.id} variants={fadeInUp} className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-md border border-gray-100 dark:border-gray-800 p-8 rounded-3xl flex flex-col justify-between hover:border-amber-400 transition-colors">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-3"><div className="p-2 bg-amber-400 text-gray-900 rounded-xl"><Building2 size={20}/></div>{isRtl ? branch.faName : branch.enName}</h3>
                 <div className="flex flex-col gap-5 mb-8">
-                  <a href={`tel:${branch.phone}`} className="flex items-center gap-4 text-gray-600 dark:text-gray-400 hover:text-amber-500 transition-colors group"><div className="p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 group-hover:border-amber-500"><Phone size={18}/></div><span dir="ltr" className="font-mono text-base font-bold">{branch.phone}</span></a>
-                  <a href={branch.mapUrl} target="_blank" className="flex items-start gap-4 text-gray-600 dark:text-gray-400 hover:text-amber-500 transition-colors group"><div className="p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 group-hover:border-amber-500 shrink-0"><MapPinned size={18}/></div><span className="text-sm leading-relaxed mt-1">{isRtl ? branch.faAddress : branch.enAddress}</span></a>
+                  <a href={`tel:${branch.phone}`} className="flex items-center gap-4 text-gray-600 dark:text-gray-400 hover:text-amber-500 transition-colors group">
+                     <div className="p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 group-hover:border-amber-500"><Phone size={18}/></div>
+                     <bdi dir="ltr" className="font-mono text-base font-bold">{branch.phone}</bdi>
+                  </a>
+                  <a href={branch.mapUrl} target="_blank" rel="noopener noreferrer" className="flex items-start gap-4 text-gray-600 dark:text-gray-400 hover:text-amber-500 transition-colors group">
+                     <div className="p-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 group-hover:border-amber-500 shrink-0"><MapPinned size={18}/></div>
+                     <span className="text-sm leading-relaxed mt-1">{isRtl ? branch.faAddress : branch.enAddress}</span>
+                  </a>
                 </div>
-                <div className="w-full flex justify-between items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2.5 rounded-2xl text-gray-500">
+                <div className="w-full flex justify-between items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2.5 rounded-2xl text-gray-500 overflow-x-auto hide-scrollbar">
                   <a href={`mailto:${branch.email}`} className="flex-1 flex justify-center py-2 hover:text-amber-500 transition-colors"><Mail size={20}/></a>
-                  <a href={`https://wa.me/${branch.wa}`} target="_blank" className="flex-1 flex justify-center py-2 hover:text-amber-500 transition-colors"><MessageCircle size={20}/></a>
-                  <a href={`https://t.me/${branch.tg}`} target="_blank" className="flex-1 flex justify-center py-2 hover:text-amber-500 transition-colors"><Send size={20}/></a>
-                  <a href={branch.mapUrl} target="_blank" className="flex-1 flex justify-center py-2 hover:text-amber-500 transition-colors"><MapPin size={20}/></a>
+                  {(branch.socials || []).map((social: any, idx: number) => (
+                     <SocialIconResolver key={idx} platform={social.platform} value={social.value} />
+                  ))}
+                  <a href={branch.mapUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex justify-center py-2 hover:text-amber-500 transition-colors"><MapPin size={20}/></a>
                   <button onClick={() => downloadVCF(branch)} className="md:hidden flex-1 flex justify-center py-2 text-amber-500 transition-colors"><Download size={20}/></button>
                 </div>
               </motion.div>

@@ -6,7 +6,6 @@ import {
   Edit3, GripVertical, Droplets, Sparkles, CheckCircle2, 
   X, Wand2, Loader2, AlertCircle, ArrowLeft, Film
 } from "lucide-react";
-
 import { useAdminShortcuts } from "../hooks/useAdminShortcuts";
 import { getCategories, createCategory, updateCategory, deleteCategory } from "@/actions/category";
 import { getBrands } from "@/actions/brand";
@@ -28,24 +27,21 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
   const [brands, setBrands] = useState<any[]>([]);
   const [localItems, setLocalItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
   const [editModeId, setEditModeId] = useState<string | null>(null);
+  const [editItemSlug, setEditItemSlug] = useState<string | null>(null);
   
   const [newItemFaName, setNewItemFaName] = useState("");
   const [newItemEnName, setNewItemEnName] = useState("");
-  
-  // استیت‌های جدید برای معماری سلسله‌مراتبی
   const [selectedMain, setSelectedMain] = useState("all");
   const [selectedSub, setSelectedSub] = useState("all");
-
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   
   const currentGroupData = groupMetadata.find(g => g.id === activeCategoryId);
   const isBrandsCategory = activeCategoryId === "brands";
   
-  // دسته‌بندی سطح بالا (نیاز به والد ندارد)
   const isMainGroup = ["main", "media", "status"].includes(activeCategoryId);
-  // مشخصات تخصصی (هم والد اصلی و هم زیردسته می‌گیرند)
   const isSpecGroup = ["packaging", "flavor", "weight"].includes(activeCategoryId);
 
   const fetchData = async () => {
@@ -102,34 +98,72 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
     e.preventDefault();
     if (!newItemFaName.trim() || !newItemEnName.trim() || isBrandsCategory) return;
     
-    const slug = newItemEnName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-') + '-' + Math.floor(Math.random() * 1000);
-    
-    // محاسبه والد نهایی به صورت هوشمند
+    // ساخت اسلاگ تمیز بر اساس نام انگلیسی
+    const baseSlug = newItemEnName.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+
     let finalParent = "all";
     if (!isMainGroup) {
        if (isSpecGroup) {
           finalParent = selectedSub !== "all" ? selectedSub : selectedMain;
        } else {
-          finalParent = selectedMain; // برای زیردسته‌ها فقط گروه اصلی اعمال می‌شود
+          finalParent = selectedMain;
        }
     }
-    
-    const payload = {
-      faName: newItemFaName,
-      enName: newItemEnName,
-      slug: slug,
-      parent: finalParent,
-      iconName: activeCategoryId,
-      order: localItems.length
-    };
 
     if (editModeId) {
+      const currentItem = categories.find(c => c._id === editModeId);
+      
+      // منطق هوشمند برای جلوگیری از تداخل اسلاگ‌های هم‌نام در حالت ویرایش
+      let finalSlug = baseSlug;
+      if (currentItem && newItemEnName.trim() === currentItem.enName.trim()) {
+        // اگر اسم انگلیسی تغییری نکرده، همون اسلاگ قبلی که تو دیتابیس یونیک هست رو نگه می‌داریم
+        finalSlug = currentItem.slug;
+      } else {
+        // اگر اسم انگلیسی تغییر کرده، برای جلوگیری از تداخل با بقیه یه عدد رندوم می‌دیم
+        finalSlug = baseSlug + '-' + Math.floor(Math.random() * 10000);
+      }
+      
+      const payload = {
+        faName: newItemFaName,
+        enName: newItemEnName,
+        slug: finalSlug, 
+        parent: finalParent,
+        iconName: activeCategoryId,
+        order: currentItem ? currentItem.order : localItems.length // حفظ ترتیب قبلی آیتم
+      };
+
       const res = await updateCategory(editModeId, payload);
       if (res.success) {
+        // --- آپدیت آبشاری هوشمند ---
+        if (editItemSlug && editItemSlug !== finalSlug) {
+          // اگر اسلاگ قبلی ثبت شده باشد، تمام زیردسته‌ها را پیدا کن (بدون حساسیت به حروف بزرگ و کوچک)
+          const childrenToUpdate = categories.filter(c => 
+            c.parent === editItemSlug || 
+            (c.parent && editItemSlug && c.parent.toLowerCase() === editItemSlug.toLowerCase())
+          );
+          if (childrenToUpdate.length > 0) {
+            await Promise.all(
+              childrenToUpdate.map(child => updateCategory(child._id, { parent: finalSlug }))
+            );
+          }
+        }
         resetForm();
         fetchData();
       } else alert(res.error);
+      
     } else {
+      // برای آیتم‌های جدید یک عدد تصادفی اضافه می‌کنیم تا در صورت تکراری بودن نام، خطا ندهد
+      const finalSlug = baseSlug + '-' + Math.floor(Math.random() * 10000);
+      
+      const payload = {
+        faName: newItemFaName,
+        enName: newItemEnName,
+        slug: finalSlug,
+        parent: finalParent,
+        iconName: activeCategoryId,
+        order: localItems.length
+      };
+
       const res = await createCategory(payload);
       if (res.success) {
         resetForm();
@@ -142,23 +176,39 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
   const handleEdit = (item: any) => {
     if (isBrandsCategory) return;
     setEditModeId(item._id);
+    setEditItemSlug(item.slug); // ذخیره اسلاگ فعلی
     setNewItemFaName(item.faName);
     setNewItemEnName(item.enName);
-    
-    // مهندسی معکوس برای پیدا کردن والدِ والد در حالت ویرایش
-    if (item.parent === 'all') {
+
+    if (!item.parent || item.parent === 'all') {
         setSelectedMain('all');
         setSelectedSub('all');
     } else {
-        const parentCat = categories.find(c => c.slug === item.parent);
+        // جستجوی والد با انعطاف‌پذیری کامل (حروف بزرگ/کوچک یا آیدی)
+        const parentCat = categories.find(c => 
+            c.slug === item.parent || 
+            (c.slug && item.parent && c.slug.toLowerCase() === item.parent.toLowerCase()) || 
+            c._id === item.parent
+        );
+        
         if (parentCat) {
             if (parentCat.iconName === 'main') {
                 setSelectedMain(parentCat.slug);
                 setSelectedSub('all');
             } else {
-                setSelectedMain(parentCat.parent);
+                // اگر والد خودش زیردسته است، پدربزرگ را پیدا کن
+                const grandParentCat = categories.find(c => 
+                    c.slug === parentCat.parent || 
+                    (c.slug && parentCat.parent && c.slug.toLowerCase() === parentCat.parent.toLowerCase()) || 
+                    c._id === parentCat.parent
+                );
+                setSelectedMain(grandParentCat ? grandParentCat.slug : parentCat.parent);
                 setSelectedSub(parentCat.slug);
             }
+        } else {
+            // والد پیدا نشد (ارتباط قطع شده قدیمی)، سلکت‌ها ریست می‌شوند تا دوباره انتخاب کنید
+            setSelectedMain('all');
+            setSelectedSub('all');
         }
     }
     document.getElementById('cat-fa-input')?.focus();
@@ -174,6 +224,7 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
 
   const resetForm = () => {
     setEditModeId(null);
+    setEditItemSlug(null);
     setNewItemFaName("");
     setNewItemEnName("");
     setSelectedMain("all");
@@ -204,13 +255,27 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
     });
   };
 
-  // تابع خواندن مسیر کامل برای نمایش در جدول
   const getParentPathLabel = (parentId: string) => {
-      if (parentId === "all") return "عمومی برای همه";
-      const p = categories.find(c => c.slug === parentId);
-      if (!p) return "نامشخص";
+      if (!parentId || parentId === "all") return "عمومی برای همه";
+      
+      // جستجوی والد با خطاپوشی کامل
+      const p = categories.find(c => 
+          c.slug === parentId || 
+          (c.slug && parentId && c.slug.toLowerCase() === parentId.toLowerCase()) || 
+          c._id === parentId
+      );
+      
+      if (!p) return "نامشخص (نیاز به ویرایش)";
+      
       if (p.iconName === "main") return `گروه: ${p.faName}`;
-      const grandParent = categories.find(c => c.slug === p.parent);
+      
+      // جستجوی پدربزرگ
+      const grandParent = categories.find(c => 
+          c.slug === p.parent || 
+          (c.slug && p.parent && c.slug.toLowerCase() === p.parent.toLowerCase()) || 
+          c._id === p.parent
+      );
+      
       return `${grandParent ? grandParent.faName : ''} > ${p.faName}`;
   };
 
@@ -242,7 +307,8 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
             <div className="flex items-center gap-3 text-blue-700 dark:text-blue-400">
               <AlertCircle size={24} className="shrink-0" />
               <p className="text-sm font-bold leading-relaxed">
-                برندها دارای صفحات فرانت‌اند اختصاصی هستند. ویرایش آن‌ها از این بخش امکان‌پذیر نیست.
+                برندها دارای صفحات فرانت‌اند اختصاصی هستند.
+                ویرایش آن‌ها از این بخش امکان‌پذیر نیست.
               </p>
             </div>
             <a href="?section=brands_sec" className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors text-xs">
@@ -314,7 +380,10 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
                       className="grow bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 font-bold text-blue-700 dark:text-blue-400 disabled:opacity-50"
                     >
                       <option value="all">{selectedMain === "all" ? "ابتدا گروه اصلی را انتخاب کنید" : "همه زیردسته‌ها"}</option>
-                      {categories.filter(c => c.parent === selectedMain && c.iconName !== 'main').map(c => <option key={c.slug} value={c.slug}>{c.faName}</option>)}
+                      {categories.filter(c => 
+                        (c.parent === selectedMain || (c.parent && selectedMain && c.parent.toLowerCase() === selectedMain.toLowerCase())) 
+                        && c.iconName !== 'main'
+                      ).map(c => <option key={c.slug} value={c.slug}>{c.faName}</option>)}
                     </select>
                   )}
                 </>
@@ -357,7 +426,11 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
                   </div>
                   
                   <div className="hidden md:flex flex-col items-center w-56 justify-center">
-                    <span className={`text-[10px] px-3 py-1 rounded-lg font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300`}>
+                    <span className={`text-[10px] px-3 py-1 rounded-lg font-bold ${
+                      getParentPathLabel(item.parent).includes('نیاز به ویرایش') 
+                      ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400 border border-red-200 dark:border-red-800' 
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                    }`}>
                       {getParentPathLabel(item.parent)}
                     </span>
                   </div>
@@ -365,11 +438,11 @@ export default function CategoriesManager({ activeCategoryId }: { activeCategory
                   {!isBrandsCategory && (
                     <div className="flex items-center gap-2 pl-2">
                       <button onClick={() => handleEdit(item)} className="p-2 bg-gray-50 dark:bg-gray-900 text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors">
-                        <Edit3 size={16} />
+                         <Edit3 size={16} />
                       </button>
                       <button onClick={() => handleDelete(item._id)} className="p-2 bg-gray-50 dark:bg-gray-900 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-colors">
                         <Trash2 size={16} />
-                      </button>
+                       </button>
                     </div>
                   )}
                 </div>

@@ -7,7 +7,7 @@ import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 
 // کلید مخفی رمزنگاری (در پروژه واقعی این را داخل فایل .env قرار دهید)
-const JWT_SECRET_KEY = process.env.JWT_SECRET || "Gandom_Island_Super_Secure_Key_2026_!@#";
+const JWT_SECRET_KEY = process.env.JWT_SECRET || "Gandum_Island_Super_Secure_Key_2026_!@#";
 const encodedKey = new TextEncoder().encode(JWT_SECRET_KEY);
 
 export async function loginAction(email: string, password: string) {
@@ -64,15 +64,15 @@ export async function loginAction(email: string, password: string) {
 export async function createFirstSuperAdmin() {
   try {
     await dbConnect();
-    const exists = await User.findOne({ email: "hamid@gandom.com" });
+    const exists = await User.findOne({ email: "hamid@gandum.com" });
     
-    if (exists) return { message: "سوپر ادمین از قبل وجود دارد! با ایمیل hamid@gandom.com و رمز Gandom@Admin2026 وارد شوید." };
+    if (exists) return { message: "سوپر ادمین از قبل وجود دارد! با ایمیل hamid@gandum.com و رمز Gandum@Admin2026 وارد شوید." };
     
-    const hashedPassword = await bcrypt.hash("Gandom@Admin2026", 10);
+    const hashedPassword = await bcrypt.hash("Gandum@Admin2026", 10);
     
     await User.create({
       name: "حمید فصیحی",
-      email: "hamid@gandom.com",
+      email: "hamid@gandum.com",
       passwordHash: hashedPassword,
       role: "super_admin",
       status: "active",

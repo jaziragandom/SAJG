@@ -9,7 +9,7 @@ const intlMiddleware = createMiddleware({
   localePrefix: 'always'
 });
 
-const JWT_SECRET_KEY = process.env.JWT_SECRET || "Gandom_Island_Super_Secure_Key_2026_!@#";
+const JWT_SECRET_KEY = process.env.JWT_SECRET || "Gandum_Island_Super_Secure_Key_2026_!@#";
 const encodedKey = new TextEncoder().encode(JWT_SECRET_KEY);
 
 export default async function middleware(request: NextRequest) {

@@ -79,6 +79,7 @@ export default function BrandsPage() {
             {brands.map((brand, index) => {
               const name = isRtl ? brand.faName : brand.enName;
               const desc = isRtl ? brand.faDesc : brand.enDesc;
+              const logoToUse = isRtl ? brand.logoFa : brand.logoEn;
               const color = brand.color || "from-gray-400 to-gray-600";
 
               return (
@@ -101,9 +102,9 @@ export default function BrandsPage() {
 
                   {/* لوگو گرد برند */}
                   <div className="w-24 h-24 rounded-full bg-white dark:bg-gray-800 p-2 shadow-md border border-gray-100 dark:border-gray-700 group-hover:scale-105 group-hover:border-amber-400 transition-all duration-300 mb-6 overflow-hidden relative z-10 flex items-center justify-center">
-                    {brand.logo ? (
+                    {logoToUse ? (
                       <img 
-                        src={brand.logo} 
+                        src={logoToUse} 
                         alt={name} 
                         className="w-full h-full object-contain" 
                       />

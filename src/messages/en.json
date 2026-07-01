@@ -8,7 +8,7 @@
     "dashboard": "Dashboard"
   },
   "Index": {
-    "title": "Jazireh Gandom | Premium Products",
+    "title": "Jazirah Gandum | Premium Products",
     "description": "Leading the food industry with modern production lines and organic ingredients."
   },
   "Products": {
@@ -59,7 +59,7 @@
   "Brands": {
     "title_part1": "Our Family of",
     "title_part2": "Brands",
-    "description": "Each brand, a new story. Variety and quality brought together under the Jazireh Gandom umbrella.",
+    "description": "Each brand, a new story. Variety and quality brought together under the Jazirah Gandum umbrella.",
     "view_brand": "View Brand",
     "items": {
       "brand1": { "name": "Chic", "desc": "Professional Energy Drinks" },
@@ -75,7 +75,7 @@
     "title_part1": "Merging",
     "title_part2": "Nature",
     "title_part3": "Technology",
-    "description": "Jazireh Gandom factories are committed to providing products that guarantee family health.",
+    "description": "Jazirah Gandum factories are committed to providing products that guarantee family health.",
     "virtual_tour": "Virtual Factory Tour",
     "features": {
       "global": { "title": "Global Standards", "desc": "Produced according to international health protocols" },
@@ -92,7 +92,7 @@
   },
   "WhyUs": {
     "title_part1": "Why",
-    "title_part2": "Jazireh Gandom?",
+    "title_part2": "Jazirah Gandum?",
     "features": {
       "feature1": { "title": "100% Organic Ingredients", "desc": "Using the freshest and most natural raw materials without harmful preservatives." },
       "feature2": { "title": "Global Standards", "desc": "Produced in the most advanced factory lines following international protocols." },
@@ -109,7 +109,7 @@
   },
   "CTA": {
     "title_part1": "Join the",
-    "title_part2": "Jazirah Gandom",
+    "title_part2": "Jazirah Gandum",
     "title_part3": "Family",
     "description": "Enter your phone number or email to get notified about our latest products, new flavors, and special discounts.",
     "input_placeholder": "Phone number or email...",
@@ -118,7 +118,7 @@
     "success_message": "We will send you exciting news very soon."
   },
   "Footer": {
-    "about_desc": "Jazireh Gandom Production Group, a pioneer in the food and beverage industry with global standards. We are committed to providing the best flavors and highest quality for families.",
+    "about_desc": "Jazirah Gandum Production Group, a pioneer in the food and beverage industry with global standards. We are committed to providing the best flavors and highest quality for families.",
     "quick_links": "Quick Access",
     "contact_info": "Contact Info",
     "address": "No. 45, Industry St, Phase 2, Industrial Parks, Kabul, Afghanistan",

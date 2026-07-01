@@ -363,7 +363,7 @@ export default function BlogManager({ currentSection }: { currentSection: string
                       <div className="bg-white dark:bg-gray-950 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800">
                         <div className="text-[11px] text-gray-500 mb-1 flex items-center gap-2">
                           <span className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center"><ImageIcon size={10}/></span>
-                          <span>جزیره گندم | Gandom Island</span>
+                          <span>جزیره گندم | Gandum Island</span>
                         </div>
                         <div className="text-[15px] text-blue-600 dark:text-blue-400 font-medium hover:underline cursor-pointer truncate">
                           {formData.seoTitle || formData.faTitle || "عنوان مقاله در گوگل"}

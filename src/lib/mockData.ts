@@ -188,8 +188,8 @@ export const MOCK_BLOG_POSTS = [
   {
     id: 2,
     faTitle: "گزارش حضور جزیره گندم در نمایشگاه بین‌المللی",
-    enTitle: "Gandom Island at International Exhibition",
-    slug: "gandom-island-exhibition-2026",
+    enTitle: "Gandum Island at International Exhibition",
+    slug: "gandum-island-exhibition-2026",
     category: "news",
     excerpt: "استقبال بی‌نظیر از خط تولید جدید محصولات ارگانیک در نمایشگاه امسال...",
     content: "<p>محتوای کامل مقاله در اینجا قرار می‌گیرد...</p>",
@@ -211,7 +211,7 @@ export const MOCK_USERS = [
   {
     id: 1,
     name: "حمید فصیحی",
-    email: "hamid@gandom.com",
+    email: "hamid@gandum.com",
     role: "super_admin", // سوپر ادمین (دسترسی کامل)
     status: "active",
     avatar: "https://placehold.co/150x150/c72127/ffffff?text=HF",
@@ -221,7 +221,7 @@ export const MOCK_USERS = [
   {
     id: 2,
     name: "مهندس اجمل",
-    email: "ajmal@gandom.com",
+    email: "ajmal@gandum.com",
     role: "admin", // مدیر ارشد (دسترسی محدودتر)
     status: "active",
     avatar: "https://placehold.co/150x150/f59e0b/ffffff?text=AJ",
@@ -231,7 +231,7 @@ export const MOCK_USERS = [
   {
     id: 3,
     name: "عزیز",
-    email: "aziz@gandom.com",
+    email: "aziz@gandum.com",
     role: "editor", // نویسنده (فقط مجله)
     status: "inactive",
     avatar: "https://placehold.co/150x150/3b82f6/ffffff?text=AZ",

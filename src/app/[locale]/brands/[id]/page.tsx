@@ -75,6 +75,7 @@ export default function BrandPage({ params }: { params: Promise<{ id: string }> 
 
   const brandName = isRtl ? brand.faName : brand.enName;
   const brandDesc = isRtl ? brand.faDesc : brand.enDesc;
+  const logoToUse = isRtl ? brand.logoFa : brand.logoEn;
 
   return (
     <main className="w-full bg-transparent min-h-screen pt-32 pb-24 overflow-hidden" dir={isRtl ? "rtl" : "ltr"}>
@@ -106,9 +107,9 @@ export default function BrandPage({ params }: { params: Promise<{ id: string }> 
             transition={{ type: "spring", stiffness: 120, damping: 15, delay: 0.2 }}
             className="w-32 h-32 md:w-40 md:h-40 rounded-full bg-white dark:bg-gray-900 p-3 shadow-2xl mb-6 border-4 border-white/20 backdrop-blur-md flex items-center justify-center overflow-hidden"
           >
-            {brand.logo && (
+            {logoToUse && (
               <img 
-                src={brand.logo} 
+                src={logoToUse} 
                 alt={`${brandName} Logo`} 
                 className="w-full h-full object-contain"
               />
