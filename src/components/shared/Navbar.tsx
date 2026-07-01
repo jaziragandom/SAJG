@@ -12,14 +12,12 @@ import ThemeToggle from "./ThemeToggle";
 import LangSwitch from "./LangSwitch";
 import { getNavbarData } from "@/actions/navbar";
 
-// ۱. تعریف تایپ برای پراپ‌هایی که از NavbarWrapper می‌آیند
 interface NavbarProps {
   brands?: any[];
   categories?: any[];
   siteLogo?: string | null;
 }
 
-// ۲. دریافت پراپ‌ها و اختصاص نام‌های موقت برای جلوگیری از تداخل با استیت‌ها
 export default function Navbar({ 
   brands: initialBrands = [], 
   categories: initialCategories = [], 
@@ -30,7 +28,6 @@ export default function Navbar({
 
   const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-  // استیت‌های دریافت اطلاعات زنده از دیتابیس (مقادیر اولیه از پراپ‌ها گرفته می‌شوند)
   const [brands, setBrands] = useState<any[]>(initialBrands);
   const [categories, setCategories] = useState<any[]>(initialCategories);
   const [siteLogo, setSiteLogo] = useState<string | null>(initialSiteLogo);
@@ -46,7 +43,6 @@ export default function Navbar({
   const [expandedMobileMenu, setExpandedMobileMenu] = useState<string | null>(null); 
   const [expandedNestedMobile, setExpandedNestedMobile] = useState<string | null>(null);
 
-  // فراخوانی زنده اطلاعات بدون درگیری با کش Next.js
   useEffect(() => {
     const fetchNav = async () => {
       const res = await getNavbarData();
@@ -67,6 +63,18 @@ export default function Navbar({
     else setIsHidden(false); 
   });
 
+  // قفل کردن اسکرول صفحه وقتی منوی موبایل باز است
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   const handleAnchorClick = (e: React.MouseEvent<HTMLAnchorElement>, hash: string) => {
     if (typeof window !== "undefined" && window.location.pathname.includes('/about')) {
       e.preventDefault();
@@ -79,12 +87,8 @@ export default function Navbar({
     }
   };
 
-  // === تبدیل کدهای استاتیک به داینامیک کامل ===
-  
-  // ۱. پیدا کردن دسته‌بندی‌هایی که در پنل مدیریت به عنوان "گروه اصلی" ساخته‌اید
   const mainCategories = categories.filter(c => c.iconName === 'main');
 
-  // ۲. ساخت منوی محصولات بر اساس گروه‌های اصلیِ دیتابیس
   const dynamicProductsMenu = mainCategories.map((mainCat, index) => {
     const subCats = categories.filter(c => c.parent === mainCat.slug || c.parent === mainCat._id);
     const icons = [<Droplets size={16} />, <Sparkles size={16} />, <Wheat size={16} />, <LayoutGrid size={16} />];
@@ -100,7 +104,6 @@ export default function Navbar({
     };
   });
 
-  // ۳. چسباندن برندها به انتهای منوی آبشاری محصولات
   const productsNestedMenu = [
     ...dynamicProductsMenu,
     {
@@ -132,10 +135,12 @@ export default function Navbar({
   return (
     <motion.header
       initial={false}
-      animate={{ y: isHidden ? "-100%" : 0 }}
+      // جلوگیری از هاید شدن ناوبار هنگام باز بودن منوی موبایل
+      animate={{ y: (isHidden && !isMobileMenuOpen) ? "-100%" : 0 }}
       transition={{ duration: 0.35, ease: customEase }}
-      className={`fixed top-0 left-0 w-full z-50 transition-colors duration-500 ${
-        isScrolled 
+      // افزایش z-index برای پوشاندن تمام دکمه‌های شناور
+      className={`fixed top-0 left-0 w-full transition-colors duration-500 ${isMobileMenuOpen ? "z-100" : "z-50"} ${
+        isScrolled || isMobileMenuOpen
           ? "bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 py-3 shadow-sm" 
           : "bg-transparent py-5"
       }`}
@@ -143,7 +148,6 @@ export default function Navbar({
   
       <div className="container mx-auto px-4 md:px-8 flex items-center justify-between">
         
-        {/* لوگو */}
         <Link href={`/${locale}`} className="text-2xl font-black tracking-tighter flex items-center gap-3 z-50 group">
           {siteLogo ? (
             <img 
@@ -165,13 +169,12 @@ export default function Navbar({
             ) : (
               <>
                 <span className="text-gray-900 dark:text-white drop-shadow-sm transition-colors">JAZIREH</span>
-                <span className="text-amber-400 drop-shadow-sm">GANDUM</span>
+                <span className="text-amber-400 drop-shadow-sm">GANDOM</span>
               </>
             )}
           </span>
         </Link>
 
-        {/* منوی دسکتاپ */}
         <nav className="hidden md:flex items-center gap-2">
           {navLinks.map((link) => (
             <div 
@@ -201,7 +204,6 @@ export default function Navbar({
                 )}
               </Link>
 
-              {/* === ۱. منوی آبشاری تودرتو محصولات === */}
               <AnimatePresence>
                 {link.isProductsDropdown && hoveredLink === link.key && (
                   <motion.div
@@ -209,9 +211,9 @@ export default function Navbar({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
                     transition={{ duration: 0.3, ease: customEase }}
-                    className="absolute top-full pt-4 rtl:left-0 ltr:right-0 w-64 cursor-default z-50"
+                    className="absolute top-full pt-4 rtl:left-0 rtl:right-auto ltr:right-0 ltr:left-auto w-64 cursor-default z-50"
                   >
-                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-3xl p-3 shadow-2xl flex flex-col gap-1">
+                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-3xl p-3 shadow-2xl flex flex-col gap-1 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
                       
                       {productsNestedMenu.map((nested) => (
                         <div 
@@ -231,13 +233,13 @@ export default function Navbar({
                           <AnimatePresence>
                             {hoveredNestedLink === nested.id && nested.items.length > 0 && (
                               <motion.div
-                                initial={{ opacity: 0, x: isRtl ? 10 : -10 }}
+                                initial={{ opacity: 0, x: isRtl ? -10 : 10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: isRtl ? 5 : -5 }}
+                                exit={{ opacity: 0, x: isRtl ? -5 : 5 }}
                                 transition={{ duration: 0.3, ease: customEase }}
-                                className="absolute top-2.5 rtl:right-full rtl:pr-2 ltr:left-full ltr:pl-2 w-56"
+                                className="absolute top-0 rtl:left-full rtl:pl-2 rtl:right-auto ltr:right-full ltr:pr-2 ltr:left-auto w-56"
                               >
-                                <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-2 shadow-2xl flex flex-col gap-1 max-h-75 overflow-y-auto custom-scrollbar">
+                                <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-2 shadow-2xl flex flex-col gap-1 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
                                   {nested.items.map((item: any, idx: number) => (
                                     <Link 
                                       key={idx} 
@@ -269,7 +271,6 @@ export default function Navbar({
                 )}
               </AnimatePresence>
 
-              {/* === ۲. منوی آبشاری مستقل برندها === */}
               <AnimatePresence>
                 {link.isBrandsMenu && hoveredLink === link.key && (
                   <motion.div
@@ -277,17 +278,20 @@ export default function Navbar({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
                     transition={{ duration: 0.3, ease: customEase }}
-                    className="absolute top-full pt-4 right-0 w-56 cursor-default z-40"
+                    className="absolute top-full pt-4 rtl:left-0 rtl:right-auto ltr:right-0 ltr:left-auto w-56 cursor-default z-40"
                   >
-                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-3 shadow-2xl flex flex-col gap-1 max-h-87.5 overflow-y-auto custom-scrollbar">
+                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-3 shadow-2xl flex flex-col gap-1 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
                       
                       {brands.map((brand) => (
                         <Link 
                           key={brand._id || brand.slug} 
                           href={`/${locale}/brands/${brand.slug}`}
-                          className="px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors"
+                          className="flex items-center justify-between px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors"
                         >
-                          {isRtl ? brand.faName : brand.enName}
+                          <span>{isRtl ? brand.faName : brand.enName}</span>
+                          {brand.logo && (
+                            <img src={brand.logo} alt="" className="w-5 h-5 object-contain shrink-0" />
+                          )}
                         </Link>
                       ))}
 
@@ -306,7 +310,6 @@ export default function Navbar({
                 )}
               </AnimatePresence>
 
-              {/* === ۳. منوی آبشاری درباره ما === */}
               <AnimatePresence>
                 {link.subLinks && hoveredLink === link.key && (
                   <motion.div
@@ -314,9 +317,9 @@ export default function Navbar({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
                     transition={{ duration: 0.3, ease: customEase }}
-                    className="absolute top-full pt-4 right-0 w-60 cursor-default z-40"
+                    className="absolute top-full pt-4 rtl:left-0 rtl:right-auto ltr:right-0 ltr:left-auto w-60 cursor-default z-40"
                   >
-                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-3 shadow-2xl flex flex-col gap-1">
+                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-3 shadow-2xl flex flex-col gap-1 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
                       {link.subLinks.map((sub) => (
                         <Link 
                           key={sub.id} 
@@ -336,7 +339,6 @@ export default function Navbar({
           ))}
         </nav>
 
-        {/* دکمه‌های سمت چپ (تم، زبان و پنل ادمین) */}
         <div className="hidden md:flex items-center gap-3 z-50">
           <div className="flex items-center gap-1 bg-gray-100/50 dark:bg-gray-800/50 backdrop-blur-md rounded-full p-1 border border-gray-200/50 dark:border-gray-700/50">
             <ThemeToggle />
@@ -351,7 +353,6 @@ export default function Navbar({
           </Link>
         </div>
 
-        {/* دکمه منوی موبایل */}
         <button 
           className="md:hidden text-gray-900 dark:text-white z-50 p-2 bg-gray-100/50 dark:bg-gray-800/50 rounded-full backdrop-blur-md" 
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -360,17 +361,17 @@ export default function Navbar({
         </button>
       </div>
 
-      {/* --- منوی موبایل --- */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div 
             initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
+            animate={{ opacity: 1, height: "100vh" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.4, ease: customEase }}
-            className="md:hidden absolute top-full left-0 w-full bg-white/95 dark:bg-gray-950/95 backdrop-blur-2xl border-t border-gray-100 dark:border-gray-800 shadow-2xl overflow-y-auto max-h-[85vh] custom-scrollbar"
+            // استفاده از fixed و گرفتن ارتفاع کامل منهای بخش هدر برای جلوگیری از اسکرول صفحه
+            className="md:hidden fixed top-18 left-0 w-full h-[calc(100vh-72px)] bg-white/95 dark:bg-gray-950/95 backdrop-blur-2xl border-t border-gray-100 dark:border-gray-800 shadow-2xl overflow-y-auto custom-scrollbar z-100"
           >
-            <div className="flex flex-col px-6 py-8 gap-4">
+            <div className="flex flex-col px-6 py-8 gap-4 pb-24">
               <div className="flex flex-col gap-2">
                 {navLinks.map((link, index) => (
                   <motion.div
@@ -472,9 +473,12 @@ export default function Navbar({
                                 key={brand._id || brand.slug} 
                                 href={`/${locale}/brands/${brand.slug}`} 
                                 onClick={() => setIsMobileMenuOpen(false)} 
-                                className="text-sm font-bold text-gray-600 dark:text-gray-300 py-2 hover:text-amber-500"
+                                className="text-sm font-bold text-gray-600 dark:text-gray-300 py-2 hover:text-amber-500 flex items-center justify-between"
                               >
-                                {isRtl ? brand.faName : brand.enName}
+                                <span>{isRtl ? brand.faName : brand.enName}</span>
+                                {brand.logo && (
+                                  <img src={brand.logo} alt="" className="w-5 h-5 object-contain shrink-0" />
+                                )}
                               </Link>
                             ))}
                             <Link 
