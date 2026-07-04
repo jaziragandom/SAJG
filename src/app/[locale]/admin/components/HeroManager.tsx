@@ -4,14 +4,17 @@ import React, { useState, useEffect } from "react";
 import { 
   Plus, Edit3, Trash2, GripVertical, X, Upload, 
   CheckCircle2, Wand2, Loader2, Image as ImageIcon, 
-  Sparkles, RefreshCcw 
+  Sparkles 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getHeroSlides, saveHeroSlides } from "@/actions/hero";
 import { getBrands } from "@/actions/brand";
 import { getProducts } from "@/actions/product";
+import { useToast } from "../components/ToastProvider";
 
 export default function HeroManager() {
+  const { showToast } = useToast();
+
   const [slides, setSlides] = useState<any[]>([]);
   const [brandsList, setBrandsList] = useState<any[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
@@ -61,21 +64,27 @@ export default function HeroManager() {
       const result = await res.json();
       return result.success ? result.url : null;
     } catch (err) {
+      showToast("خطا در ارتباط با سرور آپلود.", "error");
       return null;
     }
   };
+
   const handleSingleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     if (!e.target.files?.[0]) return;
     setIsUploading({ ...isUploading, [field]: true });
     
     const currentUrl = (formData as any)[field];
-    // شرط startsWith برداشته شد تا تمام فرمت‌های آدرس‌دهی شناسایی و حذف شوند
     if (currentUrl && typeof currentUrl === 'string') {
       await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: currentUrl }) }).catch(err => console.error(err));
     }
 
     const url = await handleFileUpload(e.target.files[0]);
-    if (url) setFormData(prev => ({ ...prev, [field]: url }));
+    if (url) {
+      setFormData(prev => ({ ...prev, [field]: url }));
+      showToast("تصویر با موفقیت آپلود شد.", "success");
+    } else {
+      showToast("خطا در آپلود تصویر.", "error");
+    }
     setIsUploading({ ...isUploading, [field]: false });
   };
 
@@ -83,7 +92,12 @@ export default function HeroManager() {
     if(confirm("آیا از حذف این اسلاید اطمینان دارید؟")) {
       const newSlides = slides.filter(s => s.id !== id);
       setSlides(newSlides);
-      await saveHeroSlides(newSlides);
+      const res = await saveHeroSlides(newSlides);
+      if (res.success) {
+        showToast("اسلاید با موفقیت حذف شد.", "success");
+      } else {
+        showToast("خطا در ذخیره‌سازی تغییرات حذف.", "error");
+      }
     }
   };
 
@@ -129,7 +143,7 @@ export default function HeroManager() {
 
   const handleSaveSlide = async () => {
     if (!formData.faTitle || !formData.enTitle) {
-      alert("پر کردن عنوان فارسی و انگلیسی الزامی است.");
+      showToast("پر کردن عنوان فارسی و انگلیسی الزامی است.", "warning");
       return;
     }
 
@@ -142,8 +156,13 @@ export default function HeroManager() {
     }
 
     setSlides(newSlides);
-    await saveHeroSlides(newSlides);
-    setIsModalOpen(false);
+    const res = await saveHeroSlides(newSlides);
+    if (res.success) {
+      showToast(editMode ? "اسلاید بروزرسانی شد." : "اسلاید جدید ذخیره شد.", "success");
+      setIsModalOpen(false);
+    } else {
+      showToast("خطا در ذخیره‌سازی اسلاید.", "error");
+    }
   };
 
   const handleAutoTranslate = async (sourceText: string, targetKey: string) => {
@@ -157,7 +176,7 @@ export default function HeroManager() {
       setFormData(prev => ({ ...prev, [targetKey]: translatedText }));
     } catch (error) {
       console.error("Translation Error:", error);
-      alert("خطا در سیستم ترجمه.");
+      showToast("خطا در سیستم ترجمه خودکار.", "error");
     } finally {
       setTranslatingField(null);
     }
@@ -177,7 +196,10 @@ export default function HeroManager() {
 
   const handleDragEnd = async () => {
     setDraggedItemIndex(null);
-    await saveHeroSlides(slides);
+    const res = await saveHeroSlides(slides);
+    if (res.success) {
+      showToast("ترتیب اسلایدها بروزرسانی شد.", "info");
+    }
   };
 
   // --- الگوریتم هوشمند تکثیر و آپلود واقعی قطعات معلق ---
@@ -187,7 +209,7 @@ export default function HeroManager() {
     
     setIsProcessingFloaters(true);
 
-    // ۱. حذف فیزیکی قطعات معلق قبلی از سرور (محدودیت پیشوند آدرس حذف شد)
+    // ۱. حذف فیزیکی قطعات معلق قبلی از سرور
     if (uploadedFloaters && uploadedFloaters.length > 0) {
       const uniqueUrls = Array.from(new Set(uploadedFloaters.map(f => f.url)));
       for (const url of uniqueUrls) {
@@ -210,7 +232,6 @@ export default function HeroManager() {
       const opacities = ["opacity-100", "opacity-80", "opacity-60", "opacity-40"];
       const scales = ["scale-75", "scale-90", "scale-100", "scale-110", "scale-125"];
       
-      // مختصات کاملا نامنظم برای پراکنده کردن در کل فضای هیرو
       const presetLayouts = [
         { top: "15%", left: "10%", initY: -100, baseFloatX: 15, floatY: [0, 10, 0] },
         { top: "75%", left: "85%", initY: 200, baseFloatX: 10, floatY: [0, -15, 0] },
@@ -241,6 +262,9 @@ export default function HeroManager() {
         });
       }
       setUploadedFloaters(finalFloaters);
+      showToast("قطعات معلق با موفقیت آپلود و بهینه‌سازی شدند.", "success");
+    } else {
+      showToast("خطا در آپلود قطعات معلق.", "error");
     }
     setIsProcessingFloaters(false);
   };

@@ -6,11 +6,10 @@ import { useSearchParams, useRouter } from "next/navigation";
 import React, { useState, useMemo, useEffect, useRef, Suspense } from "react";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 import { useLocale } from "next-intl";
-import { Search, Star, ArrowRight, Loader2, Image as ImageIcon, X } from "lucide-react";
+import { Search, Star, ArrowRight, Loader2, X } from "lucide-react";
 import { getProducts } from "@/actions/product";
 import { getCategories } from "@/actions/category";
 
-// استفاده از Suspense برای جلوگیری از ارورهای Next.js هنگام استفاده از useSearchParams
 export default function ProductsPage() {
   return (
     <Suspense fallback={<div className="min-h-screen flex justify-center items-center"><Loader2 className="animate-spin text-amber-500" size={40} /></div>}>
@@ -25,20 +24,18 @@ function ProductsContent() {
   const router = useRouter();
   const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
-  // --- استیت‌های دیتابیس ---
   const [productsData, setProductsData] = useState<any[]>([]);
+  const [categoriesData, setCategoriesData] = useState<any[]>([]);
   const [mainCategories, setMainCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeMainCat, setActiveMainCat] = useState("all");
 
-  // --- دریافت فیلترها از ناوبار ---
   const searchParams = useSearchParams();
   const urlCategory = searchParams.get('category');
   const urlBrand = searchParams.get('brand');
 
-  // ۱. سینک کردن URL ناوبار با تب‌های داخل صفحه
   useEffect(() => {
     if (urlCategory) {
       setActiveMainCat(urlCategory);
@@ -47,11 +44,9 @@ function ProductsContent() {
     }
   }, [urlCategory, urlBrand]);
 
-  // ۲. دریافت اطلاعات زنده از دیتابیس (فقط یک بار لود می‌شود)
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      // دریافت همزمان محصولات و دسته‌بندی‌ها با پشتیبانی از وضعیت‌های داینامیک
       const [prodRes, catRes] = await Promise.all([
         getProducts({ status: 'all' }),
         getCategories()
@@ -59,16 +54,14 @@ function ProductsContent() {
       
       if (prodRes.success) setProductsData(prodRes.data);
       if (catRes.success) {
-        // فیلتر کردن فقط دسته‌هایی که "گروه اصلی" هستند برای ساخت دکمه‌ها
+        setCategoriesData(catRes.data);
         setMainCategories(catRes.data.filter((c: any) => c.iconName === 'main'));
       }
       setIsLoading(false);
     };
-
     fetchData();
   }, []);
 
-  // --- انیمیشن‌های ورود ---
   const [introStage, setIntroStage] = useState("hidden");
   useEffect(() => {
     const runIntro = async () => {
@@ -85,7 +78,6 @@ function ProductsContent() {
   const isSearchBoxIn = isTitleIn && introStage !== "titleIn";
   const isPillsIn = isSearchBoxIn && introStage !== "searchBoxIn";
 
-  // --- مدیریت اسکرول هدر ---
   const { scrollY } = useScroll();
   const [isScrolled, setIsScrolled] = useState(false);
   const [scrollDirection, setScrollDirection] = useState<"up" | "down">("up");
@@ -103,19 +95,16 @@ function ProductsContent() {
     else if (current <= 120 && isScrolled) setIsScrolled(false);
   });
 
-  // --- سیستم فیلتر زنده روی محصولات (اعمال دکمه‌ها، سرچ و ناوبار) ---
   const filteredProducts = useMemo(() => {
     return productsData.filter((product) => {
       const searchTxt = searchQuery.toLowerCase();
       const matchSearch = 
         (product.faTitle && product.faTitle.includes(searchTxt)) || 
         (product.enTitle && product.enTitle.toLowerCase().includes(searchTxt)) ||
-        (product.brandId?.faName && product.brandId.faName.includes(searchTxt));
+        (product.brandId?.faName && product.brandId.faName.includes(searchTxt)) ||
+        (product.brandId?.enName && product.brandId.enName.toLowerCase().includes(searchTxt));
       
-      // اگر تب "همه" انتخاب شده بود یا اسلاگ تب با اسلاگ محصول یکی بود
       const matchMainCat = activeMainCat === "all" || product.mainCat === activeMainCat || product.category === activeMainCat;
-      
-      // اگر از ناوبار روی برند کلیک شده بود
       const matchBrand = !urlBrand || product.brandId?.slug === urlBrand;
 
       return matchSearch && matchMainCat && matchBrand;
@@ -125,13 +114,12 @@ function ProductsContent() {
   const clearAllFilters = () => {
     setSearchQuery("");
     setActiveMainCat("all");
-    router.push(`/${locale}/products`); // پاک کردن URL ناوبار
+    router.push(`/${locale}/products`);
   };
 
   return (
     <main className="w-full pb-32" dir={isRtl ? "rtl" : "ltr"}>
       
-      {/* منطقه تایتل */}
       <motion.div 
         animate={{ opacity: isScrolled ? 0 : 1, y: isScrolled ? -20 : 0, pointerEvents: isScrolled ? "none" : "auto" }}
         transition={{ duration: 0.5, ease: customEase }}
@@ -157,7 +145,6 @@ function ProductsContent() {
         </motion.p>
       </motion.div>
 
-      {/* منطقه سرچ‌بار و دکمه‌های فیلتر (گروه‌های اصلی) */}
       <div 
         className={`sticky w-full transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] px-4 md:px-8 z-50 ${
           isScrolled 
@@ -201,7 +188,6 @@ function ProductsContent() {
               <motion.div initial={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0, transition: { duration: 0.3, ease: customEase } }} className="w-full overflow-hidden flex items-center justify-center pt-5">
                 <div className="flex items-center justify-start md:justify-center gap-2 w-full overflow-x-auto custom-scrollbar pb-2 px-1">
                   
-                  {/* دکمه پیش‌فرض: همه محصولات */}
                   <motion.button 
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: isPillsIn ? 1 : 0, y: isPillsIn ? 0 : -20 }}
@@ -215,7 +201,6 @@ function ProductsContent() {
                     {isRtl ? "همه محصولات" : "All Products"}
                   </motion.button>
 
-                  {/* دکمه‌های داینامیک از دیتابیس (گروه‌های اصلی) */}
                   {mainCategories.map((cat, index) => (
                     <motion.button 
                       key={cat.slug}
@@ -238,7 +223,6 @@ function ProductsContent() {
         </div>
       </div>
 
-      {/* منطقه نمایش کارت‌های محصولات */}
       <div className="container mx-auto max-w-7xl px-4 md:px-8 mt-8">
         
         {isLoading ? (
@@ -250,11 +234,18 @@ function ProductsContent() {
             <AnimatePresence>
               {filteredProducts.map((product, index) => {
                 
-                const title = isRtl ? product.faTitle : product.enTitle;
-                const subTitle = isRtl ? product.enTitle : product.faTitle;
-                const brandName = product.brandId?.faName || "";
+                const title = isRtl ? product.faTitle : (product.enTitle || product.faTitle);
+                const brandName = isRtl ? (product.brandId?.faName || "") : (product.brandId?.enName || product.brandId?.faName || "");
                 const imgUrl = product.images?.main || "https://placehold.co/400x400/png";
-                const weight = product.specs?.weight || "";
+                
+                const weightVal = product.specs?.weight || product.weight || "";
+                const weightCat = categoriesData.find(c => c.slug === weightVal || c.faName === weightVal || c._id === weightVal);
+                const finalWeight = weightCat 
+                    ? (isRtl ? weightCat.faName : weightCat.enName) 
+                    : (isRtl ? (product.specs?.weightFa || weightVal) : (product.specs?.weightEn || weightVal));
+
+                const subCatObj = categoriesData.find(c => c.slug === product.category);
+                const catLabel = subCatObj ? (isRtl ? subCatObj.faName : subCatObj.enName) : product.category;
 
                 return (
                     <motion.div
@@ -262,10 +253,10 @@ function ProductsContent() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: false, amount: 0.15 }}
                     transition={{ duration: 0.7, ease: customEase, delay: (index % 4) * 0.05 }}
-                    key={product._id} // تغییر اول: id به _id
+                    key={product._id}
                     className="group flex flex-col h-full"
                  >
-                   <a href={`/${locale}/products/${product._id}`} className="flex flex-col h-full bg-white dark:bg-gray-900/40 rounded-[2rem] border border-gray-200/60 dark:border-gray-800/50 hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-400/10 transition-all overflow-hidden relative">  
+                   <a href={`/${locale}/products/${product.slug}`} className="flex flex-col h-full bg-white dark:bg-gray-900/40 rounded-[2rem] border border-gray-200/60 dark:border-gray-800/50 hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-400/10 transition-all overflow-hidden relative">  
                             <div className="relative h-56 shrink-0 w-full bg-linear-to-b from-gray-50/50 to-white dark:from-gray-800/30 dark:to-gray-900/30 flex items-center justify-center">
                              <Image src={imgUrl} alt={title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw" className="object-contain p-6 group-hover:scale-110 group-hover:-translate-y-1.5 transition-transform duration-700 ease-out drop-shadow-xl" />
 
@@ -283,16 +274,16 @@ function ProductsContent() {
                                 <span className="text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-md">
                                 {brandName}
                                 </span>
-                                <span className="text-[10px] font-bold text-gray-400">
-                                {weight}
+                                <span className="text-[10px] font-bold text-gray-400" dir={isRtl ? "rtl" : "ltr"}>
+                                {finalWeight}
                                 </span>
                             </div>
                             
                             <h2 className="text-sm md:text-base font-black text-gray-900 dark:text-white leading-tight mb-1 group-hover:text-amber-500 transition-colors line-clamp-2">
                                 {title}
                             </h2>
-                            <p className="text-[9px] md:text-xs font-mono text-gray-400 truncate mb-4">
-                                {subTitle}
+                            <p className="text-[9px] md:text-xs font-bold text-gray-400 truncate mb-4">
+                                {catLabel}
                             </p>
                             
                             <div className="mt-auto pt-3 md:pt-4 flex justify-between items-center border-t border-gray-100 dark:border-gray-800/60">
@@ -304,7 +295,6 @@ function ProductsContent() {
                                 </div>
                             </div>
                             </div>
-
                         </a>
                     </motion.div>
                 )

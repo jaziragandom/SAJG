@@ -14,6 +14,17 @@ export async function getCategories(filter = {}) {
   }
 }
 
+export async function getCategoryBySlug(slug: string) {
+  try {
+    await dbConnect();
+    const category = await Category.findOne({ slug: slug.toLowerCase() }).lean();
+    if (!category) return { success: false, error: "دسته‌بندی یافت نشد" };
+    return { success: true, data: JSON.parse(JSON.stringify(category)) };
+  } catch (error) {
+    return { success: false, error: "خطا در دریافت دسته‌بندی" };
+  }
+}
+
 export async function createCategory(data: any) {
   try {
     await dbConnect();

@@ -4,8 +4,11 @@ import React, { useState, useEffect } from "react";
 import { CheckCircle2, Wand2, Loader2, PanelBottom } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getSiteContent, saveSiteContent } from "@/actions/siteContent";
+import { useToast } from "../components/ToastProvider";
 
 export default function FooterManager() {
+  const { showToast } = useToast();
+
   const [formData, setFormData] = useState({
     faAbout: "", 
     enAbout: "",
@@ -42,7 +45,7 @@ export default function FooterManager() {
       const translatedText = data[0].map((item: any) => item[0]).join('');
       setFormData(prev => ({ ...prev, [targetKey]: translatedText }));
     } catch (error) {
-      alert("خطا در سیستم ترجمه خودکار.");
+      showToast("خطا در سیستم ترجمه خودکار.", "error");
     } finally {
       setTranslatingField(null);
     }
@@ -54,9 +57,9 @@ export default function FooterManager() {
     const res = await saveSiteContent(SECTION_KEY, formData);
     setIsSaving(false);
     if (res.success) {
-      alert("تنظیمات فوتر با موفقیت ذخیره شد.");
+      showToast("تنظیمات فوتر با موفقیت ذخیره شد.", "success");
     } else {
-      alert(res.error || "خطا در ذخیره اطلاعات");
+      showToast(res.error || "خطا در ذخیره اطلاعات", "error");
     }
   };
 

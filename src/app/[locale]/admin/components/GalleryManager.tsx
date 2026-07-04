@@ -4,8 +4,11 @@ import React, { useState, useEffect } from "react";
 import { Plus, Search, Edit3, Trash2, Image as ImageIcon, Video, Layers, ListVideo, X, CheckCircle2, Upload, GripVertical, LayoutGrid, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getGalleryItems, createGalleryItem, updateGalleryItem, deleteGalleryItem } from "@/actions/gallery";
+import { useToast } from "../components/ToastProvider";
 
 export default function GalleryManager({ currentSection }: { currentSection: string }) {
+  const { showToast } = useToast();
+
   const [mediaList, setMediaList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -58,11 +61,11 @@ export default function GalleryManager({ currentSection }: { currentSection: str
       const data = await res.json();
       setIsUploading(false);
       if (data.success) return data.url;
-      alert(data.error || "خطا در آپلود فایل");
+      showToast(data.error || "خطا در آپلود فایل", "error");
       return null;
     } catch (err) {
       setIsUploading(false);
-      alert("خطای ارتباط با سرور آپلود.");
+      showToast("خطای ارتباط با سرور آپلود.", "error");
       return null;
     }
   };
@@ -83,7 +86,12 @@ export default function GalleryManager({ currentSection }: { currentSection: str
   const handleDelete = async (id: string) => {
     if (confirm("آیا از حذف این رسانه مطمئن هستید؟")) {
       const res = await deleteGalleryItem(id);
-      if (res.success) fetchData();
+      if (res.success) {
+        showToast("رسانه با موفقیت حذف شد.", "success");
+        fetchData();
+      } else {
+        showToast("خطا در حذف رسانه.", "error");
+      }
     }
   };
 
@@ -181,6 +189,7 @@ export default function GalleryManager({ currentSection }: { currentSection: str
     const url = await handleFileUpload(e.target.files[0]);
     if (url) {
       setFormItems(formItems.map(item => item.id === id ? { ...item, url } : item));
+      showToast("فایل با موفقیت بارگذاری شد.", "success");
     }
   };
 
@@ -190,7 +199,7 @@ export default function GalleryManager({ currentSection }: { currentSection: str
 
   const handleSave = async () => {
     if (!formTitleFa || !formTitleEn) {
-      alert("وارد کردن عنوان فارسی و انگلیسی الزامی است.");
+      showToast("وارد کردن عنوان فارسی و انگلیسی الزامی است.", "warning");
       return;
     }
 
@@ -226,15 +235,17 @@ export default function GalleryManager({ currentSection }: { currentSection: str
     if (editItem && editItem._id) {
       const res = await updateGalleryItem(editItem._id, payload);
       if (res.success) {
+        showToast("رسانه با موفقیت بروزرسانی شد.", "success");
         setIsModalOpen(false);
         fetchData();
-      } else alert(res.error);
+      } else showToast(res.error || "خطا در بروزرسانی رسانه", "error");
     } else {
       const res = await createGalleryItem(payload);
       if (res.success) {
+        showToast("رسانه جدید با موفقیت ایجاد شد.", "success");
         setIsModalOpen(false);
         fetchData();
-      } else alert(res.error);
+      } else showToast(res.error || "خطا در ثبت رسانه", "error");
     }
   };
 
@@ -499,7 +510,10 @@ export default function GalleryManager({ currentSection }: { currentSection: str
                            await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formThumbnail }) }).catch(err => console.error(err));
                          }
                          const url = await handleFileUpload(e.target.files[0]);
-                         if (url) setFormThumbnail(url);
+                         if (url) {
+                           setFormThumbnail(url);
+                           showToast("تصویر با موفقیت بارگذاری شد.", "success");
+                         }
                        }
                     }} />
                     {isUploading ? (

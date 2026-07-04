@@ -5,13 +5,16 @@ export interface IProduct extends Document {
   faTitle: string;
   enTitle: string;
   slug: string;
-  mainCat: 'beverage' | 'snack' | 'bakery' | 'all';
+  mainCat: string; // محدودیت enum برداشته شد تا اسلاگ‌های داینامیک را قبول کند
   category: string; // دسته‌بندی فرعی
   status: string;
   isFeatured: boolean;
+  faDesc: string; // اضافه شدن فیلد توضیح کوتاه فارسی
+  enDesc: string; // اضافه شدن فیلد توضیح کوتاه انگلیسی
   images: {
     main: string;
     gallery: string[];
+    nutrition: string;
   };
   // جزئیات دیتاشیت گرافیکی
   specs: {
@@ -24,6 +27,7 @@ export interface IProduct extends Document {
     weight: string;
     packagingFa: string;
     packagingEn: string;
+    itemsPerPackage: string;
   };
 }
 
@@ -32,14 +36,18 @@ const ProductSchema: Schema = new Schema({
   faTitle: { type: String, required: true },
   enTitle: { type: String, required: true },
   slug: { type: String, required: true, unique: true, lowercase: true },
-  mainCat: { type: String, enum: ['beverage', 'snack', 'bakery', 'all'], required: true },
+  mainCat: { type: String, required: true }, 
   category: { type: String, required: true },
   status: { type: String, default: 'draft' },
   isFeatured: { type: Boolean, default: false },
   
+  faDesc: { type: String, default: "" }, // اضافه شدن فیلد دیتابیس
+  enDesc: { type: String, default: "" }, // اضافه شدن فیلد دیتابیس
+
   images: {
     main: { type: String, required: true },
-    gallery: [{ type: String }]
+    gallery: [{ type: String }],
+    nutrition: { type: String, default: "" }
   },
   
   specs: {
@@ -51,7 +59,8 @@ const ProductSchema: Schema = new Schema({
     shelfLifeEn: { type: String, default: "" },
     weight: { type: String, default: "" },
     packagingFa: { type: String, default: "" },
-    packagingEn: { type: String, default: "" }
+    packagingEn: { type: String, default: "" },
+    itemsPerPackage: { type: String, default: "" }
   }
 }, { timestamps: true });
 

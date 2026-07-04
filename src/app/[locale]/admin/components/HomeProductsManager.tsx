@@ -5,8 +5,11 @@ import React, { useState, useEffect } from "react";
 import { CheckCircle2, Wand2, Loader2, LayoutTemplate, Settings2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { getSiteContent, saveSiteContent } from "@/actions/siteContent";
+import { useToast } from "../components/ToastProvider";
 
 export default function HomeProductsManager() {
+  const { showToast } = useToast();
+
   const [formData, setFormData] = useState({
     faSubtitle: "محصولات ما", enSubtitle: "Our Products",
     faTitle: "محبوب‌ترین محصولات جزیره", enTitle: "Most Popular Island Products",
@@ -40,7 +43,7 @@ export default function HomeProductsManager() {
       setFormData(prev => ({ ...prev, [targetKey]: translatedText }));
     } catch (error) {
       console.error("Translation Error:", error);
-      alert("خطا در سیستم ترجمه.");
+      showToast("خطا در سیستم ترجمه خودکار.", "error");
     } finally {
       setTranslatingField(null);
     }
@@ -53,9 +56,9 @@ export default function HomeProductsManager() {
     setIsSaving(false);
     
     if (res.success) {
-      alert("تنظیمات سکشن محصولات صفحه اصلی با موفقیت ذخیره شد!");
+      showToast("تنظیمات سکشن محصولات با موفقیت ذخیره شد.", "success");
     } else {
-      alert(res.error || "خطا در ذخیره‌سازی اطلاعات");
+      showToast(res.error || "خطا در ذخیره‌سازی اطلاعات.", "error");
     }
   };
 

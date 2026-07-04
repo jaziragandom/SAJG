@@ -7,6 +7,8 @@ import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Phone, Mail, Send, ArrowUp, Bot, X, Wheat } from "lucide-react";
 import ChatWindow from "./ChatWindow";
+import { subscribeToNewsletter } from "@/actions/newsletter";
+import { Loader2, CheckCircle2 } from "lucide-react";
 
 interface FooterProps {
   siteLogo?: string | null;
@@ -72,6 +74,30 @@ export default function Footer({ siteLogo = null, contactInfo, footerTexts }: Fo
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<any[]>([]);
+  const [nlEmail, setNlEmail] = useState("");
+  const [nlLoading, setNlLoading] = useState(false);
+  const [nlResult, setNlResult] = useState({ type: '', text: '' });
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nlEmail || !nlEmail.includes("@")) return;
+    setNlLoading(true);
+    setNlResult({ type: '', text: '' });
+
+    const res = await subscribeToNewsletter({
+      email: nlEmail,
+      source: "فوتر سایت",
+      segment: "general"
+    });
+
+    setNlLoading(false);
+    if (res.success) {
+      setNlResult({ type: 'success', text: "عضویت انجام شد!" });
+      setNlEmail("");
+    } else {
+      setNlResult({ type: 'error', text: res.error || "خطا در ثبت." });
+    }
+  };
   
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -81,7 +107,7 @@ export default function Footer({ siteLogo = null, contactInfo, footerTexts }: Fo
     phone: contactInfo?.phone || "+93 790 71 00 15",
     email: contactInfo?.email || "info@jazirah-gandum.com",
     faAddress: contactInfo?.faAddress || "دفتر مرکزی، جزیره گندم",
-    enAddress: contactInfo?.enAddress || "HQ Office, Jazirah Gandom",
+    enAddress: contactInfo?.enAddress || "HQ Office, Jazirah Gandum",
     wa: contactInfo?.wa || "#",
     tg: contactInfo?.tg || "#",
     fb: contactInfo?.fb || "#",
@@ -343,14 +369,34 @@ export default function Footer({ siteLogo = null, contactInfo, footerTexts }: Fo
                 <span className="w-2 h-2 rounded-full bg-primary"></span>{t("newsletter.title")}
               </h4>
               <p className="text-sm text-zinc-700 dark:text-zinc-400 mb-4 leading-relaxed">{t("newsletter.desc")}</p>
-              <form className="relative" onSubmit={(e) => e.preventDefault()}>
-                <input type="email" placeholder={t("newsletter.placeholder")} className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded-xl py-3 px-4 pr-12 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500 shadow-sm" dir="ltr" />
-                <button type="submit" className={`absolute ${isRtl ? "left-2" : "right-2"} top-2 w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white hover:bg-primary-hover dark:bg-primary-500 dark:text-white dark:hover:bg-white dark:hover:text-primary-500 transition-colors duration-300`}>
-                  <Send size={16} className={isRtl ? "-scale-x-100" : ""} />
+              
+              <form className="relative" onSubmit={handleNewsletterSubmit}>
+                <input 
+                  type="email" 
+                  value={nlEmail}
+                  onChange={(e) => setNlEmail(e.target.value)}
+                  placeholder={t("newsletter.placeholder")} 
+                  disabled={nlLoading}
+                  className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded-xl py-3 px-4 pr-12 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500 shadow-sm disabled:opacity-50" 
+                  dir="ltr" 
+                  required
+                />
+                <button 
+                  type="submit" 
+                  disabled={nlLoading}
+                  className={`absolute ${isRtl ? "left-2" : "right-2"} top-2 w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white hover:bg-primary-hover dark:bg-primary-500 dark:text-white dark:hover:bg-white dark:hover:text-primary-500 transition-colors duration-300 disabled:opacity-50 cursor-pointer`}
+                >
+                  {nlLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={16} className={isRtl ? "-scale-x-100" : ""} />}
                 </button>
               </form>
+              
+              {nlResult.text && (
+                <p className={`text-xs font-bold mt-2 flex items-center gap-1 ${nlResult.type === 'success' ? 'text-emerald-500' : 'text-red-500'}`}>
+                  {nlResult.type === 'success' && <CheckCircle2 size={14} />}
+                  {nlResult.text}
+                </p>
+              )}
             </motion.div>
-
           </div>
 
           <motion.div variants={itemVariants} className="pt-6 border-t border-zinc-300 dark:border-zinc-800/50 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-zinc-600 dark:text-zinc-500 font-bold">

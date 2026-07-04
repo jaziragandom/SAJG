@@ -5,33 +5,32 @@ import { useLocale } from "next-intl";
 import { motion, AnimatePresence, useMotionValue, useSpring, useInView } from "framer-motion";
 import * as LucideIcons from "lucide-react";
 import { getSiteContent } from "@/actions/siteContent";
+import { submitMessage, submitAgencyForm } from "@/actions/communications";
 import { 
   Building2, Target, Users, Award, MapPin, Download, X, 
   Mail, Phone, ShieldCheck, MapPinned, MessageCircle, Send, Briefcase, CheckCircle2,
-  Music2, MessageSquare, Share2
+  Music2, MessageSquare, Share2, Loader2
 } from "lucide-react";
 
-// --- آیکون‌های اختصاصی شبکه‌های اجتماعی (جایگزین موارد حذف شده از Lucide) ---
+// --- آیکون‌های اختصاصی شبکه‌های اجتماعی ---
+const BrandWhatsapp = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>;
 const BrandInstagram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>;
 const BrandFacebook = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>;
 const BrandTwitter = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>;
 const BrandLinkedin = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>;
 const BrandYoutube = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 7.1C2.5 7.1 2 9.4 2 12c0 2.6.5 4.9.5 4.9.3 1.1 1.2 2 2.3 2.3 2.6.5 7.2.5 7.2.5s4.6 0 7.2-.5c1.1-.3 2-1.2 2.3-2.3.5-2.3.5-4.9.5-4.9s-.5-2.6-.5-4.9c-.3-1.1-1.2-2-2.3-2.3-2.6-.5-7.2-.5-7.2-.5s-4.6 0-7.2.5C3.7 5.1 2.8 6 2.5 7.1z"/><path d="M9.8 15.5l6.4-3.5-6.4-3.5v7z"/></svg>;
 const BrandAparat = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>;
-
-// --- کامپوننت رندر داینامیک آیکن شرکت ---
 const DynamicIcon = ({ name, size = 36 }: { name: string, size?: number }) => {
   const IconComponent = (LucideIcons as any)[name] || LucideIcons.CheckCircle;
   return <IconComponent size={size} />;
 };
 
-// --- سیستم یکپارچه رندر شبکه‌های اجتماعی با دیپ لینک ---
 const SocialIconResolver = ({ platform, value }: { platform: string, value: string }) => {
   let Icon: any = MessageCircle;
   let url = value;
   
   switch(platform) {
-    case 'whatsapp': Icon = MessageCircle; url = `https://wa.me/${value}`; break;
+    case 'whatsapp': Icon = BrandWhatsapp; url = `https://wa.me/${value}`; break;
     case 'telegram': Icon = Send; url = `https://t.me/${value}`; break;
     case 'instagram': Icon = BrandInstagram; url = `https://instagram.com/${value}`; break;
     case 'facebook': Icon = BrandFacebook; url = `https://facebook.com/${value}`; break;
@@ -51,23 +50,19 @@ const SocialIconResolver = ({ platform, value }: { platform: string, value: stri
   );
 };
 
-// --- کامپوننت شمارنده (Counter) ---
 function Counter({ value, title }: { value: number; title: string }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: false, margin: "-10%" });
   const [displayValue, setDisplayValue] = useState(0);
   const count = useMotionValue(0);
   const springValue = useSpring(count, { stiffness: 40, damping: 30, mass: 1 });
-
   useEffect(() => {
     if (isInView) count.set(value);
     else count.set(0);
   }, [isInView, count, value]);
-
   useEffect(() => {
     return springValue.on("change", (latest) => setDisplayValue(Math.floor(latest)));
   }, [springValue]);
-
   return (
     <div ref={ref} className="flex flex-col items-center justify-center py-4 px-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-amber-400 transition-colors shadow-sm">
       <div className="flex items-center text-3xl md:text-4xl font-black mb-1 text-amber-500" dir="ltr">
@@ -78,7 +73,6 @@ function Counter({ value, title }: { value: number; title: string }) {
   );
 }
 
-// --- انیمیشن‌های اصلی ---
 const fadeInUp = { hidden: { opacity: 0, y: 30 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } } };
 const staggerContainer = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.2 } } };
 const marqueeFA = { animate: { x: ["0%", "50%"], transition: { repeat: Infinity, duration: 360, ease: "linear" as const } } };
@@ -89,12 +83,11 @@ const marqueeRevEN = { animate: { x: ["-50%", "0%"], transition: { repeat: Infin
 export default function AboutPage() {
   const locale = useLocale();
   const isRtl = locale === 'fa';
-
   const [selectedCert, setSelectedCert] = useState<string | null>(null);
   const [isAgencyModalOpen, setIsAgencyModalOpen] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-
-  // --- استیت‌های داینامیک ---
+  
+  // دیتای داینامیک
   const [introData, setIntroData] = useState<any>({});
   const [strategyData, setStrategyData] = useState<any>({});
   const [features, setFeatures] = useState<any[]>([]);
@@ -105,6 +98,14 @@ export default function AboutPage() {
   const [visibility, setVisibility] = useState({ showPartners: true, showCerts: true });
   const [hqData, setHqData] = useState<any>({ socials: [] });
   const [branchesList, setBranchesList] = useState<any[]>([]);
+
+  // استیت‌های فرم تماس با ما
+  const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
+  const [isSending, setIsSending] = useState(false);
+
+  // استیت‌های فرم درخواست اخذ نمایندگی
+  const [agencyForm, setAgencyForm] = useState({ name: "", phone: "", city: "", experience: "", description: "" });
+  const [isSubmittingAgency, setIsSubmittingAgency] = useState(false);
 
   useEffect(() => {
     const fetchPageData = async () => {
@@ -180,6 +181,46 @@ export default function AboutPage() {
     }
   };
 
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactForm.name || !contactForm.message) {
+      alert(isRtl ? "لطفاً نام و پیام خود را وارد کنید." : "Please enter your name and message.");
+      return;
+    }
+    setIsSending(true);
+    const res = await submitMessage({
+      name: contactForm.name,
+      email: contactForm.email || "no-email@provided.com",
+      text: contactForm.message,
+      subject: "فرم عمومی درباره ما"
+    });
+    setIsSending(false);
+    if (res.success) {
+      alert(isRtl ? "پیام شما با موفقیت ارسال شد و در اسرع وقت پاسخ داده خواهد شد." : "Message sent successfully.");
+      setContactForm({ name: "", email: "", message: "" });
+    } else {
+      alert(isRtl ? "خطایی رخ داد. لطفاً مجدداً تلاش فرمایید." : "Error sending message.");
+    }
+  };
+
+  const handleAgencySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!agencyForm.name || !agencyForm.phone || !agencyForm.city) {
+      alert(isRtl ? "لطفاً فیلدهای ضروری (نام، شماره تماس و ولایت/شهر) را پر کنید." : "Please fill required fields.");
+      return;
+    }
+    setIsSubmittingAgency(true);
+    const res = await submitAgencyForm(agencyForm);
+    setIsSubmittingAgency(false);
+    if (res.success) {
+      alert(isRtl ? "درخواست شما با موفقیت ثبت شد و به زودی بررسی خواهد شد." : "Request submitted successfully.");
+      setAgencyForm({ name: "", phone: "", city: "", experience: "", description: "" });
+      setIsAgencyModalOpen(false);
+    } else {
+      alert(isRtl ? "خطایی در ثبت درخواست رخ داد." : "Error submitting request.");
+    }
+  };
+
   const renderHighlightedTitle = (title: string) => {
     if (!title) return null;
     const words = title.trim().split(" ");
@@ -197,7 +238,6 @@ export default function AboutPage() {
 
   return (
     <main className="w-full bg-transparent min-h-screen pt-28 pb-16 overflow-hidden" dir={isRtl ? "rtl" : "ltr"}>
-      
       <div className="container mx-auto px-4 md:px-8 max-w-7xl flex flex-col gap-12">
         
         {/* ۱. معرفی شرکت */}
@@ -249,19 +289,17 @@ export default function AboutPage() {
               </motion.div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                {features.map((feature, i) => {
-                  return (
-                    <motion.div key={i} variants={fadeInUp} className="flex gap-3 items-center bg-white/50 dark:bg-gray-900/50 backdrop-blur-md border border-gray-100 dark:border-gray-800 p-4 rounded-2xl hover:border-amber-400 transition-colors">
-                      <div className="shrink-0 w-12 h-12 bg-amber-400/10 rounded-xl flex items-center justify-center text-amber-500">
-                        <DynamicIcon name={feature.icon} size={24} />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-0.5">{isRtl ? feature.faTitle : feature.enTitle}</h4>
-                        <p className="text-xs text-gray-500">{isRtl ? feature.descFA : feature.descEN}</p>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                {features.map((feature, i) => (
+                  <motion.div key={i} variants={fadeInUp} className="flex gap-3 items-center bg-white/50 dark:bg-gray-900/50 backdrop-blur-md border border-gray-100 dark:border-gray-800 p-4 rounded-2xl hover:border-amber-400 transition-colors">
+                    <div className="shrink-0 w-12 h-12 bg-amber-400/10 rounded-xl flex items-center justify-center text-amber-500">
+                      <DynamicIcon name={feature.icon} size={24} />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-0.5">{isRtl ? feature.faTitle : feature.enTitle}</h4>
+                      <p className="text-xs text-gray-500">{isRtl ? feature.descFA : feature.descEN}</p>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-auto">
@@ -269,14 +307,7 @@ export default function AboutPage() {
               </div>
             </div>
 
-            {/* ستون ویدیو */}
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: false, amount: 0.1 }}
-              transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
-              className="relative w-full h-96 lg:h-auto grow flex"
-            >
+            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: false, amount: 0.1 }} transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }} className="relative w-full h-96 lg:h-auto grow flex">
               <div className="absolute inset-0 bg-zinc-900 rounded-3xl overflow-hidden shadow-lg z-10 flex items-center justify-center group">
                 {isVideoPlaying ? (
                   <video src={introData.videoUrl} controls autoPlay className="w-full h-full object-cover rounded-3xl" />
@@ -323,12 +354,8 @@ export default function AboutPage() {
                 {dupPartners.map((partner, idx) => (
                   <a key={idx} href={partner.url} target="_blank" rel="noopener noreferrer" className="relative w-40 shrink-0 flex flex-col items-center justify-center transition-all group/card py-2 gap-2">
                     <img src={partner.logo} alt={isRtl ? partner.faName : partner.enName} className="max-w-24 max-h-10 opacity-60 group-hover/card:opacity-100 transition-opacity grayscale group-hover/card:grayscale-0 mb-1" />
-                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200 text-center">
-                      {isRtl ? partner.faName : partner.enName}
-                    </span>
-                    <span className={`text-xs text-gray-500 text-center ${isRtl ? 'font-mono' : ''}`}>
-                      {isRtl ? partner.enName : partner.faName}
-                    </span>
+                    <span className="text-sm font-bold text-gray-800 dark:text-gray-200 text-center">{isRtl ? partner.faName : partner.enName}</span>
+                    <span className={`text-xs text-gray-500 text-center ${isRtl ? 'font-mono' : ''}`}>{isRtl ? partner.enName : partner.faName}</span>
                   </a>
                 ))}
               </motion.div>
@@ -361,13 +388,13 @@ export default function AboutPage() {
             <motion.div variants={fadeInUp} className="bg-white/50 dark:bg-gray-900/50 backdrop-blur-md border border-gray-100 dark:border-gray-800 p-8 rounded-3xl h-full flex flex-col justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{isRtl ? "ارسال پیام عمومی" : "Send a Message"}</h3>
-                <form className="flex flex-col gap-5" onSubmit={e => e.preventDefault()}>
-                  <input type="text" placeholder={isRtl ? "نام کامل شما" : "Full Name"} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-5 py-4 focus:border-amber-400 outline-none" />
-                  <input type="email" placeholder={isRtl ? "آدرس ایمیل" : "Email Address"} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-5 py-4 focus:border-amber-400 outline-none" />
-                  <textarea rows={5} placeholder={isRtl ? "پیام خود را بنویسید..." : "Your Message..."} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-5 py-4 focus:border-amber-400 outline-none resize-none"></textarea>
-                  <button type="submit" className="w-full bg-amber-400 hover:bg-amber-500 text-gray-900 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors mt-2 text-lg">
-                    <Send size={20} className={isRtl ? "transform -scale-x-100" : ""} /> 
-                    {isRtl ? "ارسال پیام" : "Send Message"}
+                <form className="flex flex-col gap-5" onSubmit={handleContactSubmit}>
+                  <input type="text" value={contactForm.name} onChange={e => setContactForm({...contactForm, name: e.target.value})} placeholder={isRtl ? "نام کامل شما" : "Full Name"} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-5 py-4 focus:border-amber-400 outline-none" />
+                  <input type="email" value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})} placeholder={isRtl ? "آدرس ایمیل" : "Email Address"} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-5 py-4 focus:border-amber-400 outline-none" />
+                  <textarea rows={5} value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})} placeholder={isRtl ? "پیام خود را بنویسید..." : "Your Message..."} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-5 py-4 focus:border-amber-400 outline-none resize-none"></textarea>
+                  <button type="submit" disabled={isSending} className="w-full bg-amber-400 hover:bg-amber-500 text-gray-900 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors mt-2 text-lg disabled:opacity-70">
+                    {isSending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} className={isRtl ? "transform -scale-x-100" : ""} />} 
+                    {isRtl ? (isSending ? "در حال ارسال..." : "ارسال پیام") : (isSending ? "Sending..." : "Send Message")}
                   </button>
                 </form>
               </div>
@@ -447,52 +474,43 @@ export default function AboutPage() {
         </motion.div>
       </div>
 
-      {/* --- پاپ‌آپ (Modal) فرم درخواست نمایندگی --- */}
       <AnimatePresence>
         {isAgencyModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
-              onClick={() => setIsAgencyModalOpen(false)} 
-              className="absolute inset-0 bg-gray-950/80 backdrop-blur-md cursor-pointer" 
-            />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} 
-              className="relative z-10 max-w-2xl w-full bg-white dark:bg-gray-900 rounded-[2rem] shadow-2xl p-6 md:p-10 max-h-[90vh] overflow-y-auto hide-scrollbar"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsAgencyModalOpen(false)} className="absolute inset-0 bg-gray-950/80 backdrop-blur-md cursor-pointer" />
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative z-10 max-w-2xl w-full bg-white dark:bg-gray-900 rounded-[2rem] shadow-2xl p-6 md:p-10 max-h-[90vh] overflow-y-auto hide-scrollbar">
               <button onClick={() => setIsAgencyModalOpen(false)} className="absolute top-6 right-6 w-10 h-10 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full flex items-center justify-center transition-colors">
                 <X size={20} />
               </button>
-
               <div className="text-center mb-8 mt-4">
                 <div className="inline-flex p-4 bg-amber-400/10 text-amber-500 rounded-full mb-4"><Briefcase size={32} /></div>
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">{isRtl ? "درخواست اخذ نمایندگی" : "Agency Request Form"}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{isRtl ? "لطفاً اطلاعات خود را با دقت وارد کنید تا کارشناسان ما با شما تماس بگیرند." : "Please enter your details carefully."}</p>
               </div>
-              
-              <form className="grid grid-cols-1 md:grid-cols-2 gap-5" onSubmit={e => e.preventDefault()}>
+              <form className="grid grid-cols-1 md:grid-cols-2 gap-5" onSubmit={handleAgencySubmit}>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400">{isRtl ? "نام و نام خانوادگی / نام شرکت" : "Full Name / Company"}</label>
-                  <input type="text" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:border-amber-400 outline-none" />
+                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400">{isRtl ? "نام و نام خانوادگی / نام شرکت *" : "Full Name / Company *"}</label>
+                  <input type="text" value={agencyForm.name} onChange={e => setAgencyForm({...agencyForm, name: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:border-amber-400 outline-none" required />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400">{isRtl ? "شماره تماس (موبایل)" : "Phone Number"}</label>
-                  <input type="text" dir="ltr" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:border-amber-400 outline-none font-mono" />
+                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400">{isRtl ? "شماره تماس (موبایل) *" : "Phone Number *"}</label>
+                  <input type="text" dir="ltr" value={agencyForm.phone} onChange={e => setAgencyForm({...agencyForm, phone: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:border-amber-400 outline-none font-mono" required />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400">{isRtl ? "ولایت و شهر محل فعالیت" : "Province / City"}</label>
-                  <input type="text" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:border-amber-400 outline-none" />
+                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400">{isRtl ? "ولایت و شهر محل فعالیت *" : "Province / City *"}</label>
+                  <input type="text" value={agencyForm.city} onChange={e => setAgencyForm({...agencyForm, city: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:border-amber-400 outline-none" required />
                 </div>
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-gray-600 dark:text-gray-400">{isRtl ? "میزان سابقه پخش و توزیع (سال)" : "Years of Experience"}</label>
-                  <input type="text" dir="ltr" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:border-amber-400 outline-none font-mono" />
+                  <input type="text" dir="ltr" value={agencyForm.experience} onChange={e => setAgencyForm({...agencyForm, experience: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:border-amber-400 outline-none font-mono" />
                 </div>
                 <div className="flex flex-col gap-2 md:col-span-2">
-                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400">{isRtl ? "توضیحات تکمیلی و امکانات (متراژ انبار، خودرو و...)" : "Additional Details"}</label>
-                  <textarea rows={4} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:border-amber-400 outline-none resize-none"></textarea>
+                  <label className="text-xs font-bold text-gray-600 dark:text-gray-400">{isRtl ? "توضیحات تکمیلی و امکانات (متراژ گدام، موتر پخش و...)" : "Additional Details"}</label>
+                  <textarea rows={4} value={agencyForm.description} onChange={e => setAgencyForm({...agencyForm, description: e.target.value})} className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:border-amber-400 outline-none resize-none"></textarea>
                 </div>
-                <button type="submit" className="w-full md:col-span-2 bg-amber-400 hover:bg-amber-500 text-gray-900 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all mt-2 shadow-md">
-                  <CheckCircle2 size={20} /> {isRtl ? "ثبت نهایی درخواست" : "Submit Request"}
+                <button type="submit" disabled={isSubmittingAgency} className="w-full md:col-span-2 bg-amber-400 hover:bg-amber-500 text-gray-900 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all mt-2 shadow-md disabled:opacity-70">
+                  {isSubmittingAgency ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
+                  {isRtl ? (isSubmittingAgency ? "در حال ثبت..." : "ثبت نهایی درخواست") : (isSubmittingAgency ? "Submitting..." : "Submit Request")}
                 </button>
               </form>
             </motion.div>
@@ -500,7 +518,6 @@ export default function AboutPage() {
         )}
       </AnimatePresence>
 
-      {/* --- پاپ‌آپ گواهینامه‌ها --- */}
       <AnimatePresence>
         {selectedCert && (
           <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
@@ -512,7 +529,6 @@ export default function AboutPage() {
           </div>
         )}
       </AnimatePresence>
-
     </main>
   );
 }

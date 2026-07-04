@@ -4,8 +4,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Save, Settings, Image as ImageIcon, Search, Loader2, UploadCloud, CheckCircle2 } from "lucide-react";
 import { getSettings, saveSettings } from "@/actions/settings";
+import { useToast } from "../components/ToastProvider";
 
 export default function GeneralSettings() {
+  const { showToast } = useToast();
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
@@ -67,12 +70,18 @@ export default function GeneralSettings() {
 
       if (data.success) {
         setFormData(prev => ({ ...prev, [field]: data.url }));
-        setMessage({ type: "success", text: "عکس با موفقیت آپلود شد. برای ثبت نهایی روی ذخیره کلیک کنید." });
+        const successMsg = "عکس با موفقیت آپلود شد. برای ثبت نهایی روی ذخیره کلیک کنید.";
+        setMessage({ type: "success", text: successMsg });
+        showToast(successMsg, "success");
       } else {
-        setMessage({ type: "error", text: data.error || "خطا در آپلود عکس." });
+        const errorMsg = data.error || "خطا در آپلود عکس.";
+        setMessage({ type: "error", text: errorMsg });
+        showToast(errorMsg, "error");
       }
     } catch (err) {
-      setMessage({ type: "error", text: "خطا در ارتباط با سرور آپلود." });
+      const errorMsg = "خطا در ارتباط با سرور آپلود.";
+      setMessage({ type: "error", text: errorMsg });
+      showToast(errorMsg, "error");
     } finally {
       if (field === 'site_logo') setIsUploadingLogo(false);
       else setIsUploadingFavicon(false);
@@ -89,9 +98,13 @@ export default function GeneralSettings() {
     const response = await saveSettings(formData);
     
     if (response.success) {
-      setMessage({ type: "success", text: "تنظیمات با موفقیت در دیتابیس ذخیره شد!" });
+      const successMsg = "تنظیمات با موفقیت در دیتابیس ذخیره شد!";
+      setMessage({ type: "success", text: successMsg });
+      showToast(successMsg, "success");
     } else {
-      setMessage({ type: "error", text: "خطا در ذخیره اطلاعات." });
+      const errorMsg = "خطا در ذخیره اطلاعات.";
+      setMessage({ type: "error", text: errorMsg });
+      showToast(errorMsg, "error");
     }
     setIsSaving(false);
     

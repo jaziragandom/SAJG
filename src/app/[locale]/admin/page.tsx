@@ -1,5 +1,6 @@
 import React from "react";
 import { cookies } from "next/headers";
+import MainDashboard from "./components/MainDashboard";
 import ProductsManager from "./components/ProductsManager";
 import CategoriesManager from "./components/CategoriesManager";
 import HeroManager from "./components/HeroManager";
@@ -10,13 +11,17 @@ import CorporateManager from "./components/CorporateManager";
 import GalleryManager from "./components/GalleryManager";
 import BlogManager from "./components/BlogManager";
 import UsersManager from "./components/UsersManager";
-import { ShieldAlert } from "lucide-react";
 import GeneralSettings from "./components/GeneralSettings";
+import MessagesManager from "./components/MessagesManager";
+import CommentsManager from "./components/CommentsManager";
+import AgencyFormsManager from "./components/AgencyFormsManager";
+import NewsletterManager from "./components/NewsletterManager";
+import { ShieldAlert } from "lucide-react";
 
 export default async function AdminDashboard({ searchParams }: { searchParams: Promise<{ section?: string }> }) {
   
   const resolvedParams = await searchParams;
-  const section = resolvedParams.section || "hero";
+  const section = resolvedParams.section || "overview";
 
   // استخراج نقش کاربر از کوکی برای قفل کردن کامپوننت‌ها
   const cookieStore = await cookies();
@@ -25,7 +30,6 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
   
   if (token) {
     try {
-      // دیکود کردن سریع توکن برای بررسی رابط کاربری
       const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
       userRole = payload.role;
     } catch (e) {}
@@ -45,17 +49,22 @@ export default async function AdminDashboard({ searchParams }: { searchParams: P
   }
 
   const isCorporateSection = [
-    "history", "vision", "stats", "partners", "branches", "agency_forms", "corporate_sec", "about_sec"
+    "history", "vision", "stats", "partners", "branches", "corporate_sec", "about_sec"
   ].includes(section);
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {section === "hero" ? <HeroManager />
+      {section === "overview" ? <MainDashboard />
+      : section === "hero" ? <HeroManager />
       : ["gallery_all", "gallery_images", "gallery_videos"].includes(section) ? <GalleryManager currentSection={section} />
       : ["blog_all", "blog_published", "blog_draft"].includes(section) ? <BlogManager currentSection={section} />
       : section === "brands_sec" ? <BrandsManager />
       : section === "products_sec" ? <HomeProductsManager />
       : section === "footer_sec" ? <FooterManager />
+      : ["messages_sec", "dash_messages_sec", "about_messages_sec"].includes(section) ? <MessagesManager />
+      : ["comments_sec", "dash_comments_sec", "blog_comments_sec"].includes(section) ? <CommentsManager />
+      : section === "agency_forms" ? <AgencyFormsManager />
+      : section === "newsletter_sec" ? <NewsletterManager />
       : isCorporateSection ? <CorporateManager currentSection={section} />
       : section === "prod_list" ? <ProductsManager />
       : section.startsWith("cat_") ? <CategoriesManager activeCategoryId={section.replace("cat_", "")} />

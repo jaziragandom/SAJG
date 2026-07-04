@@ -20,8 +20,9 @@ export async function getProducts(filter: any = {}) {
     }
 
     // هوشمندسازی دریافت فیلترها از ناوبار
-    if (filter.brand) dbFilter.brandId = filter.brand;
-    // اگر شناسه برند یا اسلاگ پاس داده شد
+    if (filter.brand) {
+        dbFilter.brandId = filter.brand;
+    }
     
     // اگر کاربر از ناوبار دسته‌بندی را انتخاب کرد
     if (filter.category) {
@@ -64,8 +65,10 @@ export async function createProduct(data: any) {
     const newProduct = await Product.create(data);
     revalidatePath("/");
     return { success: true, data: JSON.parse(JSON.stringify(newProduct)) };
-  } catch (error) {
-    return { success: false, error: "خطا در ثبت محصول" };
+  } catch (error: any) {
+    // بهبود لاگ خطا برای پیدا کردن راحت‌تر مشکلاتی مثل خالی بودن برند یا فیلدهای اجباری
+    console.error("❌ [BACKEND] خطا در ثبت محصول:", error.message || error);
+    return { success: false, error: error.message || "خطا در ثبت محصول" };
   }
 }
 
@@ -75,7 +78,8 @@ export async function updateProduct(id: string, data: any) {
     const updatedProduct = await Product.findByIdAndUpdate(id, data, { new: true }).lean();
     revalidatePath("/");
     return { success: true, data: JSON.parse(JSON.stringify(updatedProduct)) };
-  } catch (error) {
+  } catch (error: any) {
+    console.error("❌ [BACKEND] خطا در ویرایش محصول:", error.message || error);
     return { success: false, error: "خطا در ویرایش محصول" };
   }
 }
@@ -86,22 +90,26 @@ export async function deleteProduct(id: string) {
     await Product.findByIdAndDelete(id);
     revalidatePath("/");
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
+    console.error("❌ [BACKEND] خطا در حذف محصول:", error.message || error);
     return { success: false, error: "خطا در حذف محصول" };
   }
 }
+
 export async function getProductById(id: string) {
   try {
     await dbConnect();
-    const product = await Product.findById(id).populate('brandId', 'faName enName slug logo').lean();
+    const product = await Product.findById(id)
+      .populate('brandId', 'faName enName slug logo')
+      .lean();
     
     if (!product) {
       return { success: false, error: "محصول یافت نشد" };
     }
     
     return { success: true, data: JSON.parse(JSON.stringify(product)) };
-  } catch (error) {
-    console.error("Error fetching single product:", error);
+  } catch (error: any) {
+    console.error("❌ [BACKEND] خطا در دریافت تک محصول:", error.message || error);
     return { success: false, error: "خطا در دریافت اطلاعات محصول" };
   }
 }

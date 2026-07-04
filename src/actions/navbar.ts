@@ -19,11 +19,11 @@ export async function getNavbarData() {
       .select('slug faName enName parent iconName')
       .lean();
 
-    const brands = await Brand.find({})
+    const brands = await Brand.find({ status: 'active' })
       .sort({ order: 1 })
-      .select('slug faName enName logo')
+      .select('slug faName enName logo logoFa logoEn')
       .lean();
-
+      
     // خواندن لوگو دقیقاً از مدل خودتان انجام شد تا سیستم کرش نکند
     const siteLogoSetting = await Setting.findOne({ key: 'site_logo' }).lean();
     const siteLogo = siteLogoSetting ? siteLogoSetting.value : null;

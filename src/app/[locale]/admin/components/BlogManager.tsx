@@ -16,10 +16,9 @@ export default function BlogManager({ currentSection }: { currentSection: string
   
   const [modalTab, setModalTab] = useState<"content" | "media" | "seo">("content");
   const [editMode, setEditMode] = useState(false);
-  
   const [formData, setFormData] = useState({
     _id: "", faTitle: "", enTitle: "", slug: "", category: "health",
-    excerpt: "", content: "", readTime: "۵ دقیقه", author: "تحریریه جزیره گندم",
+    excerpt: "", enExcerpt: "", content: "", enContent: "", readTime: "۵ دقیقه", author: "تحریریه جزیره گندم",
     status: "published", coverImage: "", thumbnailImage: "",
     seoTitle: "", seoDesc: "", seoKeywords: ""
   });
@@ -48,7 +47,9 @@ export default function BlogManager({ currentSection }: { currentSection: string
       slug: formData.slug.toLowerCase().replace(/\s+/g, '-'),
       category: formData.category,
       excerpt: formData.excerpt,
+      enExcerpt: formData.enExcerpt,
       content: formData.content,
+      enContent: formData.enContent,
       readTime: formData.readTime,
       author: formData.author,
       status: formData.status,
@@ -91,7 +92,9 @@ export default function BlogManager({ currentSection }: { currentSection: string
       slug: blog.slug || "",
       category: blog.category || "health",
       excerpt: blog.excerpt || "",
+      enExcerpt: blog.enExcerpt || "",
       content: blog.content || "",
+      enContent: blog.enContent || "",
       readTime: blog.readTime || "۵ دقیقه",
       author: blog.author || "تحریریه جزیره گندم",
       status: blog.status || "draft",
@@ -109,7 +112,7 @@ export default function BlogManager({ currentSection }: { currentSection: string
   const handleAddNew = () => {
     setFormData({
       _id: "", faTitle: "", enTitle: "", slug: "", category: "health",
-      excerpt: "", content: "", readTime: "۵ دقیقه", author: "تحریریه جزیره گندم",
+      excerpt: "", enExcerpt: "", content: "", enContent: "", readTime: "۵ دقیقه", author: "تحریریه جزیره گندم",
       status: "draft", coverImage: "", thumbnailImage: "",
       seoTitle: "", seoDesc: "", seoKeywords: ""
     });
@@ -271,13 +274,25 @@ export default function BlogManager({ currentSection }: { currentSection: string
                         <label className="text-xs font-black text-gray-400">اسلاگ URL (شناسه لینک) <span className="text-red-500">*</span></label>
                         <input type="text" dir="ltr" value={formData.slug} onChange={e => setFormData({...formData, slug: e.target.value})} className="border border-gray-200 dark:border-gray-800 rounded-xl p-3 bg-transparent text-sm font-mono outline-none focus:border-amber-400" placeholder="benefits-of-vitamin-c" />
                       </div>
+                      
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-black text-gray-400">خلاصه مقاله (نمایش در کارت‌ها)</label>
+                        <label className="text-xs font-black text-gray-400">خلاصه مقاله (فارسی)</label>
                         <textarea rows={2} value={formData.excerpt} onChange={e => setFormData({...formData, excerpt: e.target.value})} className="border border-gray-200 dark:border-gray-800 rounded-xl p-3 bg-transparent text-sm font-bold outline-none focus:border-amber-400 resize-none"></textarea>
                       </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-black text-gray-400">خلاصه مقاله (انگلیسی)</label>
+                        <div className="relative">
+                          <textarea rows={2} dir="ltr" value={formData.enExcerpt} onChange={e => setFormData({...formData, enExcerpt: e.target.value})} className="w-full border border-gray-200 dark:border-gray-800 rounded-xl p-3 pl-12 bg-transparent text-sm font-mono outline-none focus:border-amber-400 resize-none"></textarea>
+                          <button type="button" onClick={() => handleAutoTranslate(formData.excerpt, 'enExcerpt')} disabled={translatingField === 'enExcerpt' || !formData.excerpt} className="absolute left-2 top-2 p-2 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors">
+                            {translatingField === 'enExcerpt' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                          </button>
+                        </div>
+                      </div>
+
                       <div className="flex flex-col gap-2">
                         <div className="flex items-center justify-between">
-                          <label className="text-xs font-black text-gray-400">متن کامل مقاله (ویرایشگر)</label>
+                          <label className="text-xs font-black text-gray-400">متن کامل مقاله (فارسی)</label>
                           <div className="flex gap-1 bg-gray-50 dark:bg-gray-800 p-1 rounded-lg">
                             <button className="p-1.5 text-gray-500 hover:bg-white dark:hover:bg-gray-700 rounded-md shadow-sm"><Bold size={14}/></button>
                             <button className="p-1.5 text-gray-500 hover:bg-white dark:hover:bg-gray-700 rounded-md shadow-sm"><Italic size={14}/></button>
@@ -288,6 +303,17 @@ export default function BlogManager({ currentSection }: { currentSection: string
                         </div>
                         <textarea rows={8} value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} className="border border-gray-200 dark:border-gray-800 rounded-xl p-4 bg-gray-50/30 dark:bg-gray-900/30 text-sm font-medium outline-none focus:border-amber-400 leading-relaxed"></textarea>
                       </div>
+
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-black text-gray-400">متن کامل مقاله (انگلیسی)</label>
+                        <div className="relative">
+                          <textarea rows={8} dir="ltr" value={formData.enContent} onChange={e => setFormData({...formData, enContent: e.target.value})} className="w-full border border-gray-200 dark:border-gray-800 rounded-xl p-4 pl-12 bg-gray-50/30 dark:bg-gray-900/30 text-sm font-mono outline-none focus:border-amber-400 leading-relaxed"></textarea>
+                          <button type="button" onClick={() => handleAutoTranslate(formData.content, 'enContent')} disabled={translatingField === 'enContent' || !formData.content} className="absolute left-2 top-2 p-2 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors">
+                            {translatingField === 'enContent' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                          </button>
+                        </div>
+                      </div>
+
                     </div>
                     
                     <div className="flex flex-col gap-6 lg:border-r border-gray-100 dark:border-gray-800 lg:pr-8">
@@ -325,11 +351,11 @@ export default function BlogManager({ currentSection }: { currentSection: string
                       {formData.coverImage && <img src={formData.coverImage} className="w-full h-32 object-cover rounded-xl border border-gray-200 dark:border-gray-700" alt="Cover" />}
                       <div className="relative overflow-hidden border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 hover:border-amber-400 transition-colors bg-gray-50/50 dark:bg-gray-900/30">
                         <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={async(e) => { 
-                          const f = e.target.files?.[0]; 
+                          const f = e.target.files?.[0];
                           if(!f) return; 
                           if(formData.coverImage) await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.coverImage }) }).catch(err => console.error(err));
                           const fd = new FormData(); fd.append('file', f); 
-                          const r = await fetch('/api/upload', {method:'POST',body:fd}); const d = await r.json(); 
+                          const r = await fetch('/api/upload', {method:'POST',body:fd}); const d = await r.json();
                           if(d.success) setFormData({...formData, coverImage: d.url}); 
                         }} />
                         <Upload size={24} className="text-gray-400" />
@@ -342,11 +368,11 @@ export default function BlogManager({ currentSection }: { currentSection: string
                       {formData.thumbnailImage && <img src={formData.thumbnailImage} className="w-32 h-32 object-cover mx-auto rounded-xl border border-gray-200 dark:border-gray-700" alt="Thumbnail" />}
                       <div className="relative overflow-hidden border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl p-8 flex flex-col items-center justify-center gap-2 hover:border-amber-400 transition-colors bg-gray-50/50 dark:bg-gray-900/30">
                         <input type="file" accept="image/*" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={async(e) => { 
-                          const f = e.target.files?.[0]; 
+                          const f = e.target.files?.[0];
                           if(!f) return; 
                           if(formData.thumbnailImage) await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.thumbnailImage }) }).catch(err => console.error(err));
                           const fd = new FormData(); fd.append('file', f); 
-                          const r = await fetch('/api/upload', {method:'POST',body:fd}); const d = await r.json(); 
+                          const r = await fetch('/api/upload', {method:'POST',body:fd}); const d = await r.json();
                           if(d.success) setFormData({...formData, thumbnailImage: d.url}); 
                         }} />
                         <Upload size={24} className="text-gray-400" />

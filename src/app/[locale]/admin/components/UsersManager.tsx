@@ -5,8 +5,11 @@ import { Plus, Search, Edit3, Trash2, X, CheckCircle2, ShieldAlert, Shield, Shie
 import { motion, AnimatePresence } from "framer-motion";
 // فرض بر این است که فایل اکشن شما با نام users.ts در پوشه actions قرار دارد
 import { getUsers, createUser, updateUser, deleteUser } from "@/actions/user";
+import { useToast } from "../components/ToastProvider";
 
 export default function UsersManager() {
+  const { showToast } = useToast();
+
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -89,7 +92,7 @@ export default function UsersManager() {
 
   const handleSave = async () => {
     if (!formData.name || !formData.email) {
-      alert("وارد کردن نام و ایمیل الزامی است.");
+      showToast("وارد کردن نام و ایمیل الزامی است.", "warning");
       return;
     }
 
@@ -109,31 +112,41 @@ export default function UsersManager() {
     if (editItem && editItem._id) {
       const res = await updateUser(editItem._id, payload);
       if (res.success) {
+        showToast("اطلاعات کاربر با موفقیت ویرایش شد.", "success");
         setIsModalOpen(false);
         fetchUsersData();
-      } else alert(res.error);
+      } else showToast(res.error || "خطا در ویرایش کاربر", "error");
     } else {
       if (!formData.password) {
-        alert("برای ایجاد کاربر جدید، تعیین رمز عبور الزامی است.");
+        showToast("برای ایجاد کاربر جدید، تعیین رمز عبور الزامی است.", "warning");
         return;
       }
       const res = await createUser(payload);
       if (res.success) {
+        showToast("کاربر جدید با موفقیت ایجاد شد.", "success");
         setIsModalOpen(false);
         fetchUsersData();
-      } else alert(res.error);
+      } else showToast(res.error || "خطا در ایجاد کاربر", "error");
     }
   };
 
   const handleDelete = async (id: string, role: string) => {
     if (role === "super_admin") {
-      alert("سوپر ادمین اصلی قابل حذف نیست!");
-      return;
+      const superAdminCount = users.filter(u => u.role === "super_admin").length;
+      if (superAdminCount <= 1) {
+        showToast("سیستم باید حداقل یک سوپر ادمین داشته باشد. امکان حذف تنها سوپر ادمین وجود ندارد!", "warning");
+        return;
+      }
     }
+    
     if (confirm("آیا از حذف این کاربر اطمینان دارید؟")) {
       const res = await deleteUser(id);
-      if (res.success) fetchUsersData();
-      else alert(res.error || "خطا در حذف کاربر");
+      if (res.success) {
+        showToast("کاربر با موفقیت حذف شد.", "success");
+        fetchUsersData();
+      } else {
+        showToast(res.error || "خطا در حذف کاربر", "error");
+      }
     }
   };
 

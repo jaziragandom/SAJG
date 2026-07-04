@@ -5,12 +5,27 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { motion } from "framer-motion";
-import { Clock, Calendar, User, ArrowRight, Share2, Mail, MessageCircle, Heart, Loader2 } from "lucide-react";
-
-
-// اتصال به اکشن دیتابیس
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Clock, 
+  Calendar, 
+  User, 
+  ArrowRight, 
+  Share2, 
+  Mail, 
+  MessageCircle, 
+  Heart, 
+  Loader2, 
+  CheckCircle2, 
+  Reply, 
+  ShieldCheck, 
+  X, 
+  Send, 
+  Bookmark 
+} from "lucide-react";
 import { getBlogs } from "@/actions/blog";
+import { submitComment, getApprovedComments } from "@/actions/communications";
+import { subscribeToNewsletter } from "@/actions/newsletter";
 
 export default function BlogPostPage() {
   const params = useParams();
@@ -19,21 +34,110 @@ export default function BlogPostPage() {
   const slug = params?.slug as string;
   
   const [post, setPost] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // فراخوانی مقاله بر اساس اسلاگ از دیتابیس
+  // استیت‌های مربوط به سیستم کامنت‌گذاری درختی و چندسطحی
+  const [approvedComments, setApprovedComments] = useState<any[]>([]);
+  const [commentForm, setCommentForm] = useState({ 
+    name: '', 
+    email: '', 
+    text: '' 
+  });
+  const [replyingTo, setReplyingTo] = useState<{ id: string; name: string } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [formMsg, setFormMsg] = useState({ type: '', text: '' });
+
+  // استیت‌های تعاملی کاربر در صفحه مقاله
+  const [liked, setLiked] = useState<boolean>(false);
+  const [bookmarked, setBookmarked] = useState<boolean>(false);
+
+  const [blogNlEmail, setBlogNlEmail] = useState("");
+  const [blogNlLoading, setBlogNlLoading] = useState(false);
+  const [blogNlMsg, setBlogNlMsg] = useState("");
+
   useEffect(() => {
     const fetchSinglePost = async () => {
       if (slug) {
-        const res = await getBlogs({ slug: slug, status: "published" });
+        const res = await getBlogs({ 
+          slug: slug, 
+          status: "published" 
+        });
+        
         if (res.success && res.data && res.data.length > 0) {
-          setPost(res.data[0]);
+          const currentPost = res.data[0];
+          setPost(currentPost);
+          
+          // دریافت تمام دیدگاه‌های تاییدشده و پاسخ‌داده‌شده مرتبط با این مقاله
+          const cmtRes = await getApprovedComments(currentPost._id);
+          if (cmtRes.success && cmtRes.data) {
+            setApprovedComments(cmtRes.data);
+          }
         }
       }
       setIsLoading(false);
     };
+    
     fetchSinglePost();
   }, [slug]);
+
+  // مدیریت ارسال فرم دیدگاه یا پاسخ به نظر دیگران
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!commentForm.name || !commentForm.email || !commentForm.text) {
+      setFormMsg({ 
+        type: 'error', 
+        text: 'پر کردن تمام فیلدها الزامی است.' 
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setFormMsg({ type: '', text: '' });
+
+    const res = await submitComment({ 
+      name: commentForm.name,
+      email: commentForm.email,
+      text: commentForm.text,
+      articleId: post._id,
+      parentId: replyingTo ? replyingTo.id : "" 
+    });
+
+    if (res.success) {
+      setFormMsg({ 
+        type: 'success', 
+        text: res.message || 'دیدگاه شما با موفقیت ثبت شد و پس از بررسی منتشر خواهد شد.' 
+      });
+      setCommentForm({ name: '', email: '', text: '' });
+      setReplyingTo(null);
+    } else {
+      setFormMsg({ 
+        type: 'error', 
+        text: res.error || 'خطایی رخ داد. لطفاً دوباره تلاش کنید.' 
+      });
+    }
+    
+    setIsSubmitting(false);
+  };
+
+  const handleBlogNewsletter = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!blogNlEmail || !blogNlEmail.includes("@")) return;
+    setBlogNlLoading(true);
+    setBlogNlMsg("");
+    const res = await subscribeToNewsletter({
+      email: blogNlEmail,
+      source: `انتهای مقاله: ${post?.faTitle || "وبلاگ"}`,
+      segment: "blog_health" // دسته‌بندی علاقه‌مندان به مقالات
+    });
+    setBlogNlLoading(false);
+    if (res.success) {
+      setBlogNlMsg("عضویت شما با موفقیت انجام شد!");
+      setBlogNlEmail("");
+    } else {
+      setBlogNlMsg(res.error || "خطایی رخ داد.");
+    }
+  };
 
   const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -41,21 +145,30 @@ export default function BlogPostPage() {
     initial: { opacity: 0, x: 80 },
     whileInView: { opacity: 1, x: 0 },
     viewport: { once: false, amount: 0.3 },
-    transition: { opacity: { duration: 0.4, delay: 0.1 }, x: { duration: 1, ease: customEase, delay: 0.1 } }
+    transition: { 
+      opacity: { duration: 0.4, delay: 0.1 }, 
+      x: { duration: 1, ease: customEase, delay: 0.1 } 
+    }
   };
 
   const badgeAnim = {
     initial: { opacity: 0, x: -50 },
     whileInView: { opacity: 1, x: 0 },
     viewport: { once: false, amount: 0.3 },
-    transition: { opacity: { duration: 0.4, delay: 0.3 }, x: { duration: 1, ease: customEase, delay: 0.3 } }
+    transition: { 
+      opacity: { duration: 0.4, delay: 0.3 }, 
+      x: { duration: 1, ease: customEase, delay: 0.3 } 
+    }
   };
 
   const detailsAnim = (index: number) => ({
     initial: { opacity: 0, y: 30 },
     whileInView: { opacity: 1, y: 0 },
     viewport: { once: false, amount: 0.8 },
-    transition: { opacity: { duration: 0.3, delay: 0.5 + (index * 0.15) }, y: { duration: 0.8, ease: customEase, delay: 0.5 + (index * 0.15) } }
+    transition: { 
+      opacity: { duration: 0.3, delay: 0.5 + (index * 0.15) }, 
+      y: { duration: 0.8, ease: customEase, delay: 0.5 + (index * 0.15) } 
+    }
   });
 
   if (isLoading) {
@@ -70,54 +183,129 @@ export default function BlogPostPage() {
         </h2>
         <button 
           onClick={() => router.push(`/${locale}/blog`)}
-          className="bg-amber-400 text-gray-950 px-6 py-3 rounded-full font-black text-xs flex items-center gap-2"
+          className="bg-amber-400 text-gray-950 px-6 py-3 rounded-full font-black text-xs flex items-center gap-2 hover:bg-amber-500 transition-colors shadow-lg"
         >
-          <ArrowRight size={16} /> 
+          <ArrowRight size={16} />
           بازگشت به مجله گندم
         </button>
       </div>
     );
   }
 
+  // جداسازی نظرات والد (سطح اول) و پاسخ‌ها (سطوح بعدی)
+  const rootComments = approvedComments.filter(c => !c.parentId);
+  const getReplies = (commentId: string) => approvedComments.filter(c => c.parentId === commentId);
+
+  // ساخت آدرس‌های واقعی برای اشتراک‌گذاری در شبکه‌های اجتماعی
+  const currentUrl = typeof window !== "undefined" ? window.location.href : "";
+  const shareTwitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(post.faTitle)}`;
+  const shareLinkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(currentUrl)}`;
+  const shareTelegramUrl = `https://t.me/share/url?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(post.faTitle)}`;
+
   return (
-    <main className="min-h-screen bg-transparent pt-28 pb-24 px-6 md:px-12 max-w-6xl mx-auto" dir="rtl">
-      
+    <main 
+      className="min-h-screen bg-transparent pt-28 pb-24 px-6 md:px-12 max-w-6xl mx-auto" 
+      dir="rtl"
+    >
       <article className="max-w-4xl mx-auto">
+        
+        {/* سربرگ اطلاعات مقاله */}
         <div className="overflow-hidden py-2">
-          <Link href={`/${locale}/blog`} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-amber-500 transition-colors mb-8">
-            <ArrowRight size={16} /> بازگشت به مجله
+          <Link 
+            href={`/${locale}/blog`} 
+            className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-amber-500 transition-colors mb-8"
+          >
+            <ArrowRight size={16} /> 
+            بازگشت به مجله
           </Link>
           
-          <motion.div {...badgeAnim} className="flex items-center gap-3 text-xs font-black text-amber-600 dark:text-amber-400 mb-4">
+          <motion.div 
+            {...badgeAnim} 
+            className="flex items-center justify-between gap-3 text-xs font-black text-amber-600 dark:text-amber-400 mb-4"
+          >
             <span className="bg-amber-100 dark:bg-amber-500/10 px-3 py-1.5 rounded-md">
-              {post.category === 'health' ? 'سبک زندگی و سلامت' : post.category === 'news' ? 'اخبار گندم' : 'معرفی محصولات'}
+              {post.category === 'health' 
+                ? 'سبک زندگی و سلامت' 
+                : post.category === 'news' 
+                ? 'اخبار گندم' 
+                : 'معرفی محصولات'}
             </span>
+            
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setLiked(!liked)} 
+                className={`p-2 rounded-full transition-colors flex items-center gap-1 text-xs ${
+                  liked 
+                    ? 'bg-rose-500/10 text-rose-500 font-black' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-rose-500'
+                }`}
+              >
+                <Heart size={16} className={liked ? "fill-rose-500" : ""} />
+                <span>{liked ? 'پسندیدید' : 'پسندیدن'}</span>
+              </button>
+              
+              <button 
+                onClick={() => setBookmarked(!bookmarked)} 
+                className={`p-2 rounded-full transition-colors ${
+                  bookmarked 
+                    ? 'bg-amber-500/10 text-amber-500' 
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-amber-500'
+                }`}
+                title="ذخیره مقاله"
+              >
+                <Bookmark size={16} className={bookmarked ? "fill-amber-500" : ""} />
+              </button>
+            </div>
           </motion.div>
 
-          <motion.h1 {...titleAnim} className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white leading-tight mb-6">
+          <motion.h1 
+            {...titleAnim} 
+            className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white leading-tight mb-6"
+          >
             {post.faTitle}
           </motion.h1>
 
           <div className="flex flex-wrap items-center gap-6 text-sm font-bold text-gray-600 dark:text-gray-400 mb-10 pb-6 border-b border-gray-200/50 dark:border-gray-800/50 overflow-hidden">
-            <motion.span {...detailsAnim(0)} className="flex items-center gap-2"><User size={16} className="text-gray-400"/> {post.author}</motion.span>
-            <motion.span {...detailsAnim(1)} className="flex items-center gap-2"><Calendar size={16} className="text-gray-400"/> {new Date(post.createdAt).toLocaleDateString('fa-IR')}</motion.span>
-            <motion.span {...detailsAnim(2)} className="flex items-center gap-2"><Clock size={16} className="text-gray-400"/> {post.readTime} مطالعه</motion.span>
+            <motion.span {...detailsAnim(0)} className="flex items-center gap-2">
+              <User size={16} className="text-gray-400"/> 
+              {post.author || "تیم تحریریه گندم"}
+            </motion.span>
+            
+            <motion.span {...detailsAnim(1)} className="flex items-center gap-2">
+              <Calendar size={16} className="text-gray-400"/> 
+              {post.createdAt ? new Date(post.createdAt).toLocaleDateString('fa-IR') : "امروز"}
+            </motion.span>
+            
+            <motion.span {...detailsAnim(2)} className="flex items-center gap-2">
+              <Clock size={16} className="text-gray-400"/> 
+              {post.readTime || "۵ دقیقه"} مطالعه
+            </motion.span>
           </div>
         </div>
 
+        {/* تصویر شاخص مقاله */}
         <motion.div 
-          initial={{ opacity: 0, scale: 0.98, y: 40 }} 
-          whileInView={{ opacity: 1, scale: 1, y: 0 }} 
+          initial={{ opacity: 0, scale: 0.98, y: 40 }}
+          whileInView={{ opacity: 1, scale: 1, y: 0 }}
           viewport={{ once: false, amount: 0.2 }}
-          transition={{ opacity: { duration: 0.5 }, y: { duration: 1, ease: customEase }, scale: { duration: 1, ease: customEase } }}
+          transition={{ 
+            opacity: { duration: 0.5 }, 
+            y: { duration: 1, ease: customEase }, 
+            scale: { duration: 1, ease: customEase } 
+          }}
           className="w-full h-64 md:h-128 rounded-[2.5rem] overflow-hidden mb-12 shadow-2xl border border-white/20 dark:border-gray-800/50 bg-white/10 dark:bg-gray-900/10 backdrop-blur-sm p-2"
         >
-          <img src={post.coverImage} alt={post.faTitle} className="w-full h-full object-cover rounded-[2rem]" />
+          <img 
+            src={post.coverImage} 
+            alt={post.faTitle} 
+            className="w-full h-full object-cover rounded-[2rem]" 
+          />
         </motion.div>
 
+        {/* محتوای اصلی مقاله */}
         <motion.div 
-          initial={{ opacity: 0, y: 40 }} 
-          whileInView={{ opacity: 1, y: 0 }} 
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: false, amount: 0.1 }}
           transition={{ opacity: { duration: 0.4 }, y: { duration: 1, ease: customEase } }}
           className="max-w-3xl mx-auto bg-white/70 dark:bg-gray-950/70 backdrop-blur-xl border border-white/20 dark:border-gray-800/50 rounded-3xl p-8 md:p-12 shadow-lg"
@@ -127,91 +315,351 @@ export default function BlogPostPage() {
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
 
+          {/* هشتگ‌ها و اشتراک‌گذاری در شبکه‌های اجتماعی */}
           <div className="mt-16 pt-8 border-t border-gray-200/50 dark:border-gray-800/50 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div className="flex gap-2">
-              <span className="text-xs font-bold text-gray-500 bg-gray-100/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-md">
-                #{post.seo?.keywords ? post.seo.keywords.split(',')[0] : 'گندم'}
-              </span>
+            <div className="flex flex-wrap gap-2">
+              {post.seo?.keywords ? (
+                post.seo.keywords.split(',').map((kw: string, i: number) => (
+                  <span 
+                    key={i} 
+                    className="text-xs font-bold text-gray-500 bg-gray-100/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-md"
+                  >
+                    #{kw.trim()}
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs font-bold text-gray-500 bg-gray-100/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-md">
+                  #جزیره_گندم
+                </span>
+              )}
             </div>
             
             <div className="flex items-center gap-4">
-              <span className="text-sm font-bold text-gray-500 flex items-center gap-2"><Share2 size={16}/> اشتراک‌گذاری در:</span>
+              <span className="text-sm font-bold text-gray-500 flex items-center gap-2">
+                <Share2 size={16}/> 
+                اشتراک‌گذاری در:
+              </span>
+              
               <div className="flex gap-2">
-                <button className="p-2 bg-blue-500/10 text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition-colors" title="لینکدین">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
-                </button>
-                <button className="p-2 bg-sky-500/10 text-sky-500 rounded-full hover:bg-sky-500 hover:text-white transition-colors" title="توییتر">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>
-                </button>
+                <a 
+                  href={shareLinkedInUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="p-2.5 bg-blue-500/10 text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition-colors" 
+                  title="لینکدین"
+                >
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+                    <rect width="4" height="12" x="2" y="9"/>
+                    <circle cx="4" cy="4" r="2"/>
+                  </svg>
+                </a>
+                
+                <a 
+                  href={shareTwitterUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="p-2.5 bg-sky-500/10 text-sky-500 rounded-full hover:bg-sky-500 hover:text-white transition-colors" 
+                  title="توییتر"
+                >
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/>
+                  </svg>
+                </a>
+                
+                <a 
+                  href={shareTelegramUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="p-2.5 bg-cyan-500/10 text-cyan-500 rounded-full hover:bg-cyan-500 hover:text-white transition-colors" 
+                  title="تلگرام"
+                >
+                  <Send size={16} />
+                </a>
               </div>
             </div>
           </div>
         </motion.div>
       </article>
 
+      {/* بخش تعاملی ثبت دیدگاه و گفتگوهای درختی */}
       <motion.div 
-        initial={{ opacity: 0, y: 40 }} 
-        whileInView={{ opacity: 1, y: 0 }} 
+        id="comment-section"
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: false, amount: 0.1 }}
         transition={{ duration: 1, ease: customEase }}
         className="max-w-3xl mx-auto mt-16 bg-white/50 dark:bg-gray-950/50 backdrop-blur-xl border border-white/20 dark:border-gray-800/50 rounded-[2rem] p-8 md:p-10 shadow-lg"
       >
-        <h3 className="text-xl font-black text-gray-900 dark:text-white mb-8 flex items-center gap-2">
-          <MessageCircle size={24} className="text-amber-500"/> ثبت دیدگاه
-        </h3>
+        <div className="flex items-center justify-between mb-8">
+          <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
+            <MessageCircle size={24} className="text-amber-500"/> 
+            ثبت دیدگاه و پرسش
+          </h3>
+          
+          {replyingTo && (
+            <button 
+              onClick={() => setReplyingTo(null)} 
+              className="flex items-center gap-1.5 text-xs font-bold text-red-500 bg-red-500/10 px-3 py-1.5 rounded-xl hover:bg-red-500/20 transition-colors"
+            >
+              <X size={14} /> 
+              انصراف از پاسخ به {replyingTo.name}
+            </button>
+          )}
+        </div>
+
+        {replyingTo && (
+          <div className="mb-4 p-3 bg-amber-400/10 border border-amber-400/30 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-2">
+            <Reply size={16} /> 
+            در حال نوشتن پاسخ برای نظر کاربر: <strong>«{replyingTo.name}»</strong>
+          </div>
+        )}
         
-        <form className="mb-10" onSubmit={(e) => e.preventDefault()}>
+        <form className="mb-12" onSubmit={handleCommentSubmit}>
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input type="text" placeholder="نام شما" className="bg-white/50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-800/50 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-amber-400" />
-              <input type="email" placeholder="ایمیل شما (منتشر نمی‌شود)" className="bg-white/50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-800/50 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-amber-400" />
+              <input 
+                type="text" 
+                value={commentForm.name} 
+                onChange={e => setCommentForm({...commentForm, name: e.target.value})} 
+                placeholder="نام شما *" 
+                className="bg-white/50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-800/50 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-amber-400 transition-colors" 
+                required 
+              />
+              <input 
+                type="email" 
+                value={commentForm.email} 
+                onChange={e => setCommentForm({...commentForm, email: e.target.value})} 
+                placeholder="ایمیل شما (منتشر نمی‌شود) *" 
+                className="bg-white/50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-800/50 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-amber-400 transition-colors" 
+                required 
+              />
             </div>
-            <textarea placeholder="دیدگاه ارزشمند خود را درباره این مقاله بنویسید..." rows={4} className="bg-white/50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-800/50 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-amber-400 resize-none"></textarea>
-            <button className="bg-amber-400 hover:bg-amber-500 text-gray-950 font-black px-6 py-3 rounded-xl transition-colors self-end text-sm">
-              ارسال دیدگاه
+            
+            <textarea 
+              value={commentForm.text} 
+              onChange={e => setCommentForm({...commentForm, text: e.target.value})} 
+              placeholder={replyingTo ? `پاسخ خود را به ${replyingTo.name} بنویسید...` : "دیدگاه ارزشمند خود را درباره این مقاله بنویسید..."} 
+              rows={4} 
+              className="bg-white/50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-800/50 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-amber-400 resize-none transition-colors"
+              required
+            ></textarea>
+            
+            <AnimatePresence>
+              {formMsg.text && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }} 
+                  animate={{ opacity: 1, height: 'auto' }} 
+                  exit={{ opacity: 0, height: 0 }} 
+                  className={`text-xs font-bold p-3 rounded-xl flex items-center gap-2 ${
+                    formMsg.type === 'success' 
+                      ? 'bg-emerald-500/10 text-emerald-600' 
+                      : 'bg-red-500/10 text-red-500'
+                  }`}
+                >
+                  {formMsg.type === 'success' ? (
+                    <CheckCircle2 size={16} />
+                  ) : (
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                  )}
+                  {formMsg.text}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <button 
+              type="submit" 
+              disabled={isSubmitting} 
+              className="bg-amber-400 hover:bg-amber-500 text-gray-950 font-black px-6 py-3 rounded-xl transition-colors self-end text-sm flex items-center gap-2 disabled:opacity-50 shadow-md"
+            >
+              {isSubmitting ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : replyingTo ? (
+                'ارسال پاسخ'
+              ) : (
+                'ارسال دیدگاه'
+              )}
             </button>
           </div>
         </form>
 
+        {/* لیست گفتگوها و پاسخ‌های درختی */}
         <div className="space-y-6">
-          <div className="bg-white/40 dark:bg-gray-900/40 rounded-2xl p-5 border border-gray-100/50 dark:border-gray-800/50">
-            <div className="flex justify-between items-center mb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-500 font-black">ک.م</div>
-                <div>
-                  <h4 className="text-sm font-black text-gray-900 dark:text-white">کاربر مهمان</h4>
-                  <span className="text-[10px] font-bold text-gray-400">۲ ساعت پیش</span>
+          <h4 className="font-bold text-gray-500 mb-6 border-b border-gray-200/50 dark:border-gray-800/50 pb-3">
+            نظرات کاربران ({approvedComments.length})
+          </h4>
+          
+          {rootComments.length > 0 ? (
+            rootComments.map((comment: any, idx: number) => {
+              const replies = getReplies(comment._id);
+              
+              return (
+                <div key={idx} className="flex flex-col gap-3">
+                  {/* کامنت اصلی */}
+                  <div className="bg-white/60 dark:bg-gray-900/60 rounded-2xl p-5 border border-gray-100/80 dark:border-gray-800/80 shadow-xs">
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-amber-400/20 text-amber-600 rounded-full flex items-center justify-center font-black">
+                          {comment.name ? comment.name.substring(0, 1) : "؟"}
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-gray-900 dark:text-white">
+                            {comment.name}
+                          </h4>
+                          <span className="text-[10px] font-bold text-gray-400">
+                            {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('fa-IR') : "امروز"}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <button 
+                        onClick={() => { 
+                          setReplyingTo({ id: comment._id, name: comment.name });
+                          document.getElementById('comment-section')?.scrollIntoView({ behavior: 'smooth' }); 
+                        }} 
+                        className="flex items-center gap-1 text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors bg-amber-500/10 px-3 py-1.5 rounded-xl"
+                      >
+                        <Reply size={14} /> 
+                        پاسخ
+                      </button>
+                    </div>
+                    
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                      {comment.text}
+                    </p>
+                  </div>
+
+                  {/* پاسخ‌های زیرمجموعه (Replies) */}
+                  {replies.length > 0 && (
+                    <div className="pr-6 md:pr-10 border-r-2 border-amber-400/40 flex flex-col gap-3 mr-2">
+                      {replies.map((rep: any, rIdx: number) => (
+                        <div 
+                          key={rIdx} 
+                          className={`rounded-2xl p-4 border transition-all ${
+                            rep.isAdminReply 
+                              ? 'bg-amber-400/15 border-amber-400/40 shadow-sm' 
+                              : 'bg-white/40 dark:bg-gray-900/40 border-gray-100/50 dark:border-gray-800/50'
+                          }`}
+                        >
+                          <div className="flex justify-between items-center mb-2">
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs ${
+                                rep.isAdminReply 
+                                  ? 'bg-amber-400 text-gray-950 shadow-sm' 
+                                  : 'bg-gray-200 dark:bg-gray-800 text-gray-500'
+                              }`}>
+                                {rep.isAdminReply ? <ShieldCheck size={16} /> : (rep.name ? rep.name.substring(0, 1) : "؟")}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <h4 className="text-xs font-black text-gray-900 dark:text-white">
+                                    {rep.name}
+                                  </h4>
+                                  {rep.isAdminReply && (
+                                    <span className="bg-amber-400 text-gray-950 text-[9px] font-black px-1.5 py-0.5 rounded shadow-2xs">
+                                      پشتیبانی و مدیریت
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-[9px] font-bold text-gray-400">
+                                  {rep.createdAt ? new Date(rep.createdAt).toLocaleDateString('fa-IR') : "امروز"}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <button 
+                              onClick={() => { 
+                                setReplyingTo({ id: comment._id, name: rep.name });
+                                document.getElementById('comment-section')?.scrollIntoView({ behavior: 'smooth' }); 
+                              }} 
+                              className="flex items-center gap-1 text-[11px] font-bold text-gray-400 hover:text-amber-500 transition-colors"
+                            >
+                              <Reply size={12} /> 
+                              پاسخ
+                            </button>
+                          </div>
+                          
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap mt-1">
+                            {rep.text}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-              <button className="text-gray-400 hover:text-red-500 transition-colors"><Heart size={16}/></button>
+              );
+            })
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-sm font-bold text-gray-500 dark:text-gray-400">
+                {locale === 'fa' 
+                  ? "هنوز دیدگاهی برای این مقاله ثبت نشده است. اولین نفری باشید که نظر می‌دهید!" 
+                  : "No comments yet. Be the first to comment!"}
+              </p>
             </div>
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 leading-relaxed">
-              مقاله بسیار مفید و کاملی بود. مخصوصا بخش مربوط به ترکیبات ویتامین‌ها خیلی خوب توضیح داده شده بود. ممنون از تحریریه جزیره گندم.
-            </p>
-          </div>
+          )}
         </div>
       </motion.div>
 
+      {/* بخش عضویت در خبرنامه باشگاه گندم */}
       <motion.div 
-        initial={{ opacity: 0, y: 40 }} 
-        whileInView={{ opacity: 1, y: 0 }} 
+        initial={{ opacity: 0, y: 40 }}
+        whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: false, amount: 0.3 }}
         transition={{ duration: 1, ease: customEase }}
         className="max-w-4xl mx-auto mt-16 bg-linear-to-br from-amber-400 to-amber-500 rounded-[2.5rem] p-10 md:p-16 text-center shadow-2xl relative overflow-hidden"
       >
         <div className="relative z-10">
           <Mail size={48} className="mx-auto text-amber-900 mb-6 opacity-80" />
-          <h3 className="text-3xl font-black text-amber-950 mb-4">به باشگاه گندم بپیوندید</h3>
-          <p className="text-amber-900/80 font-bold mb-8 max-w-md mx-auto">جدیدترین مقالات سلامت، اخبار افتتاحیه‌ها و تخفیف‌های ویژه را در ایمیل خود دریافت کنید.</p>
-          <form className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto" onSubmit={(e) => e.preventDefault()}>
-            <input type="email" placeholder="آدرس ایمیل شما..." className="grow px-6 py-4 rounded-xl text-sm font-bold text-gray-900 outline-none border-2 border-transparent focus:border-amber-600/30 shadow-inner" dir="ltr" />
-            <button type="submit" className="bg-amber-950 hover:bg-black text-white px-8 py-4 rounded-xl text-sm font-black transition-colors whitespace-nowrap shadow-xl">
-              عضویت رایگان
+          <h3 className="text-3xl font-black text-amber-950 mb-4">
+            به باشگاه گندم بپیوندید
+          </h3>
+          <p className="text-amber-900/80 font-bold mb-8 max-w-md mx-auto">
+            جدیدترین مقالات سلامت، اخبار افتتاحیه‌ها و تخفیف‌های ویژه را در ایمیل خود دریافت کنید.
+          </p>
+          <form className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto" onSubmit={handleBlogNewsletter}>
+            <input 
+              type="email" 
+              value={blogNlEmail}
+              onChange={(e) => setBlogNlEmail(e.target.value)}
+              placeholder="آدرس ایمیل شما..." 
+              disabled={blogNlLoading}
+              className="grow px-6 py-4 rounded-xl text-sm font-bold text-gray-900 outline-none border-2 border-transparent focus:border-amber-600/30 shadow-inner disabled:opacity-60" 
+              dir="ltr" 
+              required
+            />
+            <button 
+              type="submit" 
+              disabled={blogNlLoading}
+              className="bg-amber-950 hover:bg-black text-white px-8 py-4 rounded-xl text-sm font-black transition-colors whitespace-nowrap shadow-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+            >
+              {blogNlLoading && <Loader2 size={16} className="animate-spin" />}
+              <span>{blogNlLoading ? "در حال ثبت..." : "عضویت رایگان"}</span>
             </button>
           </form>
+          {blogNlMsg && <p className="text-amber-950 font-black text-sm mt-3 bg-white/40 py-2 px-4 rounded-xl inline-block">{blogNlMsg}</p>}
         </div>
       </motion.div>
-
     </main>
   );
 }

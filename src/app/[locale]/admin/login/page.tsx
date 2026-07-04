@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { ShieldAlert, Lock, Mail, Eye, EyeOff, ArrowRight, Wheat, Calculator, RefreshCcw } from "lucide-react";
-import { loginAction, createFirstSuperAdmin } from "@/actions/auth";
+import { loginAction } from "@/actions/auth";
 
 export default function AdminLogin() {
   const router = useRouter();
@@ -30,39 +30,35 @@ export default function AdminLogin() {
   };
 
   useEffect(() => {
-  generateCaptcha();
-
-  // اجرای موقت برای ساخت اکانت سوپر ادمین در اولین لود صفحه
-  import("@/actions/auth").then(({ createFirstSuperAdmin }) => {
-    createFirstSuperAdmin().then(res => console.log(res.message));
-  });
-}, []);
+    generateCaptcha();
+    // حفره امنیتی که در کنسول اطلاعات را لو می‌داد با موفقیت حذف شد
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
-  
-  // بررسی امنیتی کپچا
-  if (parseInt(captchaInput) !== num1 + num2) {
-    setError(isRtl ? "حاصل جمع امنیتی اشتباه است." : "Security math is incorrect.");
-    generateCaptcha();
-    return;
-  }
+    e.preventDefault();
+    setError("");
 
-  setIsLoading(true);
+    // بررسی امنیتی کپچا
+    if (parseInt(captchaInput) !== num1 + num2) {
+      setError(isRtl ? "حاصل جمع امنیتی اشتباه است." : "Security math is incorrect.");
+      generateCaptcha();
+      return;
+    }
 
-  // فراخوانی اکشن سرور
-  const result = await loginAction(email, password);
+    setIsLoading(true);
 
-  if (result?.error) {
-    setError(result.error);
-    setIsLoading(false);
-    generateCaptcha();
-  } else if (result?.success) {
-    // ورود موفقیت آمیز و انتقال به پنل ادمین
-    router.push(`/${locale}/admin`);
-  }
-};
+    // فراخوانی اکشن سرور
+    const result = await loginAction(email, password);
+
+    if (result?.error) {
+      setError(result.error);
+      setIsLoading(false);
+      generateCaptcha();
+    } else if (result?.success) {
+      // ورود موفقیت آمیز و انتقال به پنل ادمین
+      router.push(`/${locale}/admin`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-transparent flex items-center justify-center relative overflow-hidden select-none" dir="rtl">
@@ -181,8 +177,6 @@ export default function AdminLogin() {
               </motion.div>
             )}
           </AnimatePresence>
-
-        
 
           {/* دکمه ارسال با شبیه‌ساز لودینگ */}
           <button

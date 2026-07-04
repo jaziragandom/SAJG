@@ -6,7 +6,6 @@ import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 
-// کلید مخفی رمزنگاری (در پروژه واقعی این را داخل فایل .env قرار دهید)
 const JWT_SECRET_KEY = process.env.JWT_SECRET || "Gandum_Island_Super_Secure_Key_2026_!@#";
 const encodedKey = new TextEncoder().encode(JWT_SECRET_KEY);
 
@@ -32,13 +31,13 @@ export async function loginAction(email: string, password: string) {
     const token = await new SignJWT({ 
       id: user._id.toString(), // تبدیل آبجکتِ آیدی به متن ساده
       role: user.role, 
-      permissions: [...user.permissions] // تبدیل آرایه مخصوص مونگو به آرایه استاندارد جاوااسکریپت
+      permissions: [...user.permissions] // تبدیل آرایه مخصوص مونگو به آرایه استاندارد
     })
       .setProtectedHeader({ alg: "HS256" })
       .setIssuedAt()
       .setExpirationTime("24h")
       .sign(encodedKey);
-      
+
     // ذخیره توکن در کوکیِ غیرقابل دسترسی توسط جاوااسکریپت مرورگر (XSS Protection)
     const cookieStore = await cookies();
     cookieStore.set("admin_token", token, {
@@ -57,31 +56,5 @@ export async function loginAction(email: string, password: string) {
   } catch (error) {
     console.error("Login System Error:", error);
     return { error: "خطای سرور. لطفاً دوباره تلاش کنید." };
-  }
-}
-
-// تابع کمکی برای ساخت اولین ادمین
-export async function createFirstSuperAdmin() {
-  try {
-    await dbConnect();
-    const exists = await User.findOne({ email: "hamid@gandum.com" });
-    
-    if (exists) return { message: "سوپر ادمین از قبل وجود دارد! با ایمیل hamid@gandum.com و رمز Gandum@Admin2026 وارد شوید." };
-    
-    const hashedPassword = await bcrypt.hash("Gandum@Admin2026", 10);
-    
-    await User.create({
-      name: "حمید فصیحی",
-      email: "hamid@gandum.com",
-      passwordHash: hashedPassword,
-      role: "super_admin",
-      status: "active",
-      permissions: ["all"]
-    });
-    
-    return { success: true, message: "سوپر ادمین با موفقیت ایجاد شد! حالا می‌توانید با همین اطلاعات وارد شوید." };
-  } catch (error: any) {
-    console.error("Database Error:", error);
-    return { error: `ارور دیتابیس رخ داد: ${error.message}` };
   }
 }

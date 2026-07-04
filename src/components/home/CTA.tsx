@@ -3,16 +3,37 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, CheckCircle2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import { subscribeToNewsletter } from "@/actions/newsletter";
+import { Loader2 } from "lucide-react";
 
 export default function CTA() {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [email, setEmail] = useState(""); // <-- اضافه شد
+  const [isLoading, setIsLoading] = useState(false); // <-- اضافه شد
+  const [errorMsg, setErrorMsg] = useState(""); // <-- اضافه شد
   const locale = useLocale();
   const isRtl = locale === 'fa';
   const t = useTranslations("CTA");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // تابع جدید ارسال به دیتابیس
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitted(true);
+    if (!email || !email.includes("@")) return;
+    setIsLoading(true);
+    setErrorMsg("");
+
+    const res = await subscribeToNewsletter({
+      email: email,
+      source: "سکشن CTA صفحه اصلی",
+      segment: "general"
+    });
+
+    setIsLoading(false);
+    if (res.success) {
+      setIsSubmitted(true);
+    } else {
+      setErrorMsg(res.error || "خطایی رخ داد.");
+    }
   };
 
   return (
@@ -47,19 +68,26 @@ export default function CTA() {
 
                   <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-4 justify-center">
                     <input 
-                      type="text" 
+                      type="email" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       placeholder={t("input_placeholder")}
                       required
-                      className="w-full md:w-96 px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-all"
+                      disabled={isLoading}
+                      dir="ltr"
+                      className="w-full md:w-96 px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-all disabled:opacity-50"
                     />
                     <button 
                       type="submit"
-                      className="flex items-center justify-center gap-2 px-8 py-4 bg-amber-400 hover:bg-amber-500 text-gray-900 rounded-2xl font-black transition-colors"
+                      disabled={isLoading}
+                      className="flex items-center justify-center gap-2 px-8 py-4 bg-amber-400 hover:bg-amber-500 text-gray-900 rounded-2xl font-black transition-colors disabled:opacity-50 cursor-pointer"
                     >
-                      {t("button_text")}
-                      <Send size={20} className={isRtl ? "rotate-180" : ""} />
+                      {isLoading && <Loader2 size={18} className="animate-spin" />}
+                      <span>{isLoading ? "در حال ثبت..." : t("button_text")}</span>
+                      {!isLoading && <Send size={20} className={isRtl ? "rotate-180" : ""} />}
                     </button>
                   </form>
+                  {errorMsg && <p className="text-red-400 text-sm mt-3 font-bold">{errorMsg}</p>}
                 </motion.div>
               ) : (
                 <motion.div

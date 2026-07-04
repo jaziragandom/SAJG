@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useLocale } from "next-intl";
 import { 
   Menu, X, ShieldCheck, ChevronDown, ChevronLeft, ChevronRight,
-  ArrowLeft, ArrowRight, Wheat, Droplets, Sparkles, Tag, LayoutGrid
+  ArrowLeft, ArrowRight, Wheat, Droplets, Sparkles, Tag, LayoutGrid, Store
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import LangSwitch from "./LangSwitch";
@@ -43,6 +43,9 @@ export default function Navbar({
   const [expandedMobileMenu, setExpandedMobileMenu] = useState<string | null>(null); 
   const [expandedNestedMobile, setExpandedNestedMobile] = useState<string | null>(null);
 
+  // استیت برای مدیریت خطای لود عکس برندها در ناوبار
+  const [imgError, setImgError] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     const fetchNav = async () => {
       const res = await getNavbarData();
@@ -63,7 +66,7 @@ export default function Navbar({
     else setIsHidden(false); 
   });
 
-  // قفل کردن اسکرول صفحه وقتی منوی موبایل باز است
+  // قفل کردن اسکرول صفحه اصلی هنگام باز بودن منوی موبایل
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -135,10 +138,9 @@ export default function Navbar({
   return (
     <motion.header
       initial={false}
-      // جلوگیری از هاید شدن ناوبار هنگام باز بودن منوی موبایل
+      // در نمای موبایل، اگر منو باز باشد، ناوبار نباید هاید شود
       animate={{ y: (isHidden && !isMobileMenuOpen) ? "-100%" : 0 }}
       transition={{ duration: 0.35, ease: customEase }}
-      // افزایش z-index برای پوشاندن تمام دکمه‌های شناور
       className={`fixed top-0 left-0 w-full transition-colors duration-500 ${isMobileMenuOpen ? "z-100" : "z-50"} ${
         isScrolled || isMobileMenuOpen
           ? "bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 py-3 shadow-sm" 
@@ -169,7 +171,7 @@ export default function Navbar({
             ) : (
               <>
                 <span className="text-gray-900 dark:text-white drop-shadow-sm transition-colors">JAZIREH</span>
-                <span className="text-amber-400 drop-shadow-sm">GANDOM</span>
+                <span className="text-amber-400 drop-shadow-sm">GANDUM</span>
               </>
             )}
           </span>
@@ -204,6 +206,7 @@ export default function Navbar({
                 )}
               </Link>
 
+              {/* === منوی آبشاری محصولات و زیرمجموعه‌های آن === */}
               <AnimatePresence>
                 {link.isProductsDropdown && hoveredLink === link.key && (
                   <motion.div
@@ -211,9 +214,9 @@ export default function Navbar({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
                     transition={{ duration: 0.3, ease: customEase }}
-                    className="absolute top-full pt-4 rtl:left-0 rtl:right-auto ltr:right-0 ltr:left-auto w-64 cursor-default z-50"
+                    className="absolute top-full pt-4 rtl:right-0 rtl:left-auto ltr:left-0 ltr:right-auto w-64 cursor-default z-50"
                   >
-                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-3xl p-3 shadow-2xl flex flex-col gap-1 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
+                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-3xl p-3 shadow-2xl flex flex-col gap-1">
                       
                       {productsNestedMenu.map((nested) => (
                         <div 
@@ -233,13 +236,14 @@ export default function Navbar({
                           <AnimatePresence>
                             {hoveredNestedLink === nested.id && nested.items.length > 0 && (
                               <motion.div
-                                initial={{ opacity: 0, x: isRtl ? -10 : 10 }}
+                                initial={{ opacity: 0, x: isRtl ? 10 : -10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: isRtl ? -5 : 5 }}
+                                exit={{ opacity: 0, x: isRtl ? 5 : -5 }}
                                 transition={{ duration: 0.3, ease: customEase }}
-                                className="absolute top-0 rtl:left-full rtl:pl-2 rtl:right-auto ltr:right-full ltr:pr-2 ltr:left-auto w-56"
+                                // جهت‌دهی صحیح: فارسی به سمت چپ (right-full)، انگلیسی به راست (left-full)
+                                className="absolute top-0 rtl:right-full rtl:mr-2 rtl:left-auto ltr:left-full ltr:ml-2 ltr:right-auto w-56 z-50"
                               >
-                                <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-2 shadow-2xl flex flex-col gap-1 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
+                                <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-2 shadow-2xl flex flex-col gap-1">
                                   {nested.items.map((item: any, idx: number) => (
                                     <Link 
                                       key={idx} 
@@ -271,6 +275,7 @@ export default function Navbar({
                 )}
               </AnimatePresence>
 
+              {/* === منوی آبشاری مستقل برندها با لوگوها === */}
               <AnimatePresence>
                 {link.isBrandsMenu && hoveredLink === link.key && (
                   <motion.div
@@ -278,22 +283,53 @@ export default function Navbar({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
                     transition={{ duration: 0.3, ease: customEase }}
-                    className="absolute top-full pt-4 rtl:left-0 rtl:right-auto ltr:right-0 ltr:left-auto w-56 cursor-default z-40"
+                    className="absolute top-full pt-4 rtl:right-0 rtl:left-auto ltr:left-0 ltr:right-auto w-56 cursor-default z-40"
                   >
-                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-3 shadow-2xl flex flex-col gap-1 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
+                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-3xl p-3 shadow-2xl flex flex-col gap-1">
                       
-                      {brands.map((brand) => (
-                        <Link 
-                          key={brand._id || brand.slug} 
-                          href={`/${locale}/brands/${brand.slug}`}
-                          className="flex items-center justify-between px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors"
-                        >
-                          <span>{isRtl ? brand.faName : brand.enName}</span>
-                          {brand.logo && (
-                            <img src={brand.logo} alt="" className="w-5 h-5 object-contain shrink-0" />
-                          )}
-                        </Link>
-                      ))}
+                      {brands.map((brand) => {
+                        const brandId = brand._id || brand.slug;
+                        const hasError = imgError?.[brandId];
+                        
+                        // جستجوی جامع برای پیدا کردن لینک عکس در ساختارهای مختلف دیتابیس
+                        const currentLogo = 
+                                (isRtl ? brand.logoFa : brand.logoEn) || 
+                                brand.logo || 
+                                brand.images?.logo || 
+                                brand.images?.main || 
+                                brand.image || 
+                                brand.icon;
+                        
+                        return (
+                          <Link 
+                            key={brandId} 
+                            href={`/${locale}/brands/${brand.slug}`}
+                            className="flex items-center justify-between px-4 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors group"
+                          >
+                            {/* نام برند */}
+                            <span>{isRtl ? brand.faName : brand.enName}</span>
+                            
+                            {/* لوگوی برند */}
+                            <div className="w-6 h-6 shrink-0 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
+                              {currentLogo && !hasError ? (
+                                <img 
+                                  src={currentLogo} 
+                                  alt={isRtl ? brand.faName : brand.enName} 
+                                  className="w-full h-full object-contain drop-shadow-sm"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    if (typeof setImgError === 'function') {
+                                      setImgError(prev => ({ ...prev, [brandId]: true }));
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <Store className="text-gray-400 dark:text-gray-500 w-full h-full p-0.5" />
+                              )}
+                            </div>
+                          </Link>
+                        );
+                      })}
 
                       <div className="border-t border-gray-100 dark:border-gray-800 mt-2 pt-2">
                         <Link 
@@ -310,6 +346,7 @@ export default function Navbar({
                 )}
               </AnimatePresence>
 
+              {/* === منوی آبشاری درباره ما === */}
               <AnimatePresence>
                 {link.subLinks && hoveredLink === link.key && (
                   <motion.div
@@ -317,9 +354,9 @@ export default function Navbar({
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
                     transition={{ duration: 0.3, ease: customEase }}
-                    className="absolute top-full pt-4 rtl:left-0 rtl:right-auto ltr:right-0 ltr:left-auto w-60 cursor-default z-40"
+                    className="absolute top-full pt-4 rtl:right-0 rtl:left-auto ltr:left-0 ltr:right-auto w-60 cursor-default z-40"
                   >
-                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-3 shadow-2xl flex flex-col gap-1 max-h-[calc(100vh-100px)] overflow-y-auto custom-scrollbar">
+                    <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-3xl p-3 shadow-2xl flex flex-col gap-1">
                       {link.subLinks.map((sub) => (
                         <Link 
                           key={sub.id} 
@@ -368,7 +405,6 @@ export default function Navbar({
             animate={{ opacity: 1, height: "100vh" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.4, ease: customEase }}
-            // استفاده از fixed و گرفتن ارتفاع کامل منهای بخش هدر برای جلوگیری از اسکرول صفحه
             className="md:hidden fixed top-18 left-0 w-full h-[calc(100vh-72px)] bg-white/95 dark:bg-gray-950/95 backdrop-blur-2xl border-t border-gray-100 dark:border-gray-800 shadow-2xl overflow-y-auto custom-scrollbar z-100"
           >
             <div className="flex flex-col px-6 py-8 gap-4 pb-24">
@@ -434,9 +470,9 @@ export default function Navbar({
                                             key={idx} 
                                             href={`/${locale}/products?${nested.filterKey}=${encodeURIComponent(item.slug)}`} 
                                             onClick={() => setIsMobileMenuOpen(false)} 
-                                            className="text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 py-2"
+                                            className="text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 py-2 flex items-center justify-between"
                                           >
-                                            {isRtl ? item.faName : item.enName}
+                                            <span>{isRtl ? item.faName : item.enName}</span>
                                           </Link>
                                         ))}
                                       </div>
@@ -468,19 +504,49 @@ export default function Navbar({
                           className="overflow-hidden mb-2"
                         >
                           <div className="flex flex-col gap-2 py-3 px-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
-                            {brands.map((brand) => (
-                              <Link 
-                                key={brand._id || brand.slug} 
-                                href={`/${locale}/brands/${brand.slug}`} 
-                                onClick={() => setIsMobileMenuOpen(false)} 
-                                className="text-sm font-bold text-gray-600 dark:text-gray-300 py-2 hover:text-amber-500 flex items-center justify-between"
-                              >
-                                <span>{isRtl ? brand.faName : brand.enName}</span>
-                                {brand.logo && (
-                                  <img src={brand.logo} alt="" className="w-5 h-5 object-contain shrink-0" />
-                                )}
-                              </Link>
-                            ))}
+                            {brands.map((brand) => {
+                              const brandId = brand._id || brand.slug;
+                              const hasError = imgError?.[brandId];
+                              
+                              // جستجوی جامع برای نمای موبایل
+                              const currentLogo = 
+                                (isRtl ? brand.logoFa : brand.logoEn) || 
+                                brand.logo || 
+                                brand.images?.logo || 
+                                brand.images?.main || 
+                                brand.image || 
+                                brand.icon;
+                              
+                              return (
+                                <Link 
+                                  key={brandId} 
+                                  href={`/${locale}/brands/${brand.slug}`} 
+                                  onClick={() => setIsMobileMenuOpen(false)} 
+                                  className="text-sm font-bold text-gray-600 dark:text-gray-300 py-2 hover:text-amber-500 flex items-center justify-between group"
+                                >
+                                  <span>{isRtl ? brand.faName : brand.enName}</span>
+                                  
+                                  <div className="w-6 h-6 shrink-0 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
+                                    {currentLogo && !hasError ? (
+                                      <img 
+                                        src={currentLogo} 
+                                        alt={isRtl ? brand.faName : brand.enName} 
+                                        className="w-full h-full object-contain"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = 'none';
+                                          if (typeof setImgError === 'function') {
+                                            setImgError(prev => ({ ...prev, [brandId]: true }));
+                                          }
+                                        }}
+                                      />
+                                    ) : (
+                                      <Store className="text-gray-400 dark:text-gray-500 w-full h-full p-0.5" />
+                                    )}
+                                  </div>
+                                </Link>
+                              );
+                            })}
+
                             <Link 
                                href={`/${locale}/brands`} 
                               onClick={() => setIsMobileMenuOpen(false)} 

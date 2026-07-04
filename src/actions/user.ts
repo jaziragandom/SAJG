@@ -84,6 +84,21 @@ export async function deleteUser(id: string) {
 
   try {
     await dbConnect();
+    
+    // پیدا کردن کاربری که قرار است حذف شود
+    const userToDelete = await User.findById(id);
+    if (!userToDelete) {
+      return { success: false, error: "کاربر یافت نشد!" };
+    }
+
+    // بررسی برای جلوگیری از حذف تنها سوپر ادمین
+    if (userToDelete.role === "super_admin") {
+      const superAdminCount = await User.countDocuments({ role: "super_admin" });
+      if (superAdminCount <= 1) {
+        return { success: false, error: "حذف تنها سوپر ادمین سیستم مجاز نیست! سیستم باید حداقل یک سوپر ادمین داشته باشد." };
+      }
+    }
+
     await User.findByIdAndDelete(id);
     revalidatePath("/");
     return { success: true };
@@ -91,6 +106,7 @@ export async function deleteUser(id: string) {
     return { success: false, error: "خطا در حذف کاربر" };
   }
 }
+
 // دریافت اطلاعات جلسه کاربری در سمت سرور
 export async function getAdminSession() {
   const cookieStore = await cookies();

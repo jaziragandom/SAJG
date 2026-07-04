@@ -4,8 +4,10 @@ import React, { useState, useEffect } from "react";
 import { Plus, Search, Edit3, Trash2, GripVertical, X, CheckCircle2, Wand2, Loader2, Layers, Image as ImageIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getBrands, createBrand, updateBrand, deleteBrand } from "@/actions/brand";
+import { useToast } from "../components/ToastProvider";
 
 export default function BrandsManager() {
+  const { showToast } = useToast();
   const [brands, setBrands] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -31,35 +33,43 @@ export default function BrandsManager() {
 
   const handleSave = async () => {
     if (!formData.faName || !formData.enName || !formData.slug) {
-      alert("پر کردن نام فارسی، انگلیسی و اسلاگ (Slug) الزامی است.");
+      showToast("پر کردن نام فارسی، انگلیسی و اسلاگ (Slug) الزامی است.", "warning");
       return;
     }
 
-    if (editMode && formData._id) {
-      const res = await updateBrand(formData._id, formData);
+    const payload = { ...formData, slug: formData.slug.toLowerCase().trim() };
+
+    if (editMode && payload._id) {
+      const res = await updateBrand(payload._id, payload);
       if (res.success) {
+        showToast("برند با موفقیت ویرایش شد.", "success");
         setIsModalOpen(false);
         fetchBrandsData();
-      } else alert(res.error);
+      } else showToast(res.error || "خطا در ویرایش برند", "error");
     } else {
-      const { _id, ...newBrandData } = formData;
+      const { _id, ...newBrandData } = payload;
       const res = await createBrand(newBrandData);
       if (res.success) {
+        showToast("برند جدید با موفقیت ثبت شد.", "success");
         setIsModalOpen(false);
         fetchBrandsData();
-      } else alert(res.error);
+      } else showToast(res.error || "خطا در ثبت برند", "error");
     }
   };
 
   const handleDelete = async (id: string) => {
     if (confirm("آیا از حذف این برند مطمئن هستید؟ تمام محصولات متصل به این برند نیز ممکن است دچار مشکل شوند.")) {
       const res = await deleteBrand(id);
-      if (res.success) fetchBrandsData();
+      if (res.success) {
+        showToast("برند با موفقیت حذف شد.", "success");
+        fetchBrandsData();
+      } else {
+        showToast("خطا در حذف برند", "error");
+      }
     }
   };
 
   const handleEdit = (brand: any) => {
-    // گرفتن مقادیر قبلی برای سازگاری برندهایی که از قبل در دیتابیس ثبت شده بودند
     setFormData({
       ...brand,
       logoFa: brand.logoFa || brand.logo || "",
@@ -88,8 +98,7 @@ export default function BrandsManager() {
       const translatedText = data[0].map((item: any) => item[0]).join('');
       setFormData(prev => ({ ...prev, [targetKey]: translatedText }));
     } catch (error) {
-      console.error("Translation Error:", error);
-      alert("خطا در سیستم ترجمه.");
+      showToast("خطا در سیستم ترجمه.", "error");
     } finally {
       setTranslatingField(null);
     }
@@ -103,7 +112,6 @@ export default function BrandsManager() {
   return (
     <div className="flex flex-col gap-6">
       
-      {/* هدر بخش مدیریت */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm">
         <div>
           <h2 className="text-xl font-black text-gray-900 dark:text-white mb-1">مدیریت برندها</h2>
@@ -115,7 +123,6 @@ export default function BrandsManager() {
         </button>
       </div>
 
-      {/* جستجو */}
       <div className="relative">
         <Search size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
         <input 
@@ -127,7 +134,6 @@ export default function BrandsManager() {
         />
       </div>
 
-      {/* لیست برندها */}
       {isLoading ? (
         <div className="flex justify-center items-center py-20">
           <Loader2 className="animate-spin text-amber-500" size={40} />
@@ -174,7 +180,6 @@ export default function BrandsManager() {
         </div>
       )}
 
-      {/* مدال افزودن/ویرایش */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 flex items-center justify-center p-4 z-50">
@@ -235,7 +240,6 @@ export default function BrandsManager() {
 
                 {activeTab === "media" && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* لوگوی فارسی */}
                     <div className="flex flex-col gap-3">
                       <label className="text-xs font-bold text-gray-600 dark:text-gray-400">لوگوی برند (نسخه فارسی)</label>
                       {formData.logoFa && <img src={formData.logoFa} alt="Logo Fa" className="h-20 object-contain mx-auto mb-2" />}
@@ -257,7 +261,6 @@ export default function BrandsManager() {
                       </label>
                     </div>
 
-                    {/* لوگوی انگلیسی */}
                     <div className="flex flex-col gap-3">
                       <label className="text-xs font-bold text-gray-600 dark:text-gray-400">لوگوی برند (نسخه انگلیسی)</label>
                       {formData.logoEn && <img src={formData.logoEn} alt="Logo En" className="h-20 object-contain mx-auto mb-2" />}
@@ -279,7 +282,6 @@ export default function BrandsManager() {
                       </label>
                     </div>
 
-                    {/* کاور */}
                     <div className="flex flex-col gap-3">
                       <label className="text-xs font-bold text-gray-600 dark:text-gray-400">تصویر کاور (Hero)</label>
                       {formData.heroImage && <img src={formData.heroImage} alt="Hero" className="h-20 object-cover rounded-xl mx-auto mb-2 w-full" />}

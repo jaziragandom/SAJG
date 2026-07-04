@@ -6,8 +6,9 @@ import { useLocale } from "next-intl";
 import { ArrowLeft, ArrowRight, PackageOpen, Loader2 } from "lucide-react";
 import { motion, Variants } from "framer-motion";
 import Link from "next/link";
-import { getBrands } from "@/actions/brand";
+import { getBrandBySlug } from "@/actions/brand";
 import { getProducts } from "@/actions/product";
+import { getCategories } from "@/actions/category";
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -30,24 +31,35 @@ export default function BrandPage({ params }: { params: Promise<{ id: string }> 
 
   const [brand, setBrand] = useState<any>(null);
   const [brandProducts, setBrandProducts] = useState<any[]>([]);
+  const [categoriesData, setCategoriesData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
-      // 1. ابتدا دریافت برندها برای پیدا کردن برند مورد نظر از روی اسلاگ
-      const brandsRes = await getBrands();
-      if (brandsRes.success && brandsRes.data) {
-        const foundBrand = brandsRes.data.find((b: any) => b.slug === brandSlug);
+      const brandRes = await getBrandBySlug(brandSlug);
+      
+      if (brandRes.success && brandRes.data) {
+        const foundBrand = brandRes.data;
+        setBrand(foundBrand);
         
-        if (foundBrand) {
-          setBrand(foundBrand);
-          
-          // 2. دریافت محصولات منتشر شده‌ی متعلق به این برند
-          // در اکشن محصولات شما، brandId.slug یا brandId._id در دسترس است
-          const prodsRes = await getProducts({ status: 'published', brandId: foundBrand._id });
-          if (prodsRes.success && prodsRes.data) {
-            setBrandProducts(prodsRes.data);
-          }
+        const [prodsRes, catsRes] = await Promise.all([
+            getProducts({ status: 'all' }),
+            getCategories()
+        ]);
+
+        if (catsRes.success && catsRes.data) {
+            setCategoriesData(catsRes.data);
+        }
+
+        if (prodsRes.success && prodsRes.data) {
+          const bProducts = prodsRes.data.filter((p: any) => 
+            (
+                p.brandId?._id === foundBrand._id ||
+                p.brandId?.slug === foundBrand.slug ||
+                String(p.brandId?._id || p.brandId || p.brand) === String(foundBrand._id)
+            ) && p.status !== 'draft'
+          );
+          setBrandProducts(bProducts);
         }
       }
       setIsLoading(false);
@@ -73,18 +85,18 @@ export default function BrandPage({ params }: { params: Promise<{ id: string }> 
     );
   }
 
-  const brandName = isRtl ? brand.faName : brand.enName;
-  const brandDesc = isRtl ? brand.faDesc : brand.enDesc;
-  const logoToUse = isRtl ? brand.logoFa : brand.logoEn;
+  const brandName = isRtl ? brand.faName : (brand.enName || brand.faName);
+  const brandDesc = isRtl ? brand.faDesc : (brand.enDesc || brand.faDesc);
+  const logoToUse = isRtl ? (brand.logoFa || brand.logo) : (brand.logoEn || brand.logo);
 
   return (
-    <main className="w-full bg-transparent min-h-screen pt-32 pb-24 overflow-hidden" dir={isRtl ? "rtl" : "ltr"}>
+    <main className="w-full bg-transparent min-h-screen pb-24" dir={isRtl ? "rtl" : "ltr"}>
       
-      {/* 1. سکشن هیروی سینمایی برند */}
-      <section className="relative w-full h-[50vh] md:h-[65vh] flex items-center justify-center overflow-hidden">
+      {/* 1. سکشن هیروی سینمایی برند - چسبیده به سقف مرورگر با ماسک گرادیانت */}
+      <section className="relative w-full h-[50vh] md:h-[65vh] flex items-center justify-center">
         
         <motion.div 
-          className="absolute inset-0 z-0 bg-gray-900"
+          className="absolute inset-0 z-0 [-webkit-mask-image:linear-gradient(to_top,transparent_0%,black_25%,black_100%)] mask-[linear-gradient(to_top,transparent_0%,black_25%,black_100%)]"
           initial={{ scale: 1.1 }}
           animate={{ scale: 1 }}
           transition={{ duration: 10, ease: "easeOut" }}
@@ -93,14 +105,13 @@ export default function BrandPage({ params }: { params: Promise<{ id: string }> 
             <img 
               src={brand.heroImage} 
               alt={`${brandName} Hero`} 
-              className="w-full h-full object-cover opacity-70"
+              className="w-full h-full object-cover"
             />
           )}
-          <div className="absolute inset-0 bg-linear-to-t from-gray-950 via-gray-900/60 to-transparent"></div>
         </motion.div>
 
         {/* محتوای روی هیرو */}
-        <div className="relative z-10 container mx-auto px-6 flex flex-col items-center justify-center mt-10">
+        <div className="relative z-10 container mx-auto px-6 flex flex-col items-center justify-center pt-24 md:pt-32">
           <motion.div 
             initial={{ opacity: 0, scale: 0.5, rotate: -15 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
@@ -127,16 +138,16 @@ export default function BrandPage({ params }: { params: Promise<{ id: string }> 
         </div>
       </section>
 
-      {/* 2. سکشن توضیحات برند */}
-      <section className="container mx-auto px-6 py-16 md:py-24 overflow-hidden">
+      {/* 2. سکشن توضیحات برند - ارتفاع استاندارد و متناسب با طول متن */}
+      <section className="container mx-auto px-6 pt-8 pb-4">
         <motion.div 
-          initial={{ opacity: 0, y: 50 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: false, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          viewport={{ once: false, amount: 0.2 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="max-w-4xl mx-auto text-center"
         >
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-8 relative inline-block">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4 relative inline-block">
             {isRtl ? `درباره برند ${brandName}` : `About ${brandName}`}
             <motion.span 
               initial={{ width: 0 }}
@@ -146,21 +157,21 @@ export default function BrandPage({ params }: { params: Promise<{ id: string }> 
               className="absolute -bottom-3 left-1/2 -translate-x-1/2 h-1 bg-amber-500 rounded-full"
             ></motion.span>
           </h2>
-          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 leading-loose md:leading-loose text-center">
+          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 leading-relaxed text-center mt-6">
             {brandDesc || (isRtl ? "توضیحاتی ثبت نشده است." : "No description available.")}
           </p>
         </motion.div>
       </section>
 
       {/* 3. سکشن لیست محصولات برند */}
-      <section className="bg-gray-50 dark:bg-gray-900/50 py-16 md:py-24 border-t border-gray-100 dark:border-gray-900">
+      <section className="bg-gray-50 dark:bg-gray-900/50 pt-10 pb-16 md:pt-16 md:pb-24 border-t border-gray-100 dark:border-gray-900 mt-6">
         <div className="container mx-auto px-6">
           <motion.div 
             initial={{ opacity: 0, x: isRtl ? 50 : -50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: false }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex items-center justify-between mb-12"
+            className="flex items-center justify-between mb-10"
           >
             <div>
               <h2 className="text-3xl font-black text-gray-900 dark:text-white">
@@ -181,11 +192,10 @@ export default function BrandPage({ params }: { params: Promise<{ id: string }> 
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
             >
               {brandProducts.map((product) => {
-                const title = isRtl ? product.faTitle : product.enTitle;
-                let catLabel = product.mainCat;
-                if (product.mainCat === 'beverage') catLabel = isRtl ? 'نوشیدنی' : 'Beverage';
-                if (product.mainCat === 'snack') catLabel = isRtl ? 'اسنک' : 'Snacks';
-                if (product.mainCat === 'bakery') catLabel = isRtl ? 'کیک و بیسکویت' : 'Bakery';
+                const title = isRtl ? product.faTitle : (product.enTitle || product.faTitle);
+                
+                const subCatObj = categoriesData.find(c => c.slug === product.category);
+                const catLabel = subCatObj ? (isRtl ? subCatObj.faName : subCatObj.enName) : product.category;
 
                 const imgUrl = product.images?.main || "https://placehold.co/400x400/transparent/0f172a?text=No+Image";
 
@@ -195,7 +205,7 @@ export default function BrandPage({ params }: { params: Promise<{ id: string }> 
                     variants={itemVariants}
                     className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm hover:shadow-2xl transition-all duration-300 group border border-gray-100 dark:border-gray-700 flex flex-col"
                   >
-                    <Link href={`/product/${product.slug}`} className="block">
+                    <Link href={`/${locale}/products/${product.slug}`} className="block">
                       <div className="w-full h-64 mb-6 relative overflow-hidden rounded-2xl bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
                         <img 
                           src={imgUrl} 
