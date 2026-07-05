@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getHeroSlides, saveHeroSlides } from "@/actions/hero";
 import { getBrands } from "@/actions/brand";
 import { getProducts } from "@/actions/product";
+import { getCategories } from "@/actions/category";
 import { useToast } from "../components/ToastProvider";
 
 export default function HeroManager() {
@@ -18,10 +19,15 @@ export default function HeroManager() {
   const [slides, setSlides] = useState<any[]>([]);
   const [brandsList, setBrandsList] = useState<any[]>([]);
   const [productsList, setProductsList] = useState<any[]>([]);
+  const [categoriesList, setCategoriesList] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("texts");
   const [editMode, setEditMode] = useState(false);
+
+  // استیت موقت برای فیلتر ۲ مرحله‌ای دسته‌بندی‌ها در فرم
+  const [selectedMainCat, setSelectedMainCat] = useState("all");
+
   const [formData, setFormData] = useState({ 
     id: 0, 
     faTitle: "", enTitle: "", 
@@ -29,9 +35,13 @@ export default function HeroManager() {
     faDesc: "", enDesc: "",
     color: "from-amber-400 to-orange-600",
     mainImage: "", leftImage: "", rightImage: "",
-    linkedBrand: "", linkedProduct: "", linkedProductSlug: ""
+    linkType: "product",
+    faButtonText: "مشاهده محصول", enButtonText: "View Product",
+    linkedBrand: "", linkedBrandSlug: "",
+    linkedCategorySlug: "",
+    linkedProduct: "", linkedProductSlug: ""
   });
-  // استیت‌های مربوط به آپلود هوشمند قطعات معلق (Floaters)
+
   const [uploadedFloaters, setUploadedFloaters] = useState<any[]>([]);
   const [isProcessingFloaters, setIsProcessingFloaters] = useState(false);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
@@ -40,22 +50,29 @@ export default function HeroManager() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    const [slidesRes, brandsRes, productsRes] = await Promise.all([
-      getHeroSlides(),
-      getBrands(),
-      getProducts()
-    ]);
-    if (slidesRes.success) setSlides(slidesRes.data);
-    if (brandsRes?.success) setBrandsList(brandsRes.data);
-    if (productsRes?.success) setProductsList(productsRes.data);
-    setIsLoading(false);
+    try {
+      const [slidesRes, brandsRes, productsRes, categoriesRes] = await Promise.all([
+        getHeroSlides(),
+        getBrands(),
+        getProducts(),
+        getCategories()
+      ]);
+      if (slidesRes?.success) setSlides(slidesRes.data);
+      if (brandsRes?.success) setBrandsList(brandsRes.data);
+      if (productsRes?.success) setProductsList(productsRes.data);
+      if (categoriesRes?.success) setCategoriesList(categoriesRes.data);
+    } catch (err) {
+      console.error(err);
+      showToast("خطا در دریافت اطلاعات اولیه", "error");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  // توابع آپلود واقعی تصاویر روی سرور
   const handleFileUpload = async (file: File) => {
     const data = new FormData();
     data.append("file", file);
@@ -103,6 +120,23 @@ export default function HeroManager() {
 
   const handleEdit = (slide: any) => {
     setEditMode(true);
+    
+    // اگر دسته‌بندی انتخاب شده بود، والد (گروه اصلی) آن را پیدا می‌کنیم تا سلکت مرحله اول درست نمایش داده شود
+    if (slide.linkType === 'category' && slide.linkedCategorySlug) {
+      const foundCat = categoriesList.find(c => c.slug === slide.linkedCategorySlug);
+      if (foundCat) {
+        if (foundCat.iconName === 'main') {
+          setSelectedMainCat(foundCat.slug);
+        } else {
+          setSelectedMainCat(foundCat.parent || "all");
+        }
+      } else {
+        setSelectedMainCat("all");
+      }
+    } else {
+      setSelectedMainCat("all");
+    }
+
     setFormData({ 
       ...formData, 
       id: slide.id, 
@@ -116,7 +150,12 @@ export default function HeroManager() {
       mainImage: slide.mainImage || "", 
       leftImage: slide.leftImage || "", 
       rightImage: slide.rightImage || "",
+      linkType: slide.linkType || "product",
+      faButtonText: slide.faButtonText || "مشاهده محصول",
+      enButtonText: slide.enButtonText || "View Product",
       linkedBrand: slide.linkedBrand || "",
+      linkedBrandSlug: slide.linkedBrandSlug || "",
+      linkedCategorySlug: slide.linkedCategorySlug || "",
       linkedProduct: slide.linkedProduct || "",
       linkedProductSlug: slide.linkedProductSlug || ""
     });
@@ -127,6 +166,7 @@ export default function HeroManager() {
 
   const handleAddNew = () => {
     setEditMode(false);
+    setSelectedMainCat("all");
     setFormData({ 
       id: 0, 
       faTitle: "", enTitle: "", 
@@ -134,7 +174,11 @@ export default function HeroManager() {
       faDesc: "", enDesc: "", 
       color: "from-amber-400 to-orange-600",
       mainImage: "", leftImage: "", rightImage: "",
-      linkedBrand: "", linkedProduct: "", linkedProductSlug: ""
+      linkType: "product",
+      faButtonText: "مشاهده محصول", enButtonText: "View Product",
+      linkedBrand: "", linkedBrandSlug: "",
+      linkedCategorySlug: "",
+      linkedProduct: "", linkedProductSlug: ""
     });
     setUploadedFloaters([]);
     setActiveTab("texts");
@@ -202,14 +246,12 @@ export default function HeroManager() {
     }
   };
 
-  // --- الگوریتم هوشمند تکثیر و آپلود واقعی قطعات معلق ---
   const handleActualFloaterUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     
     setIsProcessingFloaters(true);
 
-    // ۱. حذف فیزیکی قطعات معلق قبلی از سرور
     if (uploadedFloaters && uploadedFloaters.length > 0) {
       const uniqueUrls = Array.from(new Set(uploadedFloaters.map(f => f.url)));
       for (const url of uniqueUrls) {
@@ -219,19 +261,16 @@ export default function HeroManager() {
       }
     }
 
-    // ۲. آپلود فایل‌های جدید در سرور
     const uploadedUrls: string[] = [];
     for (let i = 0; i < files.length; i++) {
       const url = await handleFileUpload(files[i]);
       if (url) uploadedUrls.push(url);
     }
 
-    // ۳. تکثیر خودکار تا سقف ۸ عدد به همراه توزیع مختصات نامنظم
     if (uploadedUrls.length > 0) {
       const blurs = ["blur-none", "blur-[2px]", "blur-[4px]", "blur-[6px]"];
       const opacities = ["opacity-100", "opacity-80", "opacity-60", "opacity-40"];
       const scales = ["scale-75", "scale-90", "scale-100", "scale-110", "scale-125"];
-      
       const presetLayouts = [
         { top: "15%", left: "10%", initY: -100, baseFloatX: 15, floatY: [0, 10, 0] },
         { top: "75%", left: "85%", initY: 200, baseFloatX: 10, floatY: [0, -15, 0] },
@@ -242,7 +281,6 @@ export default function HeroManager() {
         { top: "50%", left: "15%", initY: -50, baseFloatX: 10, floatY: [0, -8, 0] },
         { top: "45%", left: "80%", initY: 80, baseFloatX: -6, floatY: [0, 15, 0] },
       ];
-
       const finalFloaters = [];
       for (let i = 0; i < 8; i++) {
         const baseUrl = uploadedUrls[i % uploadedUrls.length];
@@ -268,6 +306,14 @@ export default function HeroManager() {
     }
     setIsProcessingFloaters(false);
   };
+
+  // دسته‌بندی‌های سطح بالا (گروه‌های اصلی)
+  const mainCategoriesList = categoriesList.filter(c => c.iconName === 'main');
+  // زیردسته‌های مربوط به گروه انتخابی
+  const subCategoriesList = categoriesList.filter(c => 
+    c.iconName !== 'main' && 
+    (c.parent === selectedMainCat || (c.parent && selectedMainCat && c.parent.toLowerCase() === selectedMainCat.toLowerCase()))
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -308,7 +354,7 @@ export default function HeroManager() {
                 <div className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-amber-500 transition-colors pl-2 border-l border-gray-200 dark:border-gray-700">
                   <GripVertical size={20} />
                 </div>
-                 
+                  
                 <div className={`w-14 h-14 rounded-xl bg-linear-to-br ${slide.color} shadow-inner flex items-center justify-center overflow-hidden relative`}>
                   {slide.mainImage ? (
                     <img src={slide.mainImage} className="w-full h-full object-cover opacity-80" alt="" />
@@ -324,6 +370,11 @@ export default function HeroManager() {
                 
                 <div className="hidden md:flex flex-col text-left leading-tight px-4 border-r border-gray-200 dark:border-gray-700">
                   <span className="text-[11px] font-bold text-gray-500">{slide.faSubtitle}</span>
+                  <span className="text-[10px] text-amber-500 mt-1">
+                    {slide.linkType === 'brand' && "اتصال: برند"}
+                    {slide.linkType === 'category' && "اتصال: گروه محصولات"}
+                    {slide.linkType === 'product' && "اتصال: محصول خاص"}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2 pl-2">
@@ -398,11 +449,9 @@ export default function HeroManager() {
               </div>
 
               <div className="p-6 overflow-y-auto grow custom-scrollbar">
-                
                 {activeTab === "texts" && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
                     
-                    {/* فیلد زیرتیتر (Badge) */}
                     <div className="flex flex-col gap-2">
                       <label className="text-xs font-bold text-gray-600 dark:text-gray-400">زیرتیتر (بج بالای تیتر اصلی)</label>
                       <input 
@@ -436,7 +485,6 @@ export default function HeroManager() {
                       </div>
                     </div>
 
-                    {/* فیلد تیتر اصلی */}
                     <div className="flex flex-col gap-2">
                       <label className="text-xs font-bold text-gray-600 dark:text-gray-400">تیتر اصلی و بزرگ</label>
                       <input 
@@ -469,7 +517,6 @@ export default function HeroManager() {
                       </div>
                     </div>
 
-                    {/* فیلد توضیحات */}
                     <div className="flex flex-col gap-2">
                       <label className="text-xs font-bold text-gray-600 dark:text-gray-400">متن توضیحات (فارسی)</label>
                       <textarea 
@@ -502,7 +549,29 @@ export default function HeroManager() {
                       </div>
                     </div>
 
-                    {/* انتخاب تم رنگی */}
+                    {/* فیلدهای متن شخصی‌سازی شده دکمه */}
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400">متن دکمه (فارسی)</label>
+                      <input 
+                        type="text" 
+                        value={formData.faButtonText} 
+                        onChange={e => setFormData({...formData, faButtonText: e.target.value})} 
+                        placeholder="مثال: مشاهده محصولات" 
+                        className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400" 
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400">Button Text (English)</label>
+                      <input 
+                        type="text" 
+                        dir="ltr"
+                        value={formData.enButtonText} 
+                        onChange={e => setFormData({...formData, enButtonText: e.target.value})} 
+                        placeholder="Example: View Products" 
+                        className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-mono" 
+                      />
+                    </div>
+
                     <div className="flex flex-col gap-2 md:col-span-2 mt-2">
                       <label className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-2">تم رنگی اسلاید (پالت گرادیانت)</label>
                       <div className="flex gap-4">
@@ -525,38 +594,116 @@ export default function HeroManager() {
                       </div>
                     </div>
 
-                    {/* اتصالات دکمه به محصول */}
-                    <div className="flex flex-col gap-2 md:col-span-2 mt-4 border-t border-gray-100 dark:border-gray-800 pt-6">
-                      <label className="text-sm font-black text-gray-900 dark:text-white mb-1">اتصال دکمه به محصول (دیتابیس)</label>
-                      <p className="text-xs text-gray-500 mb-3">محصولی که کاربر با کلیک روی دکمه «مشاهده محصول» در این اسلاید به آن هدایت می‌شود را انتخاب کنید.</p>
+                    {/* اتصال دکمه ۳ حالته */}
+                    <div className="flex flex-col gap-3 md:col-span-2 mt-4 border-t border-gray-100 dark:border-gray-800 pt-6">
+                      <label className="text-sm font-black text-gray-900 dark:text-white mb-1">تنظیمات مقصد دکمه هیرو</label>
+                      <p className="text-xs text-gray-500 mb-2">مشخص کنید با کلیک روی دکمه این اسلاید، کاربر به کجا هدایت شود:</p>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* انتخاب نوع اتصال */}
+                      <div className="grid grid-cols-3 gap-3 bg-gray-50 dark:bg-gray-800 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 mb-4">
+                        {[
+                          { id: 'brand', label: '۱. کل محصولات یک برند' },
+                          { id: 'category', label: '۲. گروه محصولات (دسته‌بندی)' },
+                          { id: 'product', label: '۳. یک محصول خاص' }
+                        ].map(t => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, linkType: t.id })}
+                            className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                              formData.linkType === t.id 
+                                ? 'bg-amber-400 text-gray-950 shadow-md' 
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                            }`}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* حالت ۱: انتخاب برند */}
+                      {formData.linkType === 'brand' && (
                         <div className="flex flex-col gap-2">
-                          <label className="text-xs font-bold text-gray-600 dark:text-gray-400">۱. انتخاب برند</label>
-                          {brandsList.length === 0 ? (
-                            <div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm">
-                              هیچ برندی در دیتابیس ثبت نشده است.
-                            </div>
-                          ) : (
+                          <label className="text-xs font-bold text-gray-600 dark:text-gray-400">انتخاب برند مورد نظر</label>
+                          <select
+                            value={formData.linkedBrand}
+                            onChange={(e) => {
+                              const foundBrand = brandsList.find(b => b._id === e.target.value);
+                              setFormData({
+                                ...formData, 
+                                linkedBrand: e.target.value, 
+                                linkedBrandSlug: foundBrand?.slug || ""
+                              });
+                            }}
+                            className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-bold"
+                          >
+                            <option value="">انتخاب کنید...</option>
+                            {brandsList.map(b => (
+                              <option key={b._id} value={b._id}>{b.faName} ({b.enName})</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* حالت ۲: انتخاب گروه و زیردسته */}
+                      {formData.linkType === 'category' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-2">
+                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">مرحله اول: گروه عمومی (اصلی)</label>
+                            <select
+                              value={selectedMainCat}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSelectedMainCat(val);
+                                // اگر کاربر خود گروه اصلی را انتخاب کرد، اسلاگ آن ذخیره می‌شود
+                                setFormData({ ...formData, linkedCategorySlug: val === "all" ? "" : val });
+                              }}
+                              className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-bold text-amber-600"
+                            >
+                              <option value="all">انتخاب گروه اصلی...</option>
+                              {mainCategoriesList.map(c => (
+                                <option key={c.slug} value={c.slug}>{c.faName}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="flex flex-col gap-2">
+                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">مرحله دوم: نوع محصول (اختیاری)</label>
+                            <select
+                              value={formData.linkedCategorySlug}
+                              onChange={(e) => setFormData({ ...formData, linkedCategorySlug: e.target.value })}
+                              disabled={selectedMainCat === "all"}
+                              className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 font-bold text-blue-700 dark:text-blue-400 disabled:opacity-50"
+                            >
+                              <option value={selectedMainCat}>
+                                {selectedMainCat === "all" ? "ابتدا گروه اصلی را انتخاب کنید" : "نمایش کل محصولات این گروه اصلی"}
+                              </option>
+                              {subCategoriesList.map(c => (
+                                <option key={c.slug} value={c.slug}>{c.faName}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* حالت ۳: انتخاب محصول اختصاصی */}
+                      {formData.linkType === 'product' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="flex flex-col gap-2">
+                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">۱. فیلتر بر اساس برند</label>
                             <select
                               value={formData.linkedBrand}
                               onChange={(e) => setFormData({...formData, linkedBrand: e.target.value, linkedProduct: "", linkedProductSlug: ""})}
-                              className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400"
+                              className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-bold"
                             >
                               <option value="">انتخاب برند...</option>
                               {brandsList.map(b => (
                                 <option key={b._id} value={b._id}>{b.faName}</option>
                               ))}
                             </select>
-                          )}
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <label className="text-xs font-bold text-gray-600 dark:text-gray-400">۲. انتخاب محصول هدف</label>
-                          {brandsList.length === 0 ? (
-                             <div className="bg-gray-50 dark:bg-gray-800/50 text-gray-400 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm">
-                               نیازمند ثبت برند
-                             </div>
-                          ) : (
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">۲. انتخاب محصول هدف</label>
                             <select
                               value={formData.linkedProduct}
                               onChange={(e) => {
@@ -564,26 +711,24 @@ export default function HeroManager() {
                                 setFormData({...formData, linkedProduct: e.target.value, linkedProductSlug: selectedProd?.slug || ""});
                               }}
                               disabled={!formData.linkedBrand}
-                              className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 disabled:opacity-50"
+                              className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-bold disabled:opacity-50"
                             >
                               <option value="">ابتدا برند را انتخاب کنید...</option>
                               {productsList.filter(p => p.brandId?._id === formData.linkedBrand || p.brandId === formData.linkedBrand).map(p => (
                                 <option key={p._id} value={p._id}>{p.faTitle}</option>
                               ))}
                             </select>
-                          )}
+                          </div>
                         </div>
-                      </div>
+                      )}
+
                     </div>
 
                   </div>
                 )}
 
-                {/* تب تصاویر با راهنمای ابعاد و سیستم هوشمند قطعات معلق */}
                 {activeTab === "images" && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
-                    
-                    {/* محصول اصلی */}
                     <div className="flex flex-col gap-2">
                       <label className="text-sm font-bold text-gray-900 dark:text-white">تصویر محصول اصلی (Focus Point)</label>
                       <div className="relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-44 flex flex-col items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors group overflow-hidden">
@@ -610,7 +755,6 @@ export default function HeroManager() {
                       </div>
                     </div>
 
-                    {/* محصولات جانبی */}
                     <div className="flex flex-col gap-2">
                       <label className="text-sm font-bold text-gray-900 dark:text-white">تصاویر جانبی (محو شده در چپ و راست)</label>
                       <div className="flex gap-4 h-44">
@@ -653,7 +797,6 @@ export default function HeroManager() {
                       </div>
                     </div>
 
-                    {/* بخش هوشمند قطعات معلق (Floaters) */}
                     <div className="flex flex-col gap-2 md:col-span-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -673,7 +816,6 @@ export default function HeroManager() {
                       </p>
 
                       <div className="flex items-stretch gap-4">
-                        {/* دکمه آپلود */}
                         <div className="relative overflow-hidden w-40 border-2 border-dashed border-amber-300 dark:border-amber-700/50 rounded-2xl flex flex-col items-center justify-center gap-3 bg-amber-50/50 hover:bg-amber-50 dark:bg-amber-900/10 dark:hover:bg-amber-900/20 transition-colors group p-4 shrink-0">
                           <input 
                             type="file" 
@@ -692,7 +834,6 @@ export default function HeroManager() {
                           </span>
                         </div>
 
-                        {/* پیش‌نمایش قطعات تکثیر شده */}
                         <div className="grow bg-gray-50 dark:bg-gray-800/30 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center justify-center overflow-hidden relative">
                           {uploadedFloaters.length === 0 ? (
                             <span className="text-xs font-bold text-gray-400">پیش‌نمایش افکت‌ها اینجا نمایش داده می‌شود</span>
@@ -725,12 +866,10 @@ export default function HeroManager() {
                           )}
                         </div>
                       </div>
-
                     </div>
 
                   </div>
                 )}
-
               </div>
 
               <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900">

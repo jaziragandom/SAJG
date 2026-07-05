@@ -216,6 +216,46 @@ function ProductsContent() {
                       {isRtl ? cat.faName : cat.enName}
                     </motion.button>
                   ))}
+
+                  {/* --- شروع کد جدید: دکمه داینامیک برای زیردسته‌های فیلتر شده (غیر از ۳ گروه اصلی) --- */}
+                  {activeMainCat !== "all" && !mainCategories.some(c => c.slug === activeMainCat) && (() => {
+                    const activeCatObj = categoriesData.find(c => c.slug === activeMainCat);
+                    const label = activeCatObj ? (isRtl ? activeCatObj.faName : activeCatObj.enName) : activeMainCat;
+                    return (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        type="button"
+                        onClick={() => { setActiveMainCat("all"); router.push(`/${locale}/products`); }}
+                        className="shrink-0 px-3.5 py-2 rounded-full text-[11px] sm:text-xs font-black transition-all bg-amber-400 hover:bg-amber-500 text-gray-950 shadow-md flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                      >
+                        <span>{label}</span>
+                        <X size={14} className="stroke-3" />
+                      </motion.button>
+                    );
+                  })()}
+
+                  {/* --- دکمه داینامیک برای فیلتر برند (مثل برند خندان) --- */}
+                  {urlBrand && (() => {
+                    const foundProd = productsData.find(p => p.brandId?.slug === urlBrand);
+                    const brandLabel = foundProd?.brandId ? (isRtl ? foundProd.brandId.faName : foundProd.brandId.enName) : urlBrand;
+                    return (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        type="button"
+                        onClick={clearAllFilters}
+                        className="shrink-0 px-3.5 py-2 rounded-full text-[11px] sm:text-xs font-black transition-all bg-amber-400 hover:bg-amber-500 text-gray-950 shadow-md flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                      >
+                        <span>{isRtl ? `برند: ${brandLabel}` : `Brand: ${brandLabel}`}</span>
+                        <X size={14} className="stroke-3" />
+                      </motion.button>
+                    );
+                  })()}
+                  {/* --- پایان کد جدید --- */}
+
                 </div>
               </motion.div>
             )}

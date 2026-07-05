@@ -4,8 +4,8 @@ export interface IBrand extends Document {
   slug: string;
   faName: string;
   enName: string;
-  faDesc: string;
-  enDesc: string;
+  faSlogan: string;
+  enSlogan: string;
   logo: string;
   logoFa: string;
   logoEn: string;
@@ -19,8 +19,8 @@ const BrandSchema: Schema = new Schema({
   slug: { type: String, required: true, unique: true, lowercase: true },
   faName: { type: String, required: true },
   enName: { type: String, required: true },
-  faDesc: { type: String, default: "" },
-  enDesc: { type: String, default: "" },
+  faSlogan: { type: String, default: "" },
+  enSlogan: { type: String, default: "" },
   logo: { type: String, required: true },
   logoFa: { type: String, default: "" },
   logoEn: { type: String, default: "" },
@@ -31,5 +31,10 @@ const BrandSchema: Schema = new Schema({
 }, { 
   timestamps: true 
 });
+
+// جلوگیری از کش شدن مدل قدیمی (بدون فیلدهای جدید) در محیط توسعه Next.js
+if (process.env.NODE_ENV !== 'production' && mongoose.models.Brand) {
+  delete mongoose.models.Brand;
+}
 
 export default mongoose.models.Brand || mongoose.model<IBrand>('Brand', BrandSchema);

@@ -14,7 +14,6 @@ export default function BrandsPage() {
   const [brands, setBrands] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // گراف سرعت استاندارد و ملایم 
   const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
   useEffect(() => {
@@ -35,7 +34,6 @@ export default function BrandsPage() {
     >
       <div className="container mx-auto px-4 md:px-8">
         
-        {/* هدر صفحه */}
         <div className="text-center max-w-2xl mx-auto mb-20">
           <motion.div
             initial={{ opacity: 0, scale: 0.5 }}
@@ -79,7 +77,7 @@ export default function BrandsPage() {
             {brands.map((brand, index) => {
               const name = isRtl ? brand.faName : brand.enName;
               const desc = isRtl ? brand.faDesc : brand.enDesc;
-              const logoToUse = isRtl ? brand.logoFa : brand.logoEn;
+              const logoToUse = isRtl ? (brand.logoFa || brand.logo) : (brand.logoEn || brand.logo);
               const color = brand.color || "from-gray-400 to-gray-600";
 
               return (
@@ -94,13 +92,10 @@ export default function BrandsPage() {
                   }}
                   className="bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800/80 rounded-3xl p-8 flex flex-col items-center text-center group hover:border-amber-400 dark:hover:border-amber-400 transition-[border-color,box-shadow] duration-300 relative overflow-hidden shadow-xs hover:shadow-xl"
                 >
-                  
-                  {/* هاله رنگی پس‌زمینه کارت هنگام هاور */}
                   <div 
                     className={`absolute -top-24 -right-24 w-48 h-48 rounded-full bg-linear-to-br ${color} opacity-0 group-hover:opacity-10 blur-2xl transition-opacity duration-500 pointer-events-none`} 
                   />
 
-                  {/* لوگو گرد برند */}
                   <div className="w-24 h-24 rounded-full bg-white dark:bg-gray-800 p-2 shadow-md border border-gray-100 dark:border-gray-700 group-hover:scale-105 group-hover:border-amber-400 transition-all duration-300 mb-6 overflow-hidden relative z-10 flex items-center justify-center">
                     {logoToUse ? (
                       <img 

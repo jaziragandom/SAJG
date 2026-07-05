@@ -15,15 +15,19 @@ export default function BrandsManager() {
   const [editMode, setEditMode] = useState(false);
   const [translatingField, setTranslatingField] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   
   const [formData, setFormData] = useState({ 
-    _id: "", slug: "", faName: "", enName: "", faDesc: "", enDesc: "", logoFa: "", logoEn: "", logo: "", heroImage: "", color: "from-gray-400 to-gray-600"
+    _id: "", slug: "", faName: "", enName: "", faSlogan: "", enSlogan: "", logoFa: "", logoEn: "", logo: "", heroImage: "", color: "from-gray-400 to-gray-600", order: 0
   });
 
   const fetchBrandsData = async () => {
     setIsLoading(true);
     const res = await getBrands();
-    if (res.success) setBrands(res.data);
+    if (res.success) {
+      const sorted = (res.data || []).sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+      setBrands(sorted);
+    }
     setIsLoading(false);
   };
 
@@ -48,6 +52,7 @@ export default function BrandsManager() {
       } else showToast(res.error || "خطا در ویرایش برند", "error");
     } else {
       const { _id, ...newBrandData } = payload;
+      newBrandData.order = brands.length;
       const res = await createBrand(newBrandData);
       if (res.success) {
         showToast("برند جدید با موفقیت ثبت شد.", "success");
@@ -72,9 +77,12 @@ export default function BrandsManager() {
   const handleEdit = (brand: any) => {
     setFormData({
       ...brand,
+      faSlogan: brand.faSlogan || "",
+      enSlogan: brand.enSlogan || "",
       logoFa: brand.logoFa || brand.logo || "",
       logoEn: brand.logoEn || brand.logo || "",
-      logo: brand.logo || ""
+      logo: brand.logo || "",
+      order: brand.order || 0
     });
     setEditMode(true);
     setActiveTab("basic");
@@ -82,7 +90,7 @@ export default function BrandsManager() {
   };
 
   const handleAddNew = () => {
-    setFormData({ _id: "", slug: "", faName: "", enName: "", faDesc: "", enDesc: "", logoFa: "", logoEn: "", logo: "", heroImage: "", color: "from-gray-400 to-gray-600" });
+    setFormData({ _id: "", slug: "", faName: "", enName: "", faSlogan: "", enSlogan: "", logoFa: "", logoEn: "", logo: "", heroImage: "", color: "from-gray-400 to-gray-600", order: brands.length });
     setEditMode(false);
     setActiveTab("basic");
     setIsModalOpen(true);
@@ -104,6 +112,32 @@ export default function BrandsManager() {
     }
   };
 
+  const handleDragStart = (index: number) => {
+    if (searchQuery.trim() === "") {
+      setDraggedItemIndex(index);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (searchQuery.trim() !== "" || draggedItemIndex === null || draggedItemIndex === index) return;
+    const items = [...brands];
+    const draggedItem = items[draggedItemIndex];
+    items.splice(draggedItemIndex, 1);
+    items.splice(index, 0, draggedItem);
+    setDraggedItemIndex(index);
+    setBrands(items);
+  };
+
+  const handleDragEnd = async () => {
+    setDraggedItemIndex(null);
+    if (searchQuery.trim() !== "") return;
+    const updated = brands.map((b, idx) => ({ ...b, order: idx }));
+    setBrands(updated);
+    await Promise.all(updated.map(b => updateBrand(b._id, { order: b.order })));
+    showToast("ترتیب نمایش برندها در سایت بروزرسانی شد.", "info");
+  };
+
   const filteredBrands = brands.filter(b => 
     (b.faName && b.faName.includes(searchQuery)) || 
     (b.enName && b.enName.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -115,7 +149,7 @@ export default function BrandsManager() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm">
         <div>
           <h2 className="text-xl font-black text-gray-900 dark:text-white mb-1">مدیریت برندها</h2>
-          <p className="text-sm font-medium text-gray-500">لیست برندهای مجموعه و اطلاعات پایه‌ای آن‌ها</p>
+          <p className="text-sm font-medium text-gray-500">قابلیت درگ اند دراپ فعال است؛ ترتیب چیدمان در ناوبار و سایت منعکس می‌شود.</p>
         </div>
         <button onClick={handleAddNew} className="bg-amber-400 hover:bg-amber-500 text-gray-950 px-6 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-400/20 hover:scale-105 active:scale-95">
           <Plus size={20} />
@@ -139,20 +173,45 @@ export default function BrandsManager() {
           <Loader2 className="animate-spin text-amber-500" size={40} />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredBrands.map((brand) => (
-            <div key={brand._id} className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 p-6 flex flex-col gap-6 shadow-sm hover:shadow-xl hover:shadow-amber-400/5 transition-all group">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gray-50 dark:bg-gray-800 rounded-xl flex items-center justify-center cursor-move text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+        <div className="flex flex-col gap-3">
+          {filteredBrands.map((brand, index) => {
+            const logoToDisplay = brand.logoFa || brand.logoEn || brand.logo;
+            return (
+              <div 
+                key={brand._id}
+                draggable={searchQuery.trim() === ""}
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+                className={`bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-sm hover:border-amber-400 transition-colors ${
+                  draggedItemIndex === index ? 'opacity-50 bg-gray-50 dark:bg-gray-800' : ''
+                }`}
+              >
+                <div className="flex items-center gap-4 grow min-w-0">
+                  <div className={`cursor-grab active:cursor-grabbing text-gray-300 hover:text-amber-500 transition-colors ${searchQuery.trim() !== "" ? 'opacity-30 cursor-not-allowed' : ''}`}>
                     <GripVertical size={20} />
                   </div>
-                  <div>
-                    <h3 className="font-black text-gray-900 dark:text-white">{brand.faName}</h3>
-                    <p className="text-xs font-bold text-gray-500">{brand.enName}</p>
+                  
+                  <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center shrink-0 p-1.5 overflow-hidden">
+                    {logoToDisplay ? (
+                      <img src={logoToDisplay} alt={brand.faName} className="w-full h-full object-contain" />
+                    ) : (
+                      <ImageIcon size={20} className="text-gray-400" />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-black text-gray-900 dark:text-white truncate">{brand.faName}</span>
+                    <span className="text-xs font-mono text-gray-400 truncate">{brand.enName}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+
+                <div className="hidden md:flex items-center gap-2 px-4 border-r border-gray-100 dark:border-gray-800 shrink-0">
+                  <Layers size={14} className="text-gray-400" />
+                  <span className="text-xs font-mono font-bold text-gray-500">{brand.slug}</span>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
                   <button onClick={() => handleEdit(brand)} className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors">
                     <Edit3 size={16} />
                   </button>
@@ -161,19 +220,10 @@ export default function BrandsManager() {
                   </button>
                 </div>
               </div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                {brand.faDesc || "توضیحاتی ثبت نشده است."}
-              </p>
-              <div className="mt-auto pt-4 border-t border-gray-50 dark:border-gray-800 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-                  <Layers size={14} />
-                  <span>اسلاگ: {brand.slug || "-"}</span>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           {filteredBrands.length === 0 && (
-            <div className="col-span-full py-12 text-center text-gray-500 font-bold">
+            <div className="py-12 text-center text-gray-500 font-bold border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-2xl">
               هیچ برندی یافت نشد.
             </div>
           )}
@@ -216,24 +266,24 @@ export default function BrandsManager() {
                       </div>
                     </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">شعار برند (فارسی)</label>
+                        <input type="text" placeholder="مثال: طعمی نو برای زندگی بهتر" value={formData.faSlogan} onChange={e => setFormData({...formData, faSlogan: e.target.value})} className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-amber-400 transition-colors" />
+                      </div>
+                      <div className="flex flex-col gap-2 relative">
+                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">شعار برند (انگلیسی)</label>
+                        <input type="text" placeholder="Example: A New Taste for Better Life" value={formData.enSlogan} onChange={e => setFormData({...formData, enSlogan: e.target.value})} dir="ltr" className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl py-3 pr-4 pl-12 text-sm font-bold focus:outline-none focus:border-amber-400 transition-colors" />
+                        <button type="button" onClick={() => handleAutoTranslate(formData.faSlogan, 'enSlogan')} disabled={translatingField === 'enSlogan' || !formData.faSlogan} className="absolute left-2 top-7 p-2 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors">
+                          {translatingField === 'enSlogan' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="flex flex-col gap-2">
                       <label className="text-xs font-bold text-gray-600 dark:text-gray-400">شناسه URL (Slug) <span className="text-red-500">*</span></label>
                       <input type="text" value={formData.slug} onChange={e => setFormData({...formData, slug: e.target.value})} dir="ltr" placeholder="m4-energy" className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-mono focus:outline-none focus:border-amber-400 transition-colors" />
                       <p className="text-[10px] text-gray-400">این شناسه در آدرس مرورگر نمایش داده می‌شود و باید به انگلیسی و بدون فاصله باشد.</p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="flex flex-col gap-2 relative">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">توضیحات کوتاه (فارسی)</label>
-                        <textarea value={formData.faDesc} onChange={e => setFormData({...formData, faDesc: e.target.value})} className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-sm font-bold focus:outline-none focus:border-amber-400 h-32 resize-none transition-colors" />
-                      </div>
-                      <div className="flex flex-col gap-2 relative">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">توضیحات کوتاه (انگلیسی)</label>
-                        <textarea dir="ltr" value={formData.enDesc} onChange={e => setFormData({...formData, enDesc: e.target.value})} className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-sm font-bold focus:outline-none focus:border-amber-400 h-32 resize-none transition-colors pl-12" />
-                        <button type="button" onClick={() => handleAutoTranslate(formData.faDesc, 'enDesc')} disabled={translatingField === 'enDesc' || !formData.faDesc} className="absolute left-3 top-8 p-2 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors">
-                          {translatingField === 'enDesc' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-                        </button>
-                      </div>
                     </div>
                   </div>
                 )}

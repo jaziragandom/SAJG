@@ -7,7 +7,7 @@ import { revalidatePath } from "next/cache";
 export async function getBrands() {
   try {
     await dbConnect();
-    const brands = await Brand.find({}).sort({ createdAt: -1 }).lean();
+    const brands = await Brand.find({}).sort({ order: 1, createdAt: -1 }).lean();
     return { success: true, data: JSON.parse(JSON.stringify(brands)) };
   } catch (error) {
     return { success: false, error: "خطا در دریافت برندها" };

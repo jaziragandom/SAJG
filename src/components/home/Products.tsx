@@ -17,16 +17,17 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import GlobalLoading from "@/components/GlobalLoading";
 
-// اکشن‌های اتصال به دیتابیس (محصولات و تنظیمات سایت)
+// اکشن‌های اتصال به دیتابیس (محصولات، دسته‌بندی‌ها و تنظیمات سایت)
 import { getProducts } from "@/actions/product";
 import { getSiteContent } from "@/actions/siteContent";
+import { getCategories } from "@/actions/category";
 
 // دیتای تستی پشتیبان در صورت خالی بودن دیتابیس
 const fallbackProducts = [
-  { _id: "1", slug: "#", faTitle: "انرژی‌زا مکس", enTitle: "Max Energy", faDesc: "انفجار انرژی در هر قطره.", enDesc: "Burst of energy in every drop.", mainCat: "beverage", images: { main: "https://placehold.co/400x600/111827/ffffff?text=Energy" } },
-  { _id: "2", slug: "#", faTitle: "آب پرتقال طبیعی", enTitle: "Natural Orange", faDesc: "۱۰۰٪ طبیعی و ارگانیک.", enDesc: "100% natural and organic.", mainCat: "beverage", images: { main: "https://placehold.co/400x600/f97316/ffffff?text=Orange" } },
-  { _id: "3", slug: "#", faTitle: "چیپس نمکی", enTitle: "Salty Chips", faDesc: "ترد و خوشمزه.", enDesc: "Crispy and delicious.", mainCat: "snack", images: { main: "https://placehold.co/400x600/facc15/000000?text=Chips" } },
-  { _id: "4", slug: "#", faTitle: "پفک پنیری", enTitle: "Cheese Curls", faDesc: "طعم واقعی پنیر.", enDesc: "Real cheese flavor.", mainCat: "snack", images: { main: "https://placehold.co/400x600/ef4444/ffffff?text=Curls" } },
+  { _id: "1", slug: "#", faTitle: "انرژی‌زا مکس", enTitle: "Max Energy", category: "beverage", images: { main: "https://placehold.co/400x600/111827/ffffff?text=Energy" } },
+  { _id: "2", slug: "#", faTitle: "آب پرتقال طبیعی", enTitle: "Natural Orange", category: "beverage", images: { main: "https://placehold.co/400x600/f97316/ffffff?text=Orange" } },
+  { _id: "3", slug: "#", faTitle: "چیپس نمکی", enTitle: "Salty Chips", category: "snack", images: { main: "https://placehold.co/400x600/facc15/000000?text=Chips" } },
+  { _id: "4", slug: "#", faTitle: "پفک پنیری", enTitle: "Cheese Curls", category: "snack", images: { main: "https://placehold.co/400x600/ef4444/ffffff?text=Curls" } },
 ];
 
 const themeList = [
@@ -46,6 +47,7 @@ export default function Products() {
   const isRtl = locale === 'fa';
 
   const [productsData, setProductsData] = useState<any[]>(fallbackProducts);
+  const [categoriesData, setCategoriesData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // استیت مربوط به تنظیمات داینامیک سکشن
@@ -67,7 +69,7 @@ export default function Products() {
   const isSectionInView = useInView(sectionRef, { once: false, amount: 0.1 });
   const [isDominoDone, setIsDominoDone] = useState(false);
 
-  // دریافت همزمان تنظیمات صفحه اصلی و محصولات بر اساس آن تنظیمات
+  // دریافت همزمان تنظیمات صفحه اصلی، محصولات و دسته‌بندی‌ها
   useEffect(() => {
     const fetchData = async () => {
       const isHomeProductsLoaded = sessionStorage.getItem('home_products_loaded');
@@ -75,12 +77,20 @@ export default function Products() {
         setIsLoading(false);
       }
 
-      const settingsRes = await getSiteContent("home_products_settings");
+      const [settingsRes, catsRes] = await Promise.all([
+        getSiteContent("home_products_settings"),
+        getCategories()
+      ]);
+      
       let currentSettings = { displayType: "featured", maxItems: "8", faTitle: "", enTitle: "", faSubtitle: "", enSubtitle: "" };
       
       if (settingsRes?.data) {
         currentSettings = { ...currentSettings, ...settingsRes.data };
         setSectionSettings(currentSettings);
+      }
+
+      if (catsRes?.success && catsRes.data) {
+        setCategoriesData(catsRes.data);
       }
 
       const filter: any = {}; 
@@ -166,18 +176,17 @@ export default function Products() {
 
   // پردازش تیترها برای ایجاد افکت رنگی روی کلمه آخر
   const fullTitle = isRtl ? (sectionSettings.faTitle || t("title_part1") + " " + t("title_part2")) : (sectionSettings.enTitle || t("title_part1") + " " + t("title_part2"));
-
   const titleWords = fullTitle.split(" ");
   const lastWord = titleWords.length > 1 ? titleWords.pop() : "";
   const restOfTitle = titleWords.join(" ");
 
   const subtitleText = isRtl ? (sectionSettings.faSubtitle || t("description")) : (sectionSettings.enSubtitle || t("description"));
 
-  
-return (
+  return (
     <>
       {isLoading && <GlobalLoading />}
-      <section ref={sectionRef} className="py-24 bg-gray-50 dark:bg-dark-card/30 relative overflow-hidden">      <div className="container mx-auto px-4 md:px-8">
+      <section ref={sectionRef} className="py-24 bg-gray-50 dark:bg-dark-card/30 relative overflow-hidden">      
+      <div className="container mx-auto px-4 md:px-8">
         
         <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6 overflow-hidden">
           <div className="max-w-2xl">
@@ -237,14 +246,18 @@ return (
                 <CarouselContent className="-ml-2 md:-ml-4 py-6">
                   {productsData.map((product, index) => {
                     const theme = themeList[index % themeList.length];
-                    const title = isRtl ? product.faTitle : product.enTitle;
-                    const desc = isRtl ? product.faDesc : product.enDesc;
+                    const title = isRtl ? product.faTitle : (product.enTitle || product.faTitle);
+                    const subTitle = isRtl ? product.enTitle : product.faTitle;
                     const imgUrl = product.images?.main;
                     
-                    let catLabel = product.mainCat;
-                    if (product.mainCat === 'beverage') catLabel = isRtl ? 'نوشیدنی' : 'Beverage';
-                    if (product.mainCat === 'snack') catLabel = isRtl ? 'اسنک' : 'Snacks';
-                    if (product.mainCat === 'bakery') catLabel = isRtl ? 'کیک و بیسکویت' : 'Bakery';
+                    // استخراج داینامیک نام دسته‌بندی
+                    const subCatObj = categoriesData.find(c => c.slug === product.category);
+                    const catLabel = subCatObj ? (isRtl ? subCatObj.faName : subCatObj.enName) : (product.category || product.mainCat);
+
+                    // استخراج داینامیک وزن
+                    const weightVal = product.specs?.weight || product.weight || "";
+                    const weightCat = categoriesData.find(c => c.slug === weightVal || c.faName === weightVal || c._id === weightVal);
+                    const finalWeight = weightCat ? (isRtl ? weightCat.faName : weightCat.enName) : (isRtl ? (product.specs?.weightFa || weightVal) : (product.specs?.weightEn || weightVal));
 
                     return (
                       <CarouselItem key={product._id || index} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/4">
@@ -259,7 +272,7 @@ return (
                           }}
                           className="p-1 h-full"
                         >
-                          <Link href={`/${locale}/products/${product._id}`} className="block h-full cursor-pointer">
+                          <Link href={`/${locale}/products/${product.slug || product._id}`} className="block h-full cursor-pointer">
                             <Card className="relative overflow-hidden h-100 flex flex-col justify-end p-6 border border-gray-800/60 bg-gray-950 transition-all duration-700 ease-out hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:z-10 group/card">
                               
                               {imgUrl && (
@@ -276,14 +289,14 @@ return (
                                     />
                                   </div>
                                   
-                                  {/* ۲. عکس اصلی محصول با کامپوننت Image */}
-                                  <div className="absolute inset-0 w-full h-full z-10 overflow-hidden">
+                                  {/* ۲. عکس اصلی محصول با کامپوننت Image (اصلاح زوم و پدینگ) */}
+                                  <div className="absolute inset-0 w-full h-full z-10 overflow-hidden flex items-center justify-center">
                                     <Image 
                                       src={imgUrl} 
                                       alt={title} 
                                       fill
                                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                                      className="object-contain transition-transform duration-700 group-hover/card:scale-110 drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] p-4 pb-28" 
+                                      className="object-contain transition-transform duration-700 group-hover/card:-translate-y-2 drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] p-4 pb-20" 
                                     />
                                   </div>
                                 </>
@@ -291,16 +304,31 @@ return (
 
                               <div className="absolute inset-0 bg-linear-to-t from-black/95 via-black/40 to-transparent z-10 pointer-events-none" />
                               
-                              <CardContent className="relative z-20 p-0 text-white">
-                                <span className="inline-block px-3 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-xs font-bold uppercase tracking-wider mb-3 shadow-sm">
-                                  {catLabel}
-                                </span>
-                                <h3 className="text-2xl font-black mb-2 leading-tight drop-shadow-md">
+                              <CardContent className="relative z-20 p-0 text-white w-full text-start">
+                                {/* سطر بالا: برند و دسته‌بندی */}
+                                <div className="flex justify-between items-center mb-3 w-full">
+                                  {/* نام برند (در حالت فارسی سمت راست قرار می‌گیرد) */}
+                                  <span className="text-xs font-black text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-md shadow-sm">
+                                    {isRtl ? (product.brandId?.faName || "بدون برند") : (product.brandId?.enName || "No Brand")}
+                                  </span>
+                                  
+                                  {/* نام دسته‌بندی (در حالت فارسی سمت چپ قرار می‌گیرد) */}
+                                  <span className="inline-block px-3 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-[11px] font-bold shadow-sm">
+                                    {catLabel}
+                                  </span>
+                                </div>
+                                
+                                {/* سطر وسط: نام محصول */}
+                                <h3 className="text-xl md:text-2xl font-black mb-1 leading-tight drop-shadow-md w-full">
                                   {title}
                                 </h3>
-                                <p className="text-sm text-gray-300 font-medium line-clamp-2 drop-shadow-sm">
-                                  {desc}
-                                </p>
+                                
+                                {/* سطر پایین: وزن/حجم محصول (به جای نام انگلیسی) */}
+                                {finalWeight && (
+                                  <p className="text-sm text-gray-300 font-bold drop-shadow-sm w-full">
+                                    {finalWeight}
+                                  </p>
+                                )}
                               </CardContent>
                             </Card>
                           </Link>

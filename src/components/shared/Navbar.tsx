@@ -141,10 +141,10 @@ export default function Navbar({
       // در نمای موبایل، اگر منو باز باشد، ناوبار نباید هاید شود
       animate={{ y: (isHidden && !isMobileMenuOpen) ? "-100%" : 0 }}
       transition={{ duration: 0.35, ease: customEase }}
-      className={`fixed top-0 left-0 w-full transition-colors duration-500 ${isMobileMenuOpen ? "z-100" : "z-50"} ${
+      className={`fixed top-0 left-0 w-full transition-all duration-500 ${isMobileMenuOpen ? "z-100" : "z-50"} ${
         isScrolled || isMobileMenuOpen
           ? "bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 py-3 shadow-sm" 
-          : "bg-transparent py-5"
+          : "bg-white/40 dark:bg-gray-950/40 backdrop-blur-md border-b border-gray-200/20 dark:border-gray-800/20 py-5"
       }`}
     >
   

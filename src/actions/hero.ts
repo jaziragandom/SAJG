@@ -22,7 +22,7 @@ export async function saveHeroSlides(slides: any[]) {
     await SiteContent.findOneAndUpdate(
       { sectionKey: 'hero_slides' },
       { data: slides },
-      { new: true, upsert: true } // upsert: اگر وجود نداشت خودش می‌سازد
+      { new: true, upsert: true }
     );
     revalidatePath("/");
     return { success: true };
