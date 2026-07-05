@@ -170,7 +170,7 @@ export default function Navbar({
               </>
             ) : (
               <>
-                <span className="text-gray-900 dark:text-white drop-shadow-sm transition-colors">JAZIREH</span>
+                <span className="text-gray-900 dark:text-white drop-shadow-sm transition-colors">JAZIRAH</span>
                 <span className="text-amber-400 drop-shadow-sm">GANDUM</span>
               </>
             )}

@@ -89,7 +89,7 @@ export default function Loading() {
             </>
           ) : (
             <>
-              <span className="text-gray-900 dark:text-white drop-shadow-sm">JAZIREH</span>
+              <span className="text-gray-900 dark:text-white drop-shadow-sm">JAZIRAH</span>
               <span className="text-[#fdb92e] drop-shadow-sm">GANDUM</span>
             </>
           )}

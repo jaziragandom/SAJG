@@ -568,7 +568,7 @@ export default function ProductDetailsPage() {
                 
                 <div className="flex justify-between items-center border-b-2 border-gray-900 pb-4">
                   <div className="flex flex-col gap-1">
-                    <h3 className="text-xl font-black tracking-tight text-gray-950">{isRtl ? "شرکت صنعتی جزیره گندم" : "Wheat Island Co."}</h3>
+                    <h3 className="text-xl font-black tracking-tight text-gray-950">{isRtl ? "شرکت صنعتی جزیره گندم" : "Jazirah Gandum Co."}</h3>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Product Technical Datasheet (TDS)</p>
                   </div>
                   <div className="text-left">
@@ -630,8 +630,8 @@ export default function ProductDetailsPage() {
                 </div>
 
                 <div className="mt-auto pt-8 border-t border-dashed border-gray-300 flex justify-between items-center text-[10px] font-medium text-gray-400">
-                  <p>{isRtl ? "تأیید شده توسط واحد کنترل کیفیت (QC) جزیره گندم" : "Approved by Wheat Island Quality Control (QC)"}</p>
-                  <p className="text-left font-mono">www.wheat-island.com</p>
+                  <p>{isRtl ? "تأیید شده توسط واحد کنترل کیفیت (QC) جزیره گندم" : "Approved by Jazirah Gandum Quality Control (QC)"}</p>
+                  <p className="text-left font-mono">www.jazirah-gandum.com</p>
                 </div>
 
               </div>

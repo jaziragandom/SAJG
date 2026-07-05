@@ -132,7 +132,7 @@ function ProductsContent() {
           className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight mb-3"
         >
           {isRtl ? "ویترین محصولات " : "Products of "}
-          <span className="text-amber-500">{isRtl ? "جزیره گندم" : "Wheat Island"}</span>
+          <span className="text-amber-500">{isRtl ? "جزیره گندم" : "Jazirah Gandum"}</span>
         </motion.h1>
         
         <motion.p 
