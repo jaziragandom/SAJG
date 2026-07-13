@@ -212,18 +212,19 @@ export default function Hero() {
               })}
             </div>
 
+           
             <div 
-              className="w-full md:w-[55%] h-[50%] md:h-full relative flex items-center justify-center mt-12 md:mt-0 z-40 pointer-events-none"
+              className="w-full md:w-[55%] h-[55%] min-h-100 md:h-full relative flex items-center justify-center mt-12 md:mt-0 z-40 pointer-events-none"
               style={{ 
-                WebkitMaskImage: "linear-gradient(to bottom, black 75%, transparent 100%)",
-                maskImage: "linear-gradient(to bottom, black 75%, transparent 100%)"
+                WebkitMaskImage: "linear-gradient(to bottom, black calc(100% - 70px), transparent 100%)",
+                maskImage: "linear-gradient(to bottom, black calc(100% - 70px), transparent 100%)"
               }}
             >
-              <div className="relative w-64 h-96 flex items-center justify-center">
+              <div className="relative w-64 h-80 md:h-96 flex items-center justify-center">
                 <motion.div
-                  className="absolute w-52 h-80 origin-bottom"
+                  className="absolute w-44 md:w-52 h-64 md:h-80 origin-bottom"
                   initial={{ rotate: 0, x: 0, y: 0, opacity: 0, scale: 0.5 }}
-                  animate={{ rotate: -15, x: -80, y: 15, opacity: 1, scale: 0.85 }}
+                  animate={{ rotate: -15, x: -60, y: 15, opacity: 1, scale: 0.85 }}
                   exit={{ rotate: 0, x: 0, y: 0, opacity: 0, scale: 0.5, transition: { duration: 0.2, delay: 0 } }}
                   transition={{ type: "spring", stiffness: 90, damping: 14, delay: 0.2 }}
                 >
@@ -242,9 +243,9 @@ export default function Hero() {
                 </motion.div>
 
                 <motion.div
-                  className="absolute w-52 h-80 origin-bottom"
+                  className="absolute w-44 md:w-52 h-64 md:h-80 origin-bottom"
                   initial={{ rotate: 0, x: 0, y: 0, opacity: 0, scale: 0.5 }}
-                  animate={{ rotate: 15, x: 80, y: 15, opacity: 1, scale: 0.85 }}
+                  animate={{ rotate: 15, x: 60, y: 15, opacity: 1, scale: 0.85 }}
                   exit={{ rotate: 0, x: 0, y: 0, opacity: 0, scale: 0.5, transition: { duration: 0.2, delay: 0 } }}
                   transition={{ type: "spring", stiffness: 90, damping: 14, delay: 0.25 }}
                 >
@@ -263,7 +264,7 @@ export default function Hero() {
                 </motion.div>
 
                 <motion.div
-                  className="absolute z-50 origin-bottom w-64 md:w-80 h-96 md:h-112"
+                  className="absolute z-50 origin-bottom w-56 md:w-80 h-80 md:h-112"
                   initial={{ opacity: 0, scale: 0.2, y: 50 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.2, y: -50, transition: { duration: 0.2, delay: 0 } }}

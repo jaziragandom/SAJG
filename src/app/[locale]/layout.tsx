@@ -61,10 +61,10 @@ export default async function RootLayout({
             attribute="class" 
             defaultTheme="dark" 
             enableSystem={false}
-          >
-            {/* ناوبار سر جایش ماند. (اگر می‌خواهید ناوبار هم در ادمین حذف شود، این را هم داخل ConditionalDisplay بگذارید) */}
+          > 
+          <ConditionalDisplay>
             <Navbar />
-
+          </ConditionalDisplay>
             {/* محتوای اصلی سایت */}
             {children}
 
