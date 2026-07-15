@@ -52,7 +52,7 @@ export default function BrandsPage() {
             transition={{ duration: 0.6 }}
             className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight"
           >
-            {isRtl ? "برندهای زیرمجموعه جزیره" : "Island Sub-Brands"}
+            {isRtl ? "برندهای زیرمجموعه جزیره" : "Jazirah Gandum-Brands"}
           </motion.h1>
           
           <motion.p 

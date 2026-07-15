@@ -92,12 +92,20 @@ export default function ChatWindow({
               } else if (target.startsWith('http')) {
                 window.open(target, '_blank');
               } else {
-                // سیستم ضدگلوله برای روتینگ داخلی (رفع مشکل کوئری‌ها و هَش‌ها)
+                // سیستم ضدگلوله برای روتینگ داخلی (جلوگیری از تکرار پیشوند زبان)
                 let cleanTarget = target.trim().replace(/['"]/g, '');
                 if (!cleanTarget.startsWith('/')) cleanTarget = '/' + cleanTarget;
                 
                 const urlObj = new URL(cleanTarget, 'http://localhost');
-                const finalPath = `/${locale}${urlObj.pathname}${urlObj.search}${urlObj.hash}`;
+                let path = urlObj.pathname;
+                
+                // پاک‌سازی پیشوند زبان اگر توسط هوش مصنوعی اضافه شده باشد
+                if (path.startsWith('/fa/')) path = path.replace('/fa', '');
+                else if (path === '/fa') path = '';
+                else if (path.startsWith('/en/')) path = path.replace('/en', '');
+                else if (path === '/en') path = '';
+                
+                const finalPath = `/${locale}${path}${urlObj.search}${urlObj.hash}`;
                 
                 router.push(finalPath);
                 setIsChatOpen(false);

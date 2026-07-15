@@ -11,6 +11,7 @@ import {
   Calendar, 
   User, 
   ArrowRight, 
+  ArrowLeft,
   Share2, 
   Mail, 
   MessageCircle, 
@@ -31,6 +32,7 @@ export default function BlogPostPage() {
   const params = useParams();
   const router = useRouter();
   const locale = useLocale();
+  const isRtl = locale === 'fa';
   const slug = params?.slug as string;
   
   const [post, setPost] = useState<any>(null);
@@ -67,7 +69,6 @@ export default function BlogPostPage() {
           const currentPost = res.data[0];
           setPost(currentPost);
           
-          // دریافت تمام دیدگاه‌های تاییدشده و پاسخ‌داده‌شده مرتبط با این مقاله
           const cmtRes = await getApprovedComments(currentPost._id);
           if (cmtRes.success && cmtRes.data) {
             setApprovedComments(cmtRes.data);
@@ -80,14 +81,13 @@ export default function BlogPostPage() {
     fetchSinglePost();
   }, [slug]);
 
-  // مدیریت ارسال فرم دیدگاه یا پاسخ به نظر دیگران
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!commentForm.name || !commentForm.email || !commentForm.text) {
       setFormMsg({ 
         type: 'error', 
-        text: 'پر کردن تمام فیلدها الزامی است.' 
+        text: isRtl ? 'پر کردن تمام فیلدها الزامی است.' : 'All fields are required.' 
       });
       return;
     }
@@ -106,14 +106,14 @@ export default function BlogPostPage() {
     if (res.success) {
       setFormMsg({ 
         type: 'success', 
-        text: res.message || 'دیدگاه شما با موفقیت ثبت شد و پس از بررسی منتشر خواهد شد.' 
+        text: isRtl ? 'دیدگاه شما با موفقیت ثبت شد و پس از بررسی منتشر خواهد شد.' : 'Your comment was successfully submitted and will be published after review.' 
       });
       setCommentForm({ name: '', email: '', text: '' });
       setReplyingTo(null);
     } else {
       setFormMsg({ 
         type: 'error', 
-        text: res.error || 'خطایی رخ داد. لطفاً دوباره تلاش کنید.' 
+        text: isRtl ? 'خطایی رخ داد. لطفاً دوباره تلاش کنید.' : 'An error occurred. Please try again.' 
       });
     }
     
@@ -127,22 +127,22 @@ export default function BlogPostPage() {
     setBlogNlMsg("");
     const res = await subscribeToNewsletter({
       email: blogNlEmail,
-      source: `انتهای مقاله: ${post?.faTitle || "وبلاگ"}`,
-      segment: "blog_health" // دسته‌بندی علاقه‌مندان به مقالات
+      source: `انتهای مقاله: ${isRtl ? post?.faTitle : post?.enTitle || "وبلاگ"}`,
+      segment: "blog_health" 
     });
     setBlogNlLoading(false);
     if (res.success) {
-      setBlogNlMsg("عضویت شما با موفقیت انجام شد!");
+      setBlogNlMsg(isRtl ? "عضویت شما با موفقیت انجام شد!" : "Successfully subscribed!");
       setBlogNlEmail("");
     } else {
-      setBlogNlMsg(res.error || "خطایی رخ داد.");
+      setBlogNlMsg(isRtl ? "خطایی رخ داد." : "An error occurred.");
     }
   };
 
   const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
   const titleAnim = {
-    initial: { opacity: 0, x: 80 },
+    initial: { opacity: 0, x: isRtl ? 80 : -80 },
     whileInView: { opacity: 1, x: 0 },
     viewport: { once: false, amount: 0.3 },
     transition: { 
@@ -152,7 +152,7 @@ export default function BlogPostPage() {
   };
 
   const badgeAnim = {
-    initial: { opacity: 0, x: -50 },
+    initial: { opacity: 0, x: isRtl ? -50 : 50 },
     whileInView: { opacity: 1, x: 0 },
     viewport: { once: false, amount: 0.3 },
     transition: { 
@@ -179,33 +179,32 @@ export default function BlogPostPage() {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-transparent px-4">
         <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-4">
-          مقاله‌ای با این آدرس یافت نشد!
+          {isRtl ? "مقاله‌ای با این آدرس یافت نشد!" : "Article not found!"}
         </h2>
         <button 
           onClick={() => router.push(`/${locale}/blog`)}
           className="bg-amber-400 text-gray-950 px-6 py-3 rounded-full font-black text-xs flex items-center gap-2 hover:bg-amber-500 transition-colors shadow-lg"
         >
-          <ArrowRight size={16} />
-          بازگشت به مجله گندم
+          {isRtl ? <ArrowRight size={16} /> : <ArrowLeft size={16} />}
+          {isRtl ? "بازگشت به مجله گندم" : "Back to Magazine"}
         </button>
       </div>
     );
   }
 
-  // جداسازی نظرات والد (سطح اول) و پاسخ‌ها (سطوح بعدی)
   const rootComments = approvedComments.filter(c => !c.parentId);
   const getReplies = (commentId: string) => approvedComments.filter(c => c.parentId === commentId);
 
-  // ساخت آدرس‌های واقعی برای اشتراک‌گذاری در شبکه‌های اجتماعی
   const currentUrl = typeof window !== "undefined" ? window.location.href : "";
-  const shareTwitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(post.faTitle)}`;
+  const articleTitle = isRtl ? post.faTitle : post.enTitle;
+  const shareTwitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(articleTitle)}`;
   const shareLinkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(currentUrl)}`;
-  const shareTelegramUrl = `https://t.me/share/url?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(post.faTitle)}`;
+  const shareTelegramUrl = `https://t.me/share/url?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(articleTitle)}`;
 
   return (
     <main 
       className="min-h-screen bg-transparent pt-28 pb-24 px-6 md:px-12 max-w-6xl mx-auto" 
-      dir="rtl"
+      dir={isRtl ? "rtl" : "ltr"}
     >
       <article className="max-w-4xl mx-auto">
         
@@ -215,8 +214,8 @@ export default function BlogPostPage() {
             href={`/${locale}/blog`} 
             className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-amber-500 transition-colors mb-8"
           >
-            <ArrowRight size={16} /> 
-            بازگشت به مجله
+            {isRtl ? <ArrowRight size={16} /> : <ArrowLeft size={16} />} 
+            {isRtl ? "بازگشت به مجله" : "Back to Magazine"}
           </Link>
           
           <motion.div 
@@ -225,10 +224,10 @@ export default function BlogPostPage() {
           >
             <span className="bg-amber-100 dark:bg-amber-500/10 px-3 py-1.5 rounded-md">
               {post.category === 'health' 
-                ? 'سبک زندگی و سلامت' 
+                ? (isRtl ? 'سبک زندگی و سلامت' : 'Health & Lifestyle')
                 : post.category === 'news' 
-                ? 'اخبار گندم' 
-                : 'معرفی محصولات'}
+                ? (isRtl ? 'اخبار گندم' : 'Gandom News')
+                : (isRtl ? 'معرفی محصولات' : 'Products')}
             </span>
             
             <div className="flex items-center gap-2">
@@ -241,7 +240,7 @@ export default function BlogPostPage() {
                 }`}
               >
                 <Heart size={16} className={liked ? "fill-rose-500" : ""} />
-                <span>{liked ? 'پسندیدید' : 'پسندیدن'}</span>
+                <span>{liked ? (isRtl ? 'پسندیدید' : 'Liked') : (isRtl ? 'پسندیدن' : 'Like')}</span>
               </button>
               
               <button 
@@ -251,7 +250,7 @@ export default function BlogPostPage() {
                     ? 'bg-amber-500/10 text-amber-500' 
                     : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-amber-500'
                 }`}
-                title="ذخیره مقاله"
+                title={isRtl ? "ذخیره مقاله" : "Save Article"}
               >
                 <Bookmark size={16} className={bookmarked ? "fill-amber-500" : ""} />
               </button>
@@ -262,23 +261,23 @@ export default function BlogPostPage() {
             {...titleAnim} 
             className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white leading-tight mb-6"
           >
-            {post.faTitle}
+            {articleTitle}
           </motion.h1>
 
           <div className="flex flex-wrap items-center gap-6 text-sm font-bold text-gray-600 dark:text-gray-400 mb-10 pb-6 border-b border-gray-200/50 dark:border-gray-800/50 overflow-hidden">
             <motion.span {...detailsAnim(0)} className="flex items-center gap-2">
               <User size={16} className="text-gray-400"/> 
-              {post.author || "تیم تحریریه گندم"}
+              {post.author || (isRtl ? "تیم تحریریه گندم" : "Editorial Team")}
             </motion.span>
             
             <motion.span {...detailsAnim(1)} className="flex items-center gap-2">
               <Calendar size={16} className="text-gray-400"/> 
-              {post.createdAt ? new Date(post.createdAt).toLocaleDateString('fa-IR') : "امروز"}
+              {post.createdAt ? new Date(post.createdAt).toLocaleDateString(isRtl ? 'fa-IR' : 'en-US') : (isRtl ? "امروز" : "Today")}
             </motion.span>
             
             <motion.span {...detailsAnim(2)} className="flex items-center gap-2">
               <Clock size={16} className="text-gray-400"/> 
-              {post.readTime || "۵ دقیقه"} مطالعه
+              {post.readTime || (isRtl ? "۵ دقیقه" : "5 min")} {isRtl ? "مطالعه" : "read"}
             </motion.span>
           </div>
         </div>
@@ -297,7 +296,7 @@ export default function BlogPostPage() {
         >
           <img 
             src={post.coverImage} 
-            alt={post.faTitle} 
+            alt={articleTitle} 
             className="w-full h-full object-cover rounded-[2rem]" 
           />
         </motion.div>
@@ -329,7 +328,7 @@ export default function BlogPostPage() {
                 ))
               ) : (
                 <span className="text-xs font-bold text-gray-500 bg-gray-100/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-md">
-                  #جزیره_گندم
+                  {isRtl ? "#جزیره_گندم" : "#Gandom_Island"}
                 </span>
               )}
             </div>
@@ -337,7 +336,7 @@ export default function BlogPostPage() {
             <div className="flex items-center gap-4">
               <span className="text-sm font-bold text-gray-500 flex items-center gap-2">
                 <Share2 size={16}/> 
-                اشتراک‌گذاری در:
+                {isRtl ? "اشتراک‌گذاری در:" : "Share on:"}
               </span>
               
               <div className="flex gap-2">
@@ -346,7 +345,7 @@ export default function BlogPostPage() {
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="p-2.5 bg-blue-500/10 text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition-colors" 
-                  title="لینکدین"
+                  title="LinkedIn"
                 >
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
@@ -370,7 +369,7 @@ export default function BlogPostPage() {
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="p-2.5 bg-sky-500/10 text-sky-500 rounded-full hover:bg-sky-500 hover:text-white transition-colors" 
-                  title="توییتر"
+                  title="Twitter"
                 >
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
@@ -392,7 +391,7 @@ export default function BlogPostPage() {
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="p-2.5 bg-cyan-500/10 text-cyan-500 rounded-full hover:bg-cyan-500 hover:text-white transition-colors" 
-                  title="تلگرام"
+                  title="Telegram"
                 >
                   <Send size={16} />
                 </a>
@@ -414,7 +413,7 @@ export default function BlogPostPage() {
         <div className="flex items-center justify-between mb-8">
           <h3 className="text-xl font-black text-gray-900 dark:text-white flex items-center gap-2">
             <MessageCircle size={24} className="text-amber-500"/> 
-            ثبت دیدگاه و پرسش
+            {isRtl ? "ثبت دیدگاه و پرسش" : "Leave a Comment"}
           </h3>
           
           {replyingTo && (
@@ -423,7 +422,7 @@ export default function BlogPostPage() {
               className="flex items-center gap-1.5 text-xs font-bold text-red-500 bg-red-500/10 px-3 py-1.5 rounded-xl hover:bg-red-500/20 transition-colors"
             >
               <X size={14} /> 
-              انصراف از پاسخ به {replyingTo.name}
+              {isRtl ? `انصراف از پاسخ به ${replyingTo.name}` : `Cancel reply to ${replyingTo.name}`}
             </button>
           )}
         </div>
@@ -431,7 +430,7 @@ export default function BlogPostPage() {
         {replyingTo && (
           <div className="mb-4 p-3 bg-amber-400/10 border border-amber-400/30 rounded-xl text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-2">
             <Reply size={16} /> 
-            در حال نوشتن پاسخ برای نظر کاربر: <strong>«{replyingTo.name}»</strong>
+            {isRtl ? `در حال نوشتن پاسخ برای نظر کاربر: «${replyingTo.name}»` : `Replying to user: "${replyingTo.name}"`}
           </div>
         )}
         
@@ -442,7 +441,7 @@ export default function BlogPostPage() {
                 type="text" 
                 value={commentForm.name} 
                 onChange={e => setCommentForm({...commentForm, name: e.target.value})} 
-                placeholder="نام شما *" 
+                placeholder={isRtl ? "نام شما *" : "Your Name *"} 
                 className="bg-white/50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-800/50 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-amber-400 transition-colors" 
                 required 
               />
@@ -450,7 +449,7 @@ export default function BlogPostPage() {
                 type="email" 
                 value={commentForm.email} 
                 onChange={e => setCommentForm({...commentForm, email: e.target.value})} 
-                placeholder="ایمیل شما (منتشر نمی‌شود) *" 
+                placeholder={isRtl ? "ایمیل شما (منتشر نمی‌شود) *" : "Your Email (will not be published) *"} 
                 className="bg-white/50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-800/50 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-amber-400 transition-colors" 
                 required 
               />
@@ -459,7 +458,9 @@ export default function BlogPostPage() {
             <textarea 
               value={commentForm.text} 
               onChange={e => setCommentForm({...commentForm, text: e.target.value})} 
-              placeholder={replyingTo ? `پاسخ خود را به ${replyingTo.name} بنویسید...` : "دیدگاه ارزشمند خود را درباره این مقاله بنویسید..."} 
+              placeholder={replyingTo 
+                ? (isRtl ? `پاسخ خود را به ${replyingTo.name} بنویسید...` : `Write your reply to ${replyingTo.name}...`) 
+                : (isRtl ? "دیدگاه ارزشمند خود را درباره این مقاله بنویسید..." : "Write your thoughts on this article...")} 
               rows={4} 
               className="bg-white/50 dark:bg-gray-900/50 border border-gray-200/50 dark:border-gray-800/50 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-amber-400 resize-none transition-colors"
               required
@@ -495,9 +496,9 @@ export default function BlogPostPage() {
               {isSubmitting ? (
                 <Loader2 size={18} className="animate-spin" />
               ) : replyingTo ? (
-                'ارسال پاسخ'
+                isRtl ? 'ارسال پاسخ' : 'Submit Reply'
               ) : (
-                'ارسال دیدگاه'
+                isRtl ? 'ارسال دیدگاه' : 'Submit Comment'
               )}
             </button>
           </div>
@@ -506,7 +507,7 @@ export default function BlogPostPage() {
         {/* لیست گفتگوها و پاسخ‌های درختی */}
         <div className="space-y-6">
           <h4 className="font-bold text-gray-500 mb-6 border-b border-gray-200/50 dark:border-gray-800/50 pb-3">
-            نظرات کاربران ({approvedComments.length})
+            {isRtl ? `نظرات کاربران (${approvedComments.length})` : `User Comments (${approvedComments.length})`}
           </h4>
           
           {rootComments.length > 0 ? (
@@ -527,7 +528,7 @@ export default function BlogPostPage() {
                             {comment.name}
                           </h4>
                           <span className="text-[10px] font-bold text-gray-400">
-                            {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('fa-IR') : "امروز"}
+                            {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString(isRtl ? 'fa-IR' : 'en-US') : (isRtl ? "امروز" : "Today")}
                           </span>
                         </div>
                       </div>
@@ -540,7 +541,7 @@ export default function BlogPostPage() {
                         className="flex items-center gap-1 text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors bg-amber-500/10 px-3 py-1.5 rounded-xl"
                       >
                         <Reply size={14} /> 
-                        پاسخ
+                        {isRtl ? "پاسخ" : "Reply"}
                       </button>
                     </div>
                     
@@ -551,7 +552,7 @@ export default function BlogPostPage() {
 
                   {/* پاسخ‌های زیرمجموعه (Replies) */}
                   {replies.length > 0 && (
-                    <div className="pr-6 md:pr-10 border-r-2 border-amber-400/40 flex flex-col gap-3 mr-2">
+                    <div className={`px-6 md:px-10 border-amber-400/40 flex flex-col gap-3 mx-2 ${isRtl ? 'border-r-2' : 'border-l-2'}`}>
                       {replies.map((rep: any, rIdx: number) => (
                         <div 
                           key={rIdx} 
@@ -577,12 +578,12 @@ export default function BlogPostPage() {
                                   </h4>
                                   {rep.isAdminReply && (
                                     <span className="bg-amber-400 text-gray-950 text-[9px] font-black px-1.5 py-0.5 rounded shadow-2xs">
-                                      پشتیبانی و مدیریت
+                                      {isRtl ? "پشتیبانی و مدیریت" : "Support"}
                                     </span>
                                   )}
                                 </div>
                                 <span className="text-[9px] font-bold text-gray-400">
-                                  {rep.createdAt ? new Date(rep.createdAt).toLocaleDateString('fa-IR') : "امروز"}
+                                  {rep.createdAt ? new Date(rep.createdAt).toLocaleDateString(isRtl ? 'fa-IR' : 'en-US') : (isRtl ? "امروز" : "Today")}
                                 </span>
                               </div>
                             </div>
@@ -595,7 +596,7 @@ export default function BlogPostPage() {
                               className="flex items-center gap-1 text-[11px] font-bold text-gray-400 hover:text-amber-500 transition-colors"
                             >
                               <Reply size={12} /> 
-                              پاسخ
+                              {isRtl ? "پاسخ" : "Reply"}
                             </button>
                           </div>
                           
@@ -612,7 +613,7 @@ export default function BlogPostPage() {
           ) : (
             <div className="text-center py-8">
               <p className="text-sm font-bold text-gray-500 dark:text-gray-400">
-                {locale === 'fa' 
+                {isRtl 
                   ? "هنوز دیدگاهی برای این مقاله ثبت نشده است. اولین نفری باشید که نظر می‌دهید!" 
                   : "No comments yet. Be the first to comment!"}
               </p>
@@ -632,17 +633,17 @@ export default function BlogPostPage() {
         <div className="relative z-10">
           <Mail size={48} className="mx-auto text-amber-900 mb-6 opacity-80" />
           <h3 className="text-3xl font-black text-amber-950 mb-4">
-            به باشگاه گندم بپیوندید
+            {isRtl ? "به باشگاه گندم بپیوندید" : "Join Gandom Club"}
           </h3>
           <p className="text-amber-900/80 font-bold mb-8 max-w-md mx-auto">
-            جدیدترین مقالات سلامت، اخبار افتتاحیه‌ها و تخفیف‌های ویژه را در ایمیل خود دریافت کنید.
+            {isRtl ? "جدیدترین مقالات سلامت، اخبار افتتاحیه‌ها و تخفیف‌های ویژه را در ایمیل خود دریافت کنید." : "Get the latest health articles, news, and special discounts in your email."}
           </p>
           <form className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto" onSubmit={handleBlogNewsletter}>
             <input 
               type="email" 
               value={blogNlEmail}
               onChange={(e) => setBlogNlEmail(e.target.value)}
-              placeholder="آدرس ایمیل شما..." 
+              placeholder={isRtl ? "آدرس ایمیل شما..." : "Your email address..."} 
               disabled={blogNlLoading}
               className="grow px-6 py-4 rounded-xl text-sm font-bold text-gray-900 outline-none border-2 border-transparent focus:border-amber-600/30 shadow-inner disabled:opacity-60" 
               dir="ltr" 
@@ -654,7 +655,7 @@ export default function BlogPostPage() {
               className="bg-amber-950 hover:bg-black text-white px-8 py-4 rounded-xl text-sm font-black transition-colors whitespace-nowrap shadow-xl flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
             >
               {blogNlLoading && <Loader2 size={16} className="animate-spin" />}
-              <span>{blogNlLoading ? "در حال ثبت..." : "عضویت رایگان"}</span>
+              <span>{blogNlLoading ? (isRtl ? "در حال ثبت..." : "Subscribing...") : (isRtl ? "عضویت رایگان" : "Free Subscription")}</span>
             </button>
           </form>
           {blogNlMsg && <p className="text-amber-950 font-black text-sm mt-3 bg-white/40 py-2 px-4 rounded-xl inline-block">{blogNlMsg}</p>}
