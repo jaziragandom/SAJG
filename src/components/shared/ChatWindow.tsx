@@ -2,7 +2,8 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Bot, X, Send, ShoppingBag } from "lucide-react";
 
-const MiniProductSlider = ({ router, locale, setIsChatOpen }: { router: any, locale: string, setIsChatOpen: any }) => (
+// اضافه کردن isRtl به پروپ‌های اسلایدر برای دوزبانه شدن متون
+const MiniProductSlider = ({ router, locale, setIsChatOpen, isRtl }: { router: any, locale: string, setIsChatOpen: any, isRtl: boolean }) => (
   <div className="w-full overflow-x-auto flex gap-3 pb-2 custom-scrollbar mt-2">
     {[1, 2, 3].map((item) => (
       <div key={item} className="shrink-0 w-32 bg-white/50 dark:bg-zinc-800/50 backdrop-blur-md border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm">
@@ -10,7 +11,10 @@ const MiniProductSlider = ({ router, locale, setIsChatOpen }: { router: any, loc
            <ShoppingBag size={24} className="text-amber-500/50" />
         </div>
         <div className="p-2">
-          <p className="text-[10px] font-black text-zinc-800 dark:text-zinc-200">محصول ویژه {item}</p>
+          {/* دوزبانه شدن عنوان محصول */}
+          <p className="text-[10px] font-black text-zinc-800 dark:text-zinc-200">
+            {isRtl ? `محصول ویژه ${item}` : `Featured Product ${item}`}
+          </p>
           <button 
             onClick={() => {
               router.push(`/${locale}/products`);
@@ -18,7 +22,8 @@ const MiniProductSlider = ({ router, locale, setIsChatOpen }: { router: any, loc
             }}
             className="mt-1.5 w-full bg-amber-500/90 hover:bg-amber-400 transition-colors text-zinc-950 text-[10px] font-bold py-1 rounded-lg"
           >
-            مشاهده صفحه
+            {/* دوزبانه شدن متن دکمه */}
+            {isRtl ? 'مشاهده صفحه' : 'View Page'}
           </button>
         </div>
       </div>
@@ -35,7 +40,7 @@ interface ChatWindowProps {
   handleSend: (e: React.FormEvent) => void; 
   isTyping: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
-  inputRef: React.RefObject<any>; // رفع ارور تایپ اسکریپت برای Textarea
+  inputRef: React.RefObject<any>; 
   isRtl: boolean; 
   router: any; 
   locale: string;
@@ -60,7 +65,7 @@ export default function ChatWindow({
     
     return parts.map((part, index) => {
       if (part === '[UI:SLIDER]') {
-        return <MiniProductSlider key={index} router={router} locale={locale} setIsChatOpen={setIsChatOpen} />;
+        return <MiniProductSlider key={index} router={router} locale={locale} setIsChatOpen={setIsChatOpen} isRtl={isRtl} />;
       }
       
       const actionMatch = part.match(/\[ACTION:([A-Z_]+)\]/);
@@ -71,7 +76,8 @@ export default function ChatWindow({
             onClick={() => handleSystemAction(actionMatch[1])}
             className="inline-flex items-center mx-1 my-1 px-3 py-1.5 rounded-xl bg-zinc-900/10 dark:bg-white/10 backdrop-blur-sm text-zinc-800 dark:text-zinc-200 hover:scale-105 transition-all text-xs font-bold border border-zinc-300 dark:border-zinc-700"
           >
-            ⚡ اعمال تنظیمات ({actionMatch[1]})
+            {/* دوزبانه شدن دکمه‌های سیستمی */}
+            ⚡ {isRtl ? 'اعمال تنظیمات' : 'Apply Action'} ({actionMatch[1]})
           </button>
         );
       }
@@ -92,14 +98,12 @@ export default function ChatWindow({
               } else if (target.startsWith('http')) {
                 window.open(target, '_blank');
               } else {
-                // سیستم ضدگلوله برای روتینگ داخلی (جلوگیری از تکرار پیشوند زبان)
                 let cleanTarget = target.trim().replace(/['"]/g, '');
                 if (!cleanTarget.startsWith('/')) cleanTarget = '/' + cleanTarget;
                 
                 const urlObj = new URL(cleanTarget, 'http://localhost');
                 let path = urlObj.pathname;
                 
-                // پاک‌سازی پیشوند زبان اگر توسط هوش مصنوعی اضافه شده باشد
                 if (path.startsWith('/fa/')) path = path.replace('/fa', '');
                 else if (path === '/fa') path = '';
                 else if (path.startsWith('/en/')) path = path.replace('/en', '');
@@ -135,7 +139,11 @@ export default function ChatWindow({
           <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-md shadow-inner"><Bot size={20} /></div>
           <div>
             <h4 className="font-bold text-sm drop-shadow-sm">Jazira Gandum AI</h4>
-            <div className="flex items-center gap-1.5 opacity-90 mt-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span><span className="text-[10px] font-medium">Online</span></div>
+            <div className="flex items-center gap-1.5 opacity-90 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+              {/* دوزبانه شدن وضعیت آنلاین */}
+              <span className="text-[10px] font-medium">{isRtl ? 'آنلاین' : 'Online'}</span>
+            </div>
           </div>
         </div>
         <button onClick={() => setIsChatOpen(false)} className="hover:text-white/80 transition-colors"><X size={18} /></button>
@@ -163,7 +171,6 @@ export default function ChatWindow({
 
       <form onSubmit={handleSend} className="p-3 border-t border-zinc-100 dark:border-zinc-800/50 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md shrink-0">
         <div className="relative flex items-center gap-2">
-          {/* تغییر Input به Textarea برای پشتیبانی از Shift+Enter */}
           <textarea 
             ref={inputRef} 
             dir="auto" 
