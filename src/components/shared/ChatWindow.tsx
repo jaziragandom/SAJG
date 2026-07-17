@@ -31,6 +31,7 @@ const MiniProductSlider = ({ router, locale, setIsChatOpen, isRtl }: { router: a
   </div>
 );
 
+
 interface ChatWindowProps {
   isChatOpen: boolean; 
   setIsChatOpen: (val: boolean) => void;
@@ -40,16 +41,17 @@ interface ChatWindowProps {
   handleSend: (e: React.FormEvent) => void; 
   isTyping: boolean;
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
-  inputRef: React.RefObject<any>; 
+  inputRef: React.RefObject<HTMLTextAreaElement | null>; 
   isRtl: boolean; 
   router: any; 
   locale: string;
 }
 
-export default function ChatWindow({
+function ChatWindow({
   isChatOpen, setIsChatOpen, messages, input, setInput,
   handleSend, isTyping, messagesEndRef, inputRef, isRtl, router, locale
 }: ChatWindowProps) {
+  
   
   if (!isChatOpen) return null;
 
@@ -58,73 +60,154 @@ export default function ChatWindow({
     if (actionType === 'THEME_LIGHT') document.documentElement.classList.remove('dark');
   };
 
-  const renderMessageContent = (text: string) => {
-    if (!text) return null;
-    
-    const parts = text.split(/(\[UI:SLIDER\]|\[ACTION:[A-Z_]+\]|\[.*?\]\(.*?\))/g);
-    
-    return parts.map((part, index) => {
-      if (part === '[UI:SLIDER]') {
-        return <MiniProductSlider key={index} router={router} locale={locale} setIsChatOpen={setIsChatOpen} isRtl={isRtl} />;
-      }
-      
-      const actionMatch = part.match(/\[ACTION:([A-Z_]+)\]/);
-      if (actionMatch) {
-        return (
-          <button
-            key={index}
-            onClick={() => handleSystemAction(actionMatch[1])}
-            className="inline-flex items-center mx-1 my-1 px-3 py-1.5 rounded-xl bg-zinc-900/10 dark:bg-white/10 backdrop-blur-sm text-zinc-800 dark:text-zinc-200 hover:scale-105 transition-all text-xs font-bold border border-zinc-300 dark:border-zinc-700"
-          >
-            {/* دوزبانه شدن دکمه‌های سیستمی */}
-            ⚡ {isRtl ? 'اعمال تنظیمات' : 'Apply Action'} ({actionMatch[1]})
-          </button>
-        );
-      }
-      
-      const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
-      if (linkMatch) {
-        const [_, label, target] = linkMatch;
-        return (
-          <button
-            key={index}
-            onClick={() => {
-              if (target === 'retry') {
-                const lastUserMsg = [...messages].reverse().find((m) => m.sender === 'user');
-                if (lastUserMsg) {
-                  setInput(lastUserMsg.text);
-                  setTimeout(() => handleSend({ preventDefault: () => {} } as React.FormEvent), 100);
-                }
-              } else if (target.startsWith('http')) {
-                window.open(target, '_blank');
-              } else {
-                let cleanTarget = target.trim().replace(/['"]/g, '');
-                if (!cleanTarget.startsWith('/')) cleanTarget = '/' + cleanTarget;
-                
-                const urlObj = new URL(cleanTarget, 'http://localhost');
-                let path = urlObj.pathname;
-                
-                if (path.startsWith('/fa/')) path = path.replace('/fa', '');
-                else if (path === '/fa') path = '';
-                else if (path.startsWith('/en/')) path = path.replace('/en', '');
-                else if (path === '/en') path = '';
-                
-                const finalPath = `/${locale}${path}${urlObj.search}${urlObj.hash}`;
-                
-                router.push(finalPath);
-                setIsChatOpen(false);
-              }
-            }}
-            className="inline-flex items-center gap-1 mx-1 my-1 px-3 py-1.5 rounded-full bg-amber-500/10 backdrop-blur-sm text-amber-700 dark:text-amber-400 hover:bg-amber-500 hover:text-white dark:hover:text-zinc-900 transition-all text-xs font-bold border border-amber-500/30 cursor-pointer shadow-sm"
-          >
-            {label} ↗
-          </button>
-        );
-      }
-      
-      return <span key={index}>{part}</span>;
-    });
+  const renderActionButton = (action: string, key: number) => {
+  const labels: Record<string, string> = {
+    THEME_DARK: isRtl ? "فعال کردن حالت تیره" : "Dark Mode",
+    THEME_LIGHT: isRtl ? "فعال کردن حالت روشن" : "Light Mode",
+    GO_PRODUCTS: isRtl ? "مشاهده محصولات" : "Products",
+    GO_BRANDS: isRtl ? "برندها" : "Brands",
+    GO_CONTACT: isRtl ? "تماس با ما" : "Contact",
   };
+
+  return (
+    <button
+      key={key}
+      onClick={() => {
+        switch (action) {
+          case "THEME_DARK":
+            handleSystemAction("THEME_DARK");
+            break;
+
+          case "THEME_LIGHT":
+            handleSystemAction("THEME_LIGHT");
+            break;
+
+          case "GO_PRODUCTS":
+            router.push(`/${locale}/products`);
+            setIsChatOpen(false);
+            break;
+
+          case "GO_BRANDS":
+            router.push(`/${locale}/brands`);
+            setIsChatOpen(false);
+            break;
+
+          case "GO_CONTACT":
+            router.push(`/${locale}/about#contact`);
+            setIsChatOpen(false);
+            break;
+        }
+      }}
+      className="inline-flex items-center gap-1 mx-1 my-1 px-3 py-2 rounded-xl bg-amber-500 text-zinc-900 text-xs font-bold hover:bg-amber-400 transition"
+    >
+      {labels[action] ?? action}
+    </button>
+  );
+};
+
+  const renderMessageContent = (text: string) => {
+  if (!text) return null;
+
+  const parts = text.split(
+    /(\[UI:SLIDER\]|\[ACTION:[A-Z_]+\]|\[.*?\]\(.*?\))/g
+  );
+
+  return parts.map((part, index) => {
+    if (!part) return null;
+
+    // ---------- Product Slider ----------
+    if (part === "[UI:SLIDER]") {
+      return (
+        <MiniProductSlider
+          key={index}
+          router={router}
+          locale={locale}
+          setIsChatOpen={setIsChatOpen}
+          isRtl={isRtl}
+        />
+      );
+    }
+
+    // ---------- Action Button ----------
+    const actionMatch = part.match(/\[ACTION:([A-Z_]+)\]/);
+
+    if (actionMatch) {
+      return renderActionButton(actionMatch[1], index);
+    }
+
+    // ---------- Markdown Link ----------
+    const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
+
+    if (linkMatch) {
+      const [, label, target] = linkMatch;
+
+      return (
+        <button
+          key={index}
+          onClick={() => {
+            if (target === "retry") {
+              const lastUserMsg = [...messages]
+                .reverse()
+                .find((m) => m.sender === "user");
+
+              if (lastUserMsg) {
+                setInput(lastUserMsg.text);
+
+                setTimeout(() => {
+                  handleSend({
+                    preventDefault() {},
+                  } as React.FormEvent);
+                }, 100);
+              }
+
+              return;
+            }
+
+            if (target.startsWith("http")) {
+              window.open(target, "_blank");
+              return;
+            }
+
+            let cleanTarget = target
+              .trim()
+              .replace(/['"]/g, "");
+
+            if (!cleanTarget.startsWith("/")) {
+              cleanTarget = "/" + cleanTarget;
+            }
+
+            const url = new URL(cleanTarget, "http://localhost");
+
+            let path = url.pathname;
+
+            if (path.startsWith("/fa/"))
+              path = path.replace("/fa", "");
+
+            if (path === "/fa")
+              path = "";
+
+            if (path.startsWith("/en/"))
+              path = path.replace("/en", "");
+
+            if (path === "/en")
+              path = "";
+
+            router.push(
+              `/${locale}${path}${url.search}${url.hash}`
+            );
+
+            setIsChatOpen(false);
+          }}
+          className="inline-flex items-center gap-1 mx-1 my-1 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500 hover:text-white transition text-xs font-bold border border-amber-500/30"
+        >
+          {label} ↗
+        </button>
+      );
+    }
+
+    return <span key={index}>{part}</span>;
+  });
+};
 
   return (
     <motion.div
@@ -194,3 +277,5 @@ export default function ChatWindow({
     </motion.div>
   );
 }
+
+export default React.memo(ChatWindow);

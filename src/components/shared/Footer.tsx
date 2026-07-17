@@ -100,7 +100,7 @@ export default function Footer({ siteLogo = null, contactInfo, footerTexts }: Fo
   };
   
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   // سیستم ایمن‌سازی اطلاعات تماس برای جلوگیری قاطع از ارورهای کنسول
   const safeContact = {
@@ -158,18 +158,25 @@ export default function Footer({ siteLogo = null, contactInfo, footerTexts }: Fo
       });
 
       const data = await response.json();
+      const botProducts =
+    data.products ?? [];
       if (!response.ok) throw new Error(data.error || 'Network Error');
       
-      let finalReply = data.reply;
+      let finalReply = data.reply || "";
 
-      if (finalReply.includes('[ACTION:THEME_DARK]')) {
-        setTheme('dark');
-        finalReply = finalReply.replace(/\[ACTION:THEME_DARK\]/g, '\n✨ **تم سایت تاریک شد!**');
-      }
-      if (finalReply.includes('[ACTION:THEME_LIGHT]')) {
-        setTheme('light');
-        finalReply = finalReply.replace(/\[ACTION:THEME_LIGHT\]/g, '\n✨ **تم سایت روشن شد!**');
-      }
+     if (data.action?.type === "theme") {
+
+    setTheme(data.action.value);
+
+}
+
+if (data.action?.type === "navigate") {
+
+    router.push(`/${locale}${data.action.value}`);
+
+    setIsChatOpen(false);
+
+}
 
       const navMatch = finalReply.match(/\[NAVIGATE:(.*?)\]/);
       if (navMatch) {
@@ -184,7 +191,16 @@ export default function Footer({ siteLogo = null, contactInfo, footerTexts }: Fo
         finalReply = finalReply.replace(/\[NAVIGATE:.*?\]/g, '\n🚀 **در حال انتقال فوری به صفحه مورد نظر...**');
       }
 
-      setMessages((prev) => [...prev, { id: Date.now() + 1, text: finalReply, sender: 'bot' }]);
+      setMessages((prev) => [
+  ...prev,
+  {
+    id: Date.now() + 1,
+    text: finalReply,
+    sender: "bot",
+    products: botProducts
+  }
+]);
+
     } catch (error) {
       console.error(error);
       setMessages((prev) => [...prev, { 
