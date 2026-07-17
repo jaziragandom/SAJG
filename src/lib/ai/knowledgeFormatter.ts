@@ -1,81 +1,48 @@
 export function formatKnowledge(data: any): string {
+  const parts: string[] = [];
 
-    const parts: string[] = [];
+  if (data.products?.length) {
+    parts.push("PRODUCTS:");
 
-    if (data.products?.length) {
+    data.products.forEach((p: any) => {
+      parts.push(
+        [
+          p.title,
+          p.brand ? `Brand: ${p.brand}` : "",
+          p.category ? `Category: ${p.category}` : "",
+          p.weight ? `Weight: ${p.weight}` : "",
+          p.package ? `Package: ${p.package}` : "",
+          `Link: /products/${p.slug}`
+        ]
+          .filter(Boolean)
+          .join(" | ")
+      );
+    });
+  }
 
-        parts.push("### PRODUCTS");
+  if (data.categories?.length) {
+    parts.push("\nCATEGORIES:");
 
-        data.products.forEach((p: any) => {
+    data.categories.forEach((c: any) => {
+      parts.push(`${c.title} | /products?category=${c.slug}`);
+    });
+  }
 
-            parts.push(
+  if (data.blogs?.length) {
+    parts.push("\nBLOGS:");
 
-`• ${p.title}
-Category: ${p.category}
-Weight: ${p.weight}
-Package: ${p.package}
-Brand: ${p.brand}
-Link: /products/${p.slug}
-`
-            );
+    data.blogs.forEach((b: any) => {
+      parts.push(`${b.title} | /blog/${b.slug}`);
+    });
+  }
 
-        });
+  if (data.branches?.length) {
+    parts.push("\nBRANCHES:");
 
-    }
+    data.branches.forEach((b: any) => {
+      parts.push(`${b.faName} | ${b.phone}`);
+    });
+  }
 
-    if (data.categories?.length) {
-
-        parts.push("\n### CATEGORIES");
-
-        data.categories.forEach((c: any) => {
-
-            parts.push(
-
-`• ${c.title}
-Link:
-/products?category=${c.slug}
-`
-            );
-
-        });
-
-    }
-
-    if (data.blogs?.length) {
-
-        parts.push("\n### BLOGS");
-
-        data.blogs.forEach((b: any) => {
-
-            parts.push(
-
-`• ${b.title}
-Link:
-/blog/${b.slug}
-`
-            );
-
-        });
-
-    }
-
-    if (data.branches?.length) {
-
-        parts.push("\n### BRANCHES");
-
-        data.branches.forEach((b: any) => {
-
-            parts.push(
-
-`• ${b.faName}
-Phone: ${b.phone}
-`
-            );
-
-        });
-
-    }
-
-    return parts.join("\n");
-
+  return parts.join("\n");
 }

@@ -7,7 +7,7 @@ import Category from "@/models/Category";
 import Blog from "@/models/Blog";
 import SiteContent from "@/models/SiteContent";
 
-import { askGemini } from "@/lib/ai/gemini";
+import { askGroq } from "@/lib/ai/groq";
 import { buildHistory } from "@/lib/ai/history";
 import { buildPrompt } from "@/lib/ai/prompt";
 import { retrieveKnowledge } from "@/lib/ai/retrieval";
@@ -220,11 +220,10 @@ const productsForUi =
           );
 
         const aiResponse =
-            await askGemini(
-                systemPrompt,
-                history
-            );
-
+    await askGroq(
+        systemPrompt,
+        history
+    );
         if (!aiResponse.success) {
 
             return NextResponse.json(

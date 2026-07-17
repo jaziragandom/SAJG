@@ -1,5 +1,4 @@
 function normalize(text: string = "") {
-
     return text
         .toLowerCase()
         .replace(/ي/g, "ی")
@@ -10,43 +9,37 @@ function normalize(text: string = "") {
         .replace(/-/g, " ")
         .replace(/\s+/g, " ")
         .trim();
-
 }
 
 const synonyms: Record<string, string[]> = {
-
-    "بطری": ["گالن","ظرف","دبه"],
-
-    "گالن": ["بطری","ظرف"],
-
-    "ظرف": ["بطری","گالن"],
+    "بطری": ["گالن", "ظرف", "دبه"],
+    "گالن": ["بطری", "ظرف"],
+    "ظرف": ["بطری", "گالن"],
 
     "پنج": ["5"],
-
     "۵": ["5"],
 
     "یک": ["1"],
-
     "۱": ["1"],
 
     "دو": ["2"],
-
     "۲": ["2"],
 
     "سه": ["3"],
-
     "۳": ["3"],
 
     "چهار": ["4"],
-
     "۴": ["4"],
 
-    "لیتر": ["l","liter"]
+    "لیتر": ["l", "liter"],
 
+    "روغن": ["oil"],
+    "آبمیوه": ["juice"],
+    "نوشابه": ["drink"],
+    "برند": ["brand"],
 };
 
-function calculateScore(q: string, text: string) {
-
+function calculateScore(q: string, text: string = "") {
     q = normalize(q);
     text = normalize(text);
 
@@ -55,9 +48,7 @@ function calculateScore(q: string, text: string) {
     const words = q.split(" ");
 
     for (const word of words) {
-
-        if (word.length < 2)
-            continue;
+        if (word.length < 2) continue;
 
         if (text.includes(word))
             score += 10;
@@ -65,20 +56,48 @@ function calculateScore(q: string, text: string) {
         const alt = synonyms[word];
 
         if (alt) {
-
             for (const s of alt) {
-
-                if (text.includes(s))
+                if (text.includes(normalize(s)))
                     score += 6;
-
             }
-
         }
-
     }
 
     return score;
+}
 
+function isProductQuestion(question: string) {
+
+    const q = normalize(question);
+
+    const keywords = [
+
+        "محصول",
+        "بطری",
+        "گالن",
+        "دبه",
+        "روغن",
+        "نوشابه",
+        "آبمیوه",
+        "چیپس",
+        "اسنک",
+        "بیسکویت",
+        "آرد",
+        "ماکارونی",
+        "برند",
+        "دسته",
+
+        "product",
+        "category",
+        "brand",
+        "oil",
+        "juice",
+        "drink",
+        "bottle"
+
+    ];
+
+    return keywords.some(k => q.includes(normalize(k)));
 }
 
 export function retrieveKnowledge(
@@ -86,30 +105,35 @@ export function retrieveKnowledge(
     question: string
 ) {
 
-    const products = db.products
+    const needProducts = isProductQuestion(question);
 
-        .map((p: any) => ({
+    const products = !needProducts
+        ? []
+        : (db.products ?? [])
+            .map((p: any) => ({
 
-            ...p,
+                ...p,
 
-            score:
+                score:
 
-                calculateScore(question, p.title) +
+                    calculateScore(question, p.title) +
 
-                calculateScore(question, p.category) +
+                    calculateScore(question, p.titleEn) +
 
-                calculateScore(question, p.brand)
+                    calculateScore(question, p.category) +
 
-        }))
+                    calculateScore(question, p.categoryEn) +
 
-        .filter((p: any) => p.score > 0)
+                    calculateScore(question, p.brand) +
 
-        .sort((a: any, b: any) => b.score - a.score)
+                    calculateScore(question, p.brandEn)
 
-        .slice(0, 10);
+            }))
+            .filter((p: any) => p.score > 0)
+            .sort((a: any, b: any) => b.score - a.score)
+            .slice(0, 3);
 
-    const blogs = db.blogs
-
+    const blogs = (db.blogs ?? [])
         .map((b: any) => ({
 
             ...b,
@@ -119,15 +143,11 @@ export function retrieveKnowledge(
                 calculateScore(question, b.title)
 
         }))
-
         .filter((b: any) => b.score > 0)
-
         .sort((a: any, b: any) => b.score - a.score)
+        .slice(0, 2);
 
-        .slice(0, 5);
-
-    const categories = db.categories
-
+    const categories = (db.categories ?? [])
         .map((c: any) => ({
 
             ...c,
@@ -137,12 +157,9 @@ export function retrieveKnowledge(
                 calculateScore(question, c.title)
 
         }))
-
         .filter((c: any) => c.score > 0)
-
         .sort((a: any, b: any) => b.score - a.score)
-
-        .slice(0, 5);
+        .slice(0, 2);
 
     return {
 
@@ -152,7 +169,7 @@ export function retrieveKnowledge(
 
         categories,
 
-        branches: db.branches
+        branches: db.branches ?? []
 
     };
 
