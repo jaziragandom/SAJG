@@ -3,21 +3,53 @@ import { motion } from "framer-motion";
 import { Bot, X, Send, ShoppingBag } from "lucide-react";
 
 // اضافه کردن isRtl به پروپ‌های اسلایدر برای دوزبانه شدن متون
-const MiniProductSlider = ({ router, locale, setIsChatOpen, isRtl }: { router: any, locale: string, setIsChatOpen: any, isRtl: boolean }) => (
-  <div className="w-full overflow-x-auto flex gap-3 pb-2 custom-scrollbar mt-2">
-    {[1, 2, 3].map((item) => (
-      <div key={item} className="shrink-0 w-32 bg-white/50 dark:bg-zinc-800/50 backdrop-blur-md border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm">
+const MiniProductSlider = ({
+  router,
+  locale,
+  setIsChatOpen,
+  isRtl,
+  products
+}:{
+  router:any;
+  locale:string;
+  setIsChatOpen:any;
+  isRtl:boolean;
+  products:any[];
+}) => {
+  if (!products || products.length === 0) return null;
+  return (
+      <div className="w-full overflow-x-auto flex gap-3 pb-2 custom-scrollbar mt-2">
+    {products.map((product)=>(
+      <div key={product.slug} className="shrink-0 w-32 bg-white/50 dark:bg-zinc-800/50 backdrop-blur-md border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm">
         <div className="h-20 bg-amber-100/50 dark:bg-zinc-900/50 flex items-center justify-center">
-           <ShoppingBag size={24} className="text-amber-500/50" />
+           {product.image && product.image.trim() !== "" ? (
+
+<img
+    src={product.image}
+    alt={product.title}
+    className="w-full h-full object-cover"
+/>
+
+) : (
+
+<div className="w-full h-full flex items-center justify-center">
+
+<ShoppingBag className="text-zinc-400 dark:text-zinc-500" size={26} />
+
+</div>
+
+)}
         </div>
         <div className="p-2">
           {/* دوزبانه شدن عنوان محصول */}
-          <p className="text-[10px] font-black text-zinc-800 dark:text-zinc-200">
-            {isRtl ? `محصول ویژه ${item}` : `Featured Product ${item}`}
-          </p>
+          <p className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 line-clamp-2">
+
+{product.title}
+
+</p>
           <button 
             onClick={() => {
-              router.push(`/${locale}/products`);
+              router.push(`/${locale}/products/${product.slug}`);
               setIsChatOpen(false);
             }}
             className="mt-1.5 w-full bg-amber-500/90 hover:bg-amber-400 transition-colors text-zinc-950 text-[10px] font-bold py-1 rounded-lg"
@@ -30,25 +62,42 @@ const MiniProductSlider = ({ router, locale, setIsChatOpen, isRtl }: { router: a
     ))}
   </div>
 );
-
+}
 
 interface ChatWindowProps {
-  isChatOpen: boolean; 
-  setIsChatOpen: (val: boolean) => void;
-  messages: any[]; 
-  input: string; 
-  setInput: (val: string) => void;
-  handleSend: (e: React.FormEvent) => void; 
-  isTyping: boolean;
-  messagesEndRef: React.RefObject<HTMLDivElement | null>;
-  inputRef: React.RefObject<HTMLTextAreaElement | null>; 
-  isRtl: boolean; 
-  router: any; 
-  locale: string;
+
+  isChatOpen:boolean;
+  setIsChatOpen:(val:boolean)=>void;
+
+  messages:any[];
+
+  input:string;
+  setInput:(v:string)=>void;
+
+  handleSend:(e:React.FormEvent)=>void;
+
+  isTyping:boolean;
+
+  messagesEndRef:any;
+
+  inputRef:any;
+
+  isRtl:boolean;
+
+  router:any;
+
+  locale:string;
+
 }
 
 function ChatWindow({
-  isChatOpen, setIsChatOpen, messages, input, setInput,
+
+isChatOpen,
+setIsChatOpen,
+messages,
+input,
+
+setInput,
   handleSend, isTyping, messagesEndRef, inputRef, isRtl, router, locale
 }: ChatWindowProps) {
   
@@ -83,9 +132,9 @@ function ChatWindow({
             break;
 
           case "GO_PRODUCTS":
-            router.push(`/${locale}/products`);
-            setIsChatOpen(false);
-            break;
+    router.push(`/${locale}/products`);
+    setIsChatOpen(false);
+    break;
 
           case "GO_BRANDS":
             router.push(`/${locale}/brands`);
@@ -105,8 +154,11 @@ function ChatWindow({
   );
 };
 
-  const renderMessageContent = (text: string) => {
-  if (!text) return null;
+const renderMessageContent = (
+    text:string,
+    products:any[]=[]
+)=>{
+    if (!text) return null;
 
   const parts = text.split(
     /(\[UI:SLIDER\]|\[ACTION:[A-Z_]+\]|\[.*?\]\(.*?\))/g
@@ -117,16 +169,17 @@ function ChatWindow({
 
     // ---------- Product Slider ----------
     if (part === "[UI:SLIDER]") {
-      return (
-        <MiniProductSlider
-          key={index}
-          router={router}
-          locale={locale}
-          setIsChatOpen={setIsChatOpen}
-          isRtl={isRtl}
-        />
-      );
-    }
+  return (
+    <MiniProductSlider
+      key={index}
+      router={router}
+      locale={locale}
+      setIsChatOpen={setIsChatOpen}
+      isRtl={isRtl}
+      products={products}
+    />
+  );
+}
 
     // ---------- Action Button ----------
     const actionMatch = part.match(/\[ACTION:([A-Z_]+)\]/);
@@ -136,74 +189,124 @@ function ChatWindow({
     }
 
     // ---------- Markdown Link ----------
-    const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
+const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);
 
-    if (linkMatch) {
-      const [, label, target] = linkMatch;
+if (linkMatch) {
+  const [, label, target] = linkMatch;
 
-      return (
-        <button
-          key={index}
-          onClick={() => {
-            if (target === "retry") {
-              const lastUserMsg = [...messages]
-                .reverse()
-                .find((m) => m.sender === "user");
+  let href = target.trim();
 
-              if (lastUserMsg) {
-                setInput(lastUserMsg.text);
+  // PHONE
+  if (href.startsWith("tel:")) {
+    const number = href.replace("tel:", "");
 
-                setTimeout(() => {
-                  handleSend({
-                    preventDefault() {},
-                  } as React.FormEvent);
-                }, 100);
-              }
+    return (
+      <a
+        key={index}
+        href={href}
+        dir="ltr"
+        className="inline-flex items-center gap-2 mx-1 my-1 px-3 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-xs font-bold transition"
+      >
+        📞 {isRtl ? "تماس" : "Call"} ({number})
+      </a>
+    );
+  }
 
-              return;
-            }
+  // EMAIL
+  if (href.startsWith("mailto:")) {
+    const email = href.replace("mailto:", "");
 
-            if (target.startsWith("http")) {
-              window.open(target, "_blank");
-              return;
-            }
+    return (
+      <a
+        key={index}
+        href={href}
+        className="inline-flex items-center gap-2 mx-1 my-1 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition"
+      >
+        ✉️ {email}
+      </a>
+    );
+  }
 
-            let cleanTarget = target
-              .trim()
-              .replace(/['"]/g, "");
+  // WHATSAPP
+  if (
+    href.includes("wa.me") ||
+    href.includes("whatsapp")
+  ) {
+    return (
+      <a
+        key={index}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 mx-1 my-1 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition"
+      >
+        💬 WhatsApp
+      </a>
+    );
+  }
 
-            if (!cleanTarget.startsWith("/")) {
-              cleanTarget = "/" + cleanTarget;
-            }
+  // GOOGLE MAP
+  if (
+    href.includes("google.") ||
+    href.includes("maps.")
+  ) {
+    return (
+      <a
+        key={index}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 mx-1 my-1 px-3 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold transition"
+      >
+        📍 {isRtl ? "مشاهده روی نقشه" : "Open Map"}
+      </a>
+    );
+  }
 
-            const url = new URL(cleanTarget, "http://localhost");
+  // EXTERNAL LINK
+  if (href.startsWith("http")) {
+    return (
+      <a
+        key={index}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 mx-1 my-1 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition"
+      >
+        🔗 {label}
+      </a>
+    );
+  }
 
-            let path = url.pathname;
+  // INTERNAL LINK
+  return (
+    <button
+      key={index}
+      onClick={() => {
+        let cleanTarget = href.replace(/['"]/g, "");
 
-            if (path.startsWith("/fa/"))
-              path = path.replace("/fa", "");
+        if (!cleanTarget.startsWith("/")) {
+          cleanTarget = "/" + cleanTarget;
+        }
 
-            if (path === "/fa")
-              path = "";
+        const url = new URL(cleanTarget, "http://localhost");
 
-            if (path.startsWith("/en/"))
-              path = path.replace("/en", "");
+        let path = url.pathname;
 
-            if (path === "/en")
-              path = "";
+        path = path.replace(/^\/(fa|en)/, "");
 
-            router.push(
-              `/${locale}${path}${url.search}${url.hash}`
-            );
+        router.push(
+          `/${locale}${path}${url.search}${url.hash}`
+        );
 
-            setIsChatOpen(false);
-          }}
-          className="inline-flex items-center gap-1 mx-1 my-1 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500 hover:text-white transition text-xs font-bold border border-amber-500/30"
-        >
-          {label} ↗
-        </button>
-      );
-    }
+        setIsChatOpen(false);
+      }}
+      className="inline-flex items-center gap-2 mx-1 my-1 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-900 text-xs font-bold transition"
+    >
+      🔗 {label}
+    </button>
+  );
+}
 
     return <span key={index}>{part}</span>;
   });
@@ -236,7 +339,12 @@ function ChatWindow({
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div dir="auto" className={`max-w-[85%] p-3.5 rounded-2xl text-sm leading-7 shadow-sm text-left whitespace-pre-wrap ${msg.sender === 'user' ? 'bg-amber-500 text-zinc-950 rounded-br-none' : 'bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-bl-none'}`}>
-              {msg.sender === 'bot' ? renderMessageContent(msg.text) : msg.text}
+              {msg.sender === "bot"
+  ? renderMessageContent(
+      msg.text,
+      msg.products
+    )
+  : msg.text}
             </div>
           </div>
         ))}

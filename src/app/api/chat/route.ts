@@ -95,10 +95,10 @@ async function loadKnowledge(locale: string) {
         p.weight ??
         "",
 
-    package:
-        p.specs?.packaging ??
-        p.packaging ??
-        "",
+    packagingFa:
+    p.specs?.packagingFa ?? "",
+    packagingEn:
+    p.specs?.packagingEn ?? "",
 
     brand:
     p.brandId?.slug ?? "",
@@ -108,6 +108,16 @@ brandFa:
 
 brandEn:
     p.brandId?.title ?? "",
+    
+image: 
+    p.image || 
+    p.imageUrl || 
+    p.thumbnail || 
+    p.cover || 
+    p.coverImage || 
+    p.images?.main || 
+    (p.gallery && p.gallery[0]) || 
+    "",
 })),
 
         categories: categories.map((c: any) => ({
@@ -127,8 +137,10 @@ brandEn:
         })),
 
         branches:
-            corporate?.data?.branches ??
-            []
+    corporate?.data?.branches ?? [],
+
+hqData:
+    corporate?.data?.hqData ?? {}
 
     };
 
@@ -195,6 +207,7 @@ const productsForUi =
     filteredKnowledge.products
         ?.slice(0, 5)
         .map((p: any) => ({
+
             title:
                 locale === "fa"
                     ? p.title
@@ -211,8 +224,28 @@ const productsForUi =
                 locale === "fa"
                     ? p.category
                     : p.categoryEn,
+
+            image:
+                p.image ||
+
+                p.images?.main ||
+
+                "",
+
+            weight:
+                p.weight ||
+
+                p.specs?.weight ||
+
+                "",
+
+            packaging:
+            locale=="fa"
+             ? p.packagingFa
+             : p.packagingEn
+
         })) ?? [];
-        
+
         const systemPrompt = buildPrompt(
            filteredKnowledge,
            lastUserMessage.text,

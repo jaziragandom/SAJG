@@ -12,8 +12,8 @@ function normalize(text: string = "") {
 }
 
 const synonyms: Record<string, string[]> = {
-    "بطری": ["گالن", "ظرف", "دبه"],
-    "گالن": ["بطری", "ظرف"],
+    "بطری": ["گالن", "ظرف", "دبه", "bottle"],
+    "گالن": ["بطری", "ظرف", "دبه"],
     "ظرف": ["بطری", "گالن"],
 
     "پنج": ["5"],
@@ -34,9 +34,14 @@ const synonyms: Record<string, string[]> = {
     "لیتر": ["l", "liter"],
 
     "روغن": ["oil"],
-    "آبمیوه": ["juice"],
-    "نوشابه": ["drink"],
+    "آبمیوه": ["juice", "رانی", "نوشیدنی میوه ای"],
+    "نوشابه": ["drink", "انرژیزا", "انرژی زا"],
     "برند": ["brand"],
+    
+    "آب": ["آب معدنی", "water", "mineral water"],
+    "آب معدنی": ["آب", "water", "mineral water"],
+    "انرژیزا": ["enerjiza", "انرژی زا", "نوشابه انرژی زا", "energy drink", "energy"],
+    "انرژی زا": ["enerjiza", "انرژیزا", "نوشابه", "energy drink", "energy"],
 };
 
 function calculateScore(q: string, text: string = "") {
@@ -86,6 +91,10 @@ function isProductQuestion(question: string) {
         "ماکارونی",
         "برند",
         "دسته",
+        "آب",
+        "انرژیزا",
+        "انرژی زا",
+        "معرفی",
 
         "product",
         "category",
@@ -93,7 +102,9 @@ function isProductQuestion(question: string) {
         "oil",
         "juice",
         "drink",
-        "bottle"
+        "bottle",
+        "water",
+        "energy"
 
     ];
 
@@ -126,10 +137,12 @@ export function retrieveKnowledge(
 
                     calculateScore(question, p.brand) +
 
-                    calculateScore(question, p.brandEn)
+                    calculateScore(question, p.brandEn) +
+                    
+                    calculateScore(question, p.slug)
 
             }))
-            .filter((p: any) => p.score > 0)
+            .filter((p: any) => p.score > 8)
             .sort((a: any, b: any) => b.score - a.score)
             .slice(0, 3);
 

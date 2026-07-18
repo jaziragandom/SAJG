@@ -125,8 +125,8 @@ const inputRef = useRef<HTMLTextAreaElement | null>(null);
         {
           id: 1,
           text: isRtl 
-            ? 'سلام! من دستیار هوشمند جزیره گندم هستم. امروز چطور می‌توانم کمکتان کنم؟' 
-            : 'Hello! I am the Jazirah Gandum smart assistant. How can I help you today?',
+            ? 'سلام! چطور می‌توانم کمکتان کنم؟' 
+            : 'Hello! How can I help you?',
           sender: 'bot',
         }
       ]);
@@ -394,7 +394,7 @@ if (data.action?.type === "navigate") {
                   onChange={(e) => setNlEmail(e.target.value)}
                   placeholder={t("newsletter.placeholder")} 
                   disabled={nlLoading}
-                  className="w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded-xl py-3 px-4 pr-12 text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500 shadow-sm disabled:opacity-50" 
+                  className={`w-full bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded-xl py-3 ${isRtl ? "pl-12 pr-4" : "pr-12 pl-4"} text-sm text-zinc-900 dark:text-white focus:outline-none focus:border-primary transition-colors placeholder:text-zinc-400 dark:placeholder:text-zinc-500 shadow-sm disabled:opacity-50`} 
                   dir="ltr" 
                   required
                 />
@@ -426,18 +426,29 @@ if (data.action?.type === "navigate") {
         </motion.div>
       </footer>
 
-      <div className={`fixed bottom-6 ${isRtl ? "right-6" : "left-6"} z-9999 flex flex-col items-start gap-3 pointer-events-none`}>
+      {/* سیستم موقعیت‌یابی دکمه شناور و چت‌بات اصلاح شد */}
+      <div className={`fixed bottom-6 ${isRtl ? "right-6 items-start" : "left-6 items-start"} z-9999 flex flex-col gap-3 pointer-events-none`}>
         <AnimatePresence>
           {isChatOpen && (
-            <ChatWindow 
-              isChatOpen={isChatOpen} setIsChatOpen={setIsChatOpen} messages={messages}
-              input={input} setInput={setInput} handleSend={handleSend} isTyping={isTyping}
-              messagesEndRef={messagesEndRef} inputRef={inputRef} isRtl={isRtl} router={router} locale={locale}
+            <ChatWindow
+              isChatOpen={isChatOpen}
+              setIsChatOpen={setIsChatOpen}
+              messages={messages}
+              input={input}
+              setInput={setInput}
+              handleSend={handleSend}
+              isTyping={isTyping}
+              messagesEndRef={messagesEndRef}
+              inputRef={inputRef}
+              isRtl={isRtl}
+              router={router}
+              locale={locale}
             />
           )}
         </AnimatePresence>
 
-        <motion.div layout className={`flex gap-3 pointer-events-auto ${isChatOpen ? 'flex-row items-end' : 'flex-col items-center'}`}>
+        {/* دکمه‌های شناور (باز کردن چت و اسکرول به بالا) */}
+        <motion.div layout className={`flex gap-3 pointer-events-auto ${isChatOpen ? 'flex-row items-center' : 'flex-col items-center'}`}>
           <motion.button
             layout
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
