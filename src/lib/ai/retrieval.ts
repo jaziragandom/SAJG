@@ -35,13 +35,15 @@ const synonyms: Record<string, string[]> = {
 
     "روغن": ["oil"],
     "آبمیوه": ["juice", "رانی", "نوشیدنی میوه ای"],
-    "نوشابه": ["drink", "انرژیزا", "انرژی زا"],
+    "نوشابه": ["drink", "انرژیزا", "انرژی زا", "گازدار", "کولا", "سودا"],
     "برند": ["brand"],
-    
+
     "آب": ["آب معدنی", "water", "mineral water"],
     "آب معدنی": ["آب", "water", "mineral water"],
     "انرژیزا": ["enerjiza", "انرژی زا", "نوشابه انرژی زا", "energy drink", "energy"],
     "انرژی زا": ["enerjiza", "انرژیزا", "نوشابه", "energy drink", "energy"],
+    "گازدار": ["carbonated", "سودا", "soda", "نوشابه", "نوشیدنی"],
+    "نوشیدنی": ["آبمیوه", "نوشابه", "drink", "juice", "آب"],
 };
 
 function calculateScore(q: string, text: string = "") {
@@ -95,7 +97,29 @@ function isProductQuestion(question: string) {
         "انرژیزا",
         "انرژی زا",
         "معرفی",
-
+        "طعم",
+        "لیمو",
+        "پرتقال",
+        "انبه",
+        "سیب",
+        "کولا",
+        "جینسینگ",
+        "هلو",
+        "انگور",
+        "آلبالو",
+        "لیموناد",
+        "انار",
+        "flavor",
+        "taste",
+        "lemon",
+        "orange",
+        "apple",
+        "cola",
+        "mango",
+        "grape",
+        "peach",
+        "pomegranate",
+        "ginseng",
         "product",
         "category",
         "brand",
@@ -104,7 +128,12 @@ function isProductQuestion(question: string) {
         "drink",
         "bottle",
         "water",
-        "energy"
+        "energy",
+        "گازدار",
+        "نوشیدنی",
+        "سودا",
+        "carbonated",
+        "soda"
 
     ];
 
@@ -137,14 +166,36 @@ export function retrieveKnowledge(
 
                     calculateScore(question, p.brand) +
 
+                    calculateScore(question, p.brandFa) +
+
                     calculateScore(question, p.brandEn) +
-                    
+
+                    calculateScore(question, p.packagingFa) +
+
+                    calculateScore(question, p.packagingEn) +
+
+                    calculateScore(question, p.weight) +
+
+                    calculateScore(question, p.flavorFa) +
+
+                    calculateScore(question, p.flavorEn) +
+
+                    calculateScore(question, p.descriptionFa) +
+
+                    calculateScore(question, p.descriptionEn) +
+
+                    calculateScore(question, p.descriptionFa) +
+
+                    calculateScore(question, p.descriptionEn) +
+
+                    calculateScore(question, p.tags?.join(" ")) +
+
                     calculateScore(question, p.slug)
 
             }))
             .filter((p: any) => p.score > 8)
             .sort((a: any, b: any) => b.score - a.score)
-            .slice(0, 3);
+            .slice(0, 12);
 
     const blogs = (db.blogs ?? [])
         .map((b: any) => ({

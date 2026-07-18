@@ -20,14 +20,16 @@ const MiniProductSlider = ({
   return (
       <div className="w-full overflow-x-auto flex gap-3 pb-2 custom-scrollbar mt-2">
     {products.map((product)=>(
-      <div key={product.slug} className="shrink-0 w-32 bg-white/50 dark:bg-zinc-800/50 backdrop-blur-md border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm">
-        <div className="h-20 bg-amber-100/50 dark:bg-zinc-900/50 flex items-center justify-center">
+      <div key={product.slug} className="shrink-0 w-32 bg-white/50 dark:bg-zinc-800/50 backdrop-blur-md border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden shadow-sm flex flex-col">
+        {/* تغییر ۱ و ۲: ارتفاع کمی بیشتر شد (h-24) و پدینگ (p-2) اضافه شد */}
+        <div className="h-24 p-2 bg-amber-100/50 dark:bg-zinc-900/50 flex items-center justify-center">
            {product.image && product.image.trim() !== "" ? (
 
 <img
     src={product.image}
     alt={product.title}
-    className="w-full h-full object-cover"
+    /* تغییر ۳: استفاده از object-contain برای جلوگیری از برش خوردن تصویر */
+    className="w-full h-full object-contain drop-shadow-sm"
 />
 
 ) : (
@@ -40,13 +42,15 @@ const MiniProductSlider = ({
 
 )}
         </div>
-        <div className="p-2">
+        <div className="p-2 flex-1 flex flex-col justify-between">
           {/* دوزبانه شدن عنوان محصول */}
           <p className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 line-clamp-2">
-
-{product.title}
-
-</p>
+{
+    locale === "fa"
+        ? product.title
+        : product.titleEn || product.title
+}
+</p> 
           <button 
             onClick={() => {
               router.push(`/${locale}/products/${product.slug}`);
@@ -55,7 +59,7 @@ const MiniProductSlider = ({
             className="mt-1.5 w-full bg-amber-500/90 hover:bg-amber-400 transition-colors text-zinc-950 text-[10px] font-bold py-1 rounded-lg"
           >
             {/* دوزبانه شدن متن دکمه */}
-            {isRtl ? 'مشاهده صفحه' : 'View Page'}
+            {isRtl ? 'مشاهده محصول' : 'View Product'}
           </button>
         </div>
       </div>
@@ -187,6 +191,68 @@ const renderMessageContent = (
     if (actionMatch) {
       return renderActionButton(actionMatch[1], index);
     }
+const productMatch = part.match(/ProductLink:\s*\[(.*?)\]/);
+
+if (productMatch) {
+
+    const target = productMatch[1];
+
+    return (
+        <button
+            key={index}
+            onClick={()=>{
+                router.push(`/${locale}${target}`);
+                setIsChatOpen(false);
+            }}
+            className="inline-flex items-center gap-2 px-3 py-2 mx-1 my-1 rounded-xl bg-amber-500 text-zinc-900 text-xs font-bold hover:bg-amber-400 transition"
+        >
+            🛍 {isRtl ? "مشاهده محصول" : "View Product"}
+        </button>
+    );
+
+}
+
+const categoryMatch = part.match(/CategoryLink:\s*\[(.*?)\]/);
+
+if (categoryMatch) {
+
+    const target = categoryMatch[1];
+
+    return (
+        <button
+            key={index}
+            onClick={()=>{
+                router.push(`/${locale}${target}`);
+                setIsChatOpen(false);
+            }}
+            className="inline-flex items-center gap-2 px-3 py-2 mx-1 my-1 rounded-xl bg-blue-500 text-white text-xs font-bold hover:bg-blue-600 transition"
+        >
+            📂 {isRtl ? "مشاهده دسته" : "View Category"}
+        </button>
+    );
+
+}
+
+const blogMatch = part.match(/BlogLink:\s*\[(.*?)\]/);
+
+if (blogMatch) {
+
+    const target = blogMatch[1];
+
+    return (
+        <button
+            key={index}
+            onClick={()=>{
+                router.push(`/${locale}${target}`);
+                setIsChatOpen(false);
+            }}
+            className="inline-flex items-center gap-2 px-3 py-2 mx-1 my-1 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition"
+        >
+            📖 {isRtl ? "مطالعه مقاله" : "Read Article"}
+        </button>
+    );
+
+}
 
     // ---------- Markdown Link ----------
 const linkMatch = part.match(/\[(.*?)\]\((.*?)\)/);

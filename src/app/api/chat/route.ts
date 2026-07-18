@@ -77,19 +77,40 @@ async function loadKnowledge(locale: string) {
 
     slug: p.slug,
 
-    category:
-        typeof p.category === "string"
-            ? p.category
-            : p.category?.faTitle ??
-              p.category?.title ??
-              "",
+    categorySlug:
+    typeof p.category === "string"
+        ? p.category
+        : p.category?.slug ?? "",
 
-    categoryEn:
-        typeof p.category === "string"
-            ? p.category
-            : p.category?.title ??
-              "",
+category:
+    (() => {
+        if (typeof p.category !== "string") {
+            return p.category?.faTitle ?? "";
+        }
 
+        const cat = categories.find(
+            (c: any) => c.slug === p.category
+        );
+
+        return cat?.faTitle ?? p.category;
+    })(),
+
+categoryEn:
+    (() => {
+        if (typeof p.category !== "string") {
+            return p.category?.title ?? "";
+        }
+
+        const cat = categories.find(
+            (c: any) => c.slug === p.category
+        );
+
+        return cat?.title ?? p.category;
+    })(),
+
+flavorEn:
+    p.specs?.flavorEn ?? "",
+    
     weight:
         p.specs?.weight ??
         p.weight ??
@@ -99,6 +120,14 @@ async function loadKnowledge(locale: string) {
     p.specs?.packagingFa ?? "",
     packagingEn:
     p.specs?.packagingEn ?? "",
+    flavorFa:
+    p.specs?.flavorFa ?? "",
+
+descriptionFa:
+    p.faDesc ?? "",
+
+descriptionEn:
+    p.enDesc ?? "",
 
     brand:
     p.brandId?.slug ?? "",
@@ -108,6 +137,14 @@ brandFa:
 
 brandEn:
     p.brandId?.title ?? "",
+    
+flavor:
+    p.specs?.flavor ??
+    p.specs?.flavorFa ??
+    "",
+
+tags:
+    p.tags ?? [],
     
 image: 
     p.image || 
@@ -203,27 +240,35 @@ const lastUserMessage =
         database,
         lastUserMessage.text
     );
+
+    const userLang =
+  /^[a-z]/i.test(lastUserMessage.text.trim())
+    ? "en"
+    : "fa";
+
 const productsForUi =
     filteredKnowledge.products
-        ?.slice(0, 5)
-        .map((p: any) => ({
+        ?.map((p: any) => ({
 
             title:
-                locale === "fa"
-                    ? p.title
-                    : p.titleEn || p.title,
+    userLang === "fa"
+        ? p.title
+        : p.titleEn || p.title,
 
             slug: p.slug,
 
             brand:
-                locale === "fa"
-                    ? p.brandFa
-                    : p.brandEn,
+    userLang === "fa"
+        ? p.brandFa
+        : (p.brandEn || p.brandFa),
 
             category:
-                locale === "fa"
-                    ? p.category
-                    : p.categoryEn,
+    userLang === "fa"
+        ? p.category
+        : (p.categoryEn || p.category),
+
+categorySlug:
+    p.categorySlug,
 
             image:
                 p.image ||
@@ -239,11 +284,14 @@ const productsForUi =
 
                 "",
 
-            packaging:
-            locale=="fa"
-             ? p.packagingFa
-             : p.packagingEn
-
+           packaging:
+    userLang === "fa"
+        ? p.packagingFa
+        : (p.packagingEn || p.packagingFa),
+flavor:
+    userLang === "fa"
+        ? p.flavor
+        : (p.flavorEn || p.flavor),
         })) ?? [];
 
         const systemPrompt = buildPrompt(
@@ -271,10 +319,16 @@ const productsForUi =
         }
 
        let reply = aiResponse.text?.trim() ?? "";
-       reply += buildUI(
-    lastUserMessage.text,
-    filteredKnowledge
-);
+
+// ----------------------------------------------------
+// سیستم همگام‌سازی اسلایدر با متن هوش مصنوعی
+// فقط محصولاتی در اسلایدر نمایش داده می‌شوند که لینک آن‌ها در متن پیام باشد
+const syncedProducts = productsForUi.filter((p: any) => reply.includes(p.slug));
+
+if (syncedProducts.length > 0) {
+    reply += "\n\n[UI:SLIDER]";
+}
+// ----------------------------------------------------
 
 if (!reply) {
 
@@ -292,7 +346,7 @@ reply = reply
 
 return NextResponse.json({
     reply,
-    products: productsForUi
+    products: syncedProducts // ارسال محصولات همگام‌سازی شده به جای لیست پیش‌فرض
 });
 
     } catch (error: any) {

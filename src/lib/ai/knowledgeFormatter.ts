@@ -10,12 +10,16 @@ export function formatKnowledge(data: any): string {
           `${index + 1}. ${p.title} (English: ${p.titleEn || 'N/A'})`,
           p.brandFa ? `Brand: ${p.brandFa}` : "",
           p.category ? `Category: ${p.category}` : "",
+          p.categorySlug ? `CategorySlug: ${p.categorySlug}` : "",
           p.weight ? `Weight: ${p.weight}` : "",
+          p.flavorFa ? `Flavor: ${p.flavorFa}` : "",
+          p.flavorEn ? `FlavorEn: ${p.flavorEn}` : "",
+          p.tags?.length ? `Tags: ${p.tags.join(", ")}` : "",
           p.package ? `Package: ${p.package}` : "",
           p.packagingFa ? `Packaging: ${p.packagingFa}` : "",
           p.packagingEn ? `Packaging: ${p.packagingEn}` : "",
           `Slug: ${p.slug}`,
-          `Link: /products/${p.slug}`,
+          `ProductLink: [/products/${p.slug}]`,
         ]
           .filter(Boolean)
           .join(" | ")
@@ -28,7 +32,7 @@ export function formatKnowledge(data: any): string {
 
     data.categories.forEach((c: any) => {
       parts.push(
-        `${c.title} | Link: /products?category=${c.slug}`
+        `${c.title} | CategoryLink: [/products?category=${c.slug}]`
       );
     });
   }
@@ -38,7 +42,7 @@ export function formatKnowledge(data: any): string {
 
     data.blogs.forEach((b: any) => {
       parts.push(
-        `${b.title} | Link: /blog/${b.slug}`
+        `${b.title} | BlogLink: [/blog/${b.slug}]`
       );
     });
   }
