@@ -75,69 +75,10 @@ function calculateScore(q: string, text: string = "") {
 
 function isProductQuestion(question: string) {
 
-    const q = normalize(question);
+    // با بازگرداندن true، لیست دستی و دردسرساز کلیدواژه‌ها را خنثی کردیم. 
+    // حالا الگوریتم امتیازدهی به صورت خودکار تصمیم می‌گیرد که محصولی وجود دارد یا خیر.
+    return true;
 
-    const keywords = [
-
-        "محصول",
-        "بطری",
-        "گالن",
-        "دبه",
-        "روغن",
-        "نوشابه",
-        "آبمیوه",
-        "چیپس",
-        "اسنک",
-        "بیسکویت",
-        "آرد",
-        "ماکارونی",
-        "برند",
-        "دسته",
-        "آب",
-        "انرژیزا",
-        "انرژی زا",
-        "معرفی",
-        "طعم",
-        "لیمو",
-        "پرتقال",
-        "انبه",
-        "سیب",
-        "کولا",
-        "جینسینگ",
-        "هلو",
-        "انگور",
-        "آلبالو",
-        "لیموناد",
-        "انار",
-        "flavor",
-        "taste",
-        "lemon",
-        "orange",
-        "apple",
-        "cola",
-        "mango",
-        "grape",
-        "peach",
-        "pomegranate",
-        "ginseng",
-        "product",
-        "category",
-        "brand",
-        "oil",
-        "juice",
-        "drink",
-        "bottle",
-        "water",
-        "energy",
-        "گازدار",
-        "نوشیدنی",
-        "سودا",
-        "carbonated",
-        "soda"
-
-    ];
-
-    return keywords.some(k => q.includes(normalize(k)));
 }
 
 export function retrieveKnowledge(
@@ -225,6 +166,11 @@ export function retrieveKnowledge(
         .sort((a: any, b: any) => b.score - a.score)
         .slice(0, 2);
 
+    // برای جلوگیری از هدر رفت توکن‌ها، لیست برندها فقط زمانی اضافه می‌شود که کاربر کلمه برند را جستجو کند
+    const qNorm = normalize(question);
+    const wantsBrands = qNorm.includes("برند") || qNorm.includes("brand") || qNorm.includes("مارک");
+    const brands = wantsBrands ? (db.brands ?? []) : [];
+
     return {
 
         products,
@@ -232,6 +178,8 @@ export function retrieveKnowledge(
         blogs,
 
         categories,
+        
+        brands,
 
         branches: db.branches ?? []
 

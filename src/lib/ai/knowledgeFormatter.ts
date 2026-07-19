@@ -27,6 +27,16 @@ export function formatKnowledge(data: any): string {
     });
   }
 
+  if (data.brands?.length) {
+    parts.push("\nBRANDS:");
+
+    data.brands.forEach((b: any) => {
+      parts.push(
+        `${b.faTitle} | BrandLink: [/brands/${b.slug}]`
+      );
+    });
+  }
+
   if (data.categories?.length) {
     parts.push("\nCATEGORIES:");
 

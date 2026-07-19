@@ -165,6 +165,17 @@ image:
 
         })),
 
+        brands: Array.from(
+            new Map(
+                products
+                    .filter((p: any) => p.brandId && p.brandId.slug)
+                    .map((p: any) => [
+                        p.brandId.slug,
+                        { slug: p.brandId.slug, faTitle: p.brandId.faTitle || p.brandId.slug, title: p.brandId.title || p.brandId.slug }
+                    ])
+            ).values()
+        ),
+
         blogs: blogs.map((b: any) => ({
 
             title: b.faTitle,
