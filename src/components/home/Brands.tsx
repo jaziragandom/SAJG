@@ -67,7 +67,6 @@ export default function Brands() {
               const desc = isRtl ? brand.faDesc : brand.enDesc;
               const logoToUse = isRtl ? brand.logoFa : brand.logoEn;
               
-              // === اصلاح لینک در اینجا انجام شده است ===
               const brandLink = brand.slug !== "#" ? `/${locale}/brands/${brand.slug}` : "#";
               
               const gradientColor = brand.color || "from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800";
@@ -75,11 +74,23 @@ export default function Brands() {
               return (
                 <motion.div
                   key={brand._id || index}
-                  initial={{ opacity: 0, y: 100 }}
+                  initial={{ opacity: 0, y: 50 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: false, amount: 0.1 }}
-                  transition={{ duration: 0.8, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
-                  className="group relative bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-8 hover:shadow-2xl hover:shadow-amber-400/5 transition-all duration-300 overflow-hidden opacity-0"
+                  transition={{ 
+                    y: { 
+                      duration: 0.6, 
+                      ease: "easeOut", 
+                      delay: index * 0.1 
+                    },
+                    opacity: { 
+                      duration: 0.15, // آپاسیتی در ۱۵۰ میلی‌ثانیه اول ۱۰۰٪ می‌شود
+                      ease: "linear", 
+                      delay: index * 0.1 
+                    }
+                  }}
+                  // جایگزینی transition-all با transition-shadow برای جلوگیری از تداخل
+                  className="group relative bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-8 hover:shadow-2xl hover:shadow-amber-400/5 transition-shadow duration-300 overflow-hidden"
                 >
                   <Link href={brandLink} className="block h-full cursor-pointer">
                     <div className="flex items-center gap-4 mb-6 relative z-10">
