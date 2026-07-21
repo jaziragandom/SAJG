@@ -8,11 +8,16 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { 
   ArrowLeft, FileText, Download, Star, Package, Droplets, Sparkles, Scale, 
-  Activity, ShieldCheck, Printer, X, Calendar, Hash, List, ArrowRight
+  Activity, ShieldCheck, Printer, X, Calendar, Hash, List, ArrowRight, AlertTriangle
 } from "lucide-react";
 import { getProducts } from "@/actions/product";
 import { getCategories } from "@/actions/category";
 import { getBrands } from "@/actions/brand";
+
+const BrandWhatsapp = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>;
+const BrandTelegram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
+const BrandFacebook = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>;
+const BrandInstagram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>;
 
 export default function ProductDetailsPage() {
   const locale = useLocale();
@@ -183,6 +188,16 @@ export default function ProductDetailsPage() {
     show: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
+  // آماده‌سازی متن‌های اشتراک‌گذاری هوشمند با کپشن درخواستی
+  const shareText = isRtl
+    ? `📄 مشخصات فنی محصول: ${title}\n🌐 وب‌سایت: www.jazirahgandumco.com\n📞 واتس‌اپ: +93790710015\n🔗 لینک مشاهده و دریافت دیتاشیت:`
+    : `📄 Product Technical Datasheet: ${title}\n🌐 Website: www.jazirahgandumco.com\n📞 WhatsApp: +93790710015\n🔗 View & Download Datasheet:`;
+
+  const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const encodedShareMessage = encodeURIComponent(`${shareText}\n${shareUrl}`);
+  const encodedTelegramText = encodeURIComponent(shareText);
+  const encodedUrl = encodeURIComponent(shareUrl);
+
   return (
     <div className="w-full min-h-screen bg-transparent pb-24 pt-28 px-4 md:px-8" dir={isRtl ? "rtl" : "ltr"}>
       <div className="max-w-7xl mx-auto">
@@ -205,7 +220,7 @@ export default function ProductDetailsPage() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: false, amount: 0.1 }}
             transition={{ duration: 0.5, ease: customEase }}
-            className="lg:col-span-5 w-full sticky top-24 flex flex-col items-center justify-center min-h-100"
+            className="lg:col-span-5 w-full lg:sticky lg:top-24 flex flex-col items-center justify-center lg:min-h-100 mb-8 lg:mb-0 relative z-10"
           >
             <div className="relative w-full h-87.5 md:h-112.5 lg:h-137.5 flex items-center justify-center select-none mb-6">
               <AnimatePresence mode="wait">
@@ -346,6 +361,19 @@ export default function ProductDetailsPage() {
               <motion.p variants={fadeUpItem} className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mt-2 border-r-2 border-amber-400 pr-4 whitespace-pre-wrap text-justify">
                 {description}
               </motion.p>
+              
+              {/* باکس هشدار محصول */}
+              {p.hasWarning && (p.warningMessageFa || p.warningMessageEn) && (
+                 <motion.div variants={fadeUpItem} className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3 mt-6">
+                    <AlertTriangle size={20} className="text-red-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-black text-red-600 dark:text-red-400 mb-1">{isRtl ? "هشدار مصرف" : "Warning"}</p>
+                      <p className="text-[11px] font-medium text-gray-900 dark:text-white leading-relaxed text-justify">
+                        {isRtl ? p.warningMessageFa : p.warningMessageEn}
+                      </p>
+                    </div>
+                 </motion.div>
+              )}
 
             </motion.div>
 
@@ -428,10 +456,10 @@ export default function ProductDetailsPage() {
             )}
 
             <motion.div variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.5 }} className="mt-6">
-              <motion.div variants={fadeUpItem} className="bg-amber-400/5 border border-amber-400/20 rounded-2xl p-4 flex items-start gap-3 mt-2">
-                <ShieldCheck size={20} className="text-amber-500 shrink-0 mt-0.5" />
+              <motion.div variants={fadeUpItem} className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 rounded-2xl p-4 flex items-start gap-3 mt-2">
+                <ShieldCheck size={20} className="text-emerald-500 shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-black text-gray-900 dark:text-gray-100">{isRtl ? "تضمین اصالت کالا و استانداردهای آزمایشگاهی" : "Authenticity & Quality Guarantee"}</p>
+                  <p className="text-xs font-black text-gray-900 dark:text-gray-100">{isRtl ? "تضمین اصالت محصول و استانداردهای آزمایشگاهی" : "Authenticity & Quality Guarantee"}</p>
                   <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                     {isRtl ? "این محصول با فرمولاسیون انحصاری برند و تحت نظارت کیفی واحد آزمایشگاه شرکت تولید شده است." : "Produced with exclusive formulation under strict laboratory quality control."}
                   </p>
@@ -549,12 +577,20 @@ export default function ProductDetailsPage() {
               transition={{ duration: 0.5, ease: customEase }}
               className="relative w-full max-w-4xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-[2rem] shadow-2xl flex flex-col my-auto overflow-hidden print:border-none print:shadow-none print:bg-white print:text-black print:rounded-none"
             >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-900 bg-gray-50 dark:bg-gray-900/50 print:hidden">
+              <div className="flex flex-wrap items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-900 bg-gray-50 dark:bg-gray-900/50 print:hidden gap-4">
                 <div className="flex items-center gap-2 text-gray-900 dark:text-white font-black text-sm">
                   <FileText size={18} className="text-amber-500" />
                   <span>{isRtl ? "پیش‌نمایش سند فنی رسمی (TDS)" : "Technical Datasheet Preview"}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="hidden sm:flex items-center gap-1.5 mr-2 ml-2 rtl:ml-0 rtl:mr-2" dir="ltr">
+                    <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`} target="_blank" rel="noreferrer" className="p-2 text-gray-500 hover:text-blue-600 bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-full transition-colors"><BrandFacebook size={16} /></a>
+                    <a href={`https://wa.me/?text=${encodedShareMessage}`} target="_blank" rel="noreferrer" className="p-2 text-gray-500 hover:text-green-500 bg-gray-100 dark:bg-gray-800 hover:bg-green-50 dark:hover:bg-gray-700 rounded-full transition-colors"><BrandWhatsapp size={16} /></a>
+                    <a href={`https://t.me/share/url?url=${encodedUrl}&text=${encodedTelegramText}`} target="_blank" rel="noreferrer" className="p-2 text-gray-500 hover:text-blue-400 bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-full transition-colors"><BrandTelegram size={16} /></a>
+                    <a href={`https://www.instagram.com/?url=${encodedUrl}`} target="_blank" rel="noreferrer" className="p-2 text-gray-500 hover:text-pink-600 bg-gray-100 dark:bg-gray-800 hover:bg-pink-50 dark:hover:bg-gray-700 rounded-full transition-colors"><BrandInstagram size={16} /></a>
+                  </div>
+                  
                   <button onClick={handlePrintDatasheet} className="bg-gray-900 dark:bg-white hover:bg-amber-400 dark:hover:bg-amber-400 hover:text-gray-950 dark:hover:text-gray-950 text-white dark:text-gray-900 px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors">
                     <Printer size={14} /> {isRtl ? "چاپ / PDF" : "Print / PDF"}
                   </button>
@@ -572,14 +608,14 @@ export default function ProductDetailsPage() {
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Product Technical Datasheet (TDS)</p>
                   </div>
                   <div className="text-left">
-                    <p className="text-[10px] font-bold text-gray-400">شناسه کالا: #00{p._id || p.id}9</p>
+                    <p className="text-[10px] font-bold text-gray-400">شناسه محصول: #00{p._id || p.id}9</p>
                     <p className="text-[10px] font-bold text-gray-400 mt-0.5">تاریخ صدور: {new Date().toLocaleDateString(isRtl ? 'fa-IR' : 'en-US')}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-6 items-center bg-gray-50 p-6 rounded-2xl border border-gray-100">
                   <div className="col-span-2 flex flex-col gap-2">
-                    <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">{isRtl ? "شناسنامه فنی کالا" : "Product ID"}</span>
+                    <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">{isRtl ? "شناسنامه فنی محصول" : "Product ID"}</span>
                     <h4 className="text-xl font-black text-gray-950">{title}</h4>
                   </div>
                   <div className="flex justify-end h-24 w-full">
@@ -602,15 +638,15 @@ export default function ProductDetailsPage() {
                       <tbody className="divide-y divide-gray-200 font-medium text-gray-700">
                         <tr>
                           <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "برند / دسته‌بندی" : "Brand / Category"}</td>
-                          <td className="px-4 py-3 font-mono">{pBrand} - {catName || p.category || "-"}</td>
+                          <td className="px-4 py-3">{pBrand} - {catName || p.category || "-"}</td>
                         </tr>
                         <tr className="bg-gray-50/50">
                           <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "وزن خالص / حجم ظرف" : "Net Weight / Volume"}</td>
-                          <td className="px-4 py-3 font-mono" dir="ltr">{pWeight}</td>
+                          <td className="px-4 py-3">{pWeight}</td>
                         </tr>
                         <tr>
                           <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "بسته‌بندی / تعداد در کارتن" : "Packaging / Pack Count"}</td>
-                          <td className="px-4 py-3">{pPackaging} - {packCount}</td>
+                          <td className="px-4 py-3"><bdi>{packCount}</bdi> - <bdi>{pPackaging}</bdi></td>
                         </tr>
                         <tr className="bg-gray-50/50">
                           <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "طعم و عصاره پایه" : "Base Flavor"}</td>
@@ -631,7 +667,7 @@ export default function ProductDetailsPage() {
 
                 <div className="mt-auto pt-8 border-t border-dashed border-gray-300 flex justify-between items-center text-[10px] font-medium text-gray-400">
                   <p>{isRtl ? "تأیید شده توسط واحد کنترل کیفیت (QC) جزیره گندم" : "Approved by Jazirah Gandum Quality Control (QC)"}</p>
-                  <p className="text-left font-mono">www.jazirah-gandum.com</p>
+                  <p className="text-left font-mono">www.jazirahgandumco.com</p>
                 </div>
 
               </div>

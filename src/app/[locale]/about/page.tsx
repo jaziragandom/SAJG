@@ -11,15 +11,12 @@ import {
   Mail, Phone, ShieldCheck, MapPinned, MessageCircle, Send, Briefcase, CheckCircle2,
   Music2, MessageSquare, Share2, Loader2
 } from "lucide-react";
+import { 
+  TbBrandWhatsapp, TbBrandInstagram, TbBrandFacebook, TbBrandTwitter, 
+  TbBrandLinkedin, TbBrandYoutube, TbBrandTiktok, TbVideo, 
+  TbMessageCircle, TbShare, TbBrandTelegram 
+} from "react-icons/tb";
 
-// --- آیکون‌های اختصاصی شبکه‌های اجتماعی ---
-const BrandWhatsapp = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>;
-const BrandInstagram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>;
-const BrandFacebook = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>;
-const BrandTwitter = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>;
-const BrandLinkedin = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>;
-const BrandYoutube = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 7.1C2.5 7.1 2 9.4 2 12c0 2.6.5 4.9.5 4.9.3 1.1 1.2 2 2.3 2.3 2.6.5 7.2.5 7.2.5s4.6 0 7.2-.5c1.1-.3 2-1.2 2.3-2.3.5-2.3.5-4.9.5-4.9s-.5-2.6-.5-4.9c-.3-1.1-1.2-2-2.3-2.3-2.6-.5-7.2-.5-7.2-.5s-4.6 0-7.2.5C3.7 5.1 2.8 6 2.5 7.1z"/><path d="M9.8 15.5l6.4-3.5-6.4-3.5v7z"/></svg>;
-const BrandAparat = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>;
 const DynamicIcon = ({ name, size = 36 }: { name: string, size?: number }) => {
   const IconComponent = (LucideIcons as any)[name] || LucideIcons.CheckCircle;
   return <IconComponent size={size} />;
@@ -30,17 +27,17 @@ const SocialIconResolver = ({ platform, value }: { platform: string, value: stri
   let url = value;
   
   switch(platform) {
-    case 'whatsapp': Icon = BrandWhatsapp; url = `https://wa.me/${value}`; break;
-    case 'telegram': Icon = Send; url = `https://t.me/${value}`; break;
-    case 'instagram': Icon = BrandInstagram; url = `https://instagram.com/${value}`; break;
-    case 'facebook': Icon = BrandFacebook; url = `https://facebook.com/${value}`; break;
-    case 'twitter': Icon = BrandTwitter; url = `https://twitter.com/${value}`; break;
-    case 'youtube': Icon = BrandYoutube; url = `https://youtube.com/@${value}`; break;
-    case 'linkedin': Icon = BrandLinkedin; url = `https://linkedin.com/in/${value}`; break;
-    case 'tiktok': Icon = Music2; url = `https://tiktok.com/@${value}`; break;
-    case 'aparat': Icon = BrandAparat; url = `https://aparat.com/${value}`; break;
-    case 'eitaa': Icon = MessageSquare; url = `https://eitaa.com/${value}`; break;
-    case 'rubika': Icon = Share2; url = `https://rubika.ir/${value}`; break;
+    case 'whatsapp': Icon = TbBrandWhatsapp; url = `https://wa.me/${value}`; break;
+    case 'telegram': Icon = TbBrandTelegram; url = `https://t.me/${value}`; break;
+    case 'instagram': Icon = TbBrandInstagram; url = `https://instagram.com/${value}`; break;
+    case 'facebook': Icon = TbBrandFacebook; url = `https://facebook.com/${value}`; break;
+    case 'twitter': Icon = TbBrandTwitter; url = `https://twitter.com/${value}`; break;
+    case 'youtube': Icon = TbBrandYoutube; url = `https://youtube.com/@${value}`; break;
+    case 'linkedin': Icon = TbBrandLinkedin; url = `https://linkedin.com/in/${value}`; break;
+    case 'tiktok': Icon = TbBrandTiktok; url = `https://tiktok.com/@${value}`; break;
+    case 'aparat': Icon = TbVideo; url = `https://aparat.com/${value}`; break;
+    case 'eitaa': Icon = TbMessageCircle; url = `https://eitaa.com/${value}`; break;
+    case 'rubika': Icon = TbShare; url = `https://rubika.ir/${value}`; break;
   }
   
   return (

@@ -76,7 +76,8 @@ export default function BrandsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             {brands.map((brand, index) => {
               const name = isRtl ? brand.faName : brand.enName;
-              const desc = isRtl ? brand.faDesc : brand.enDesc;
+              // خواندن شعار اصلی از دیتابیس با اولویت Slogan
+              const desc = isRtl ? (brand.faSlogan || brand.faDesc) : (brand.enSlogan || brand.enDesc);
               const logoToUse = isRtl ? (brand.logoFa || brand.logo) : (brand.logoEn || brand.logo);
               const color = brand.color || "from-gray-400 to-gray-600";
 

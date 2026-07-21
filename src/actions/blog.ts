@@ -1,6 +1,6 @@
 "use server";
 
-import dbConnect from "@/lib/mongodb"; // اگر نام فایل db.ts است، این خط را اصلاح کن
+import dbConnect from "@/lib/mongodb";
 import Blog from "@/models/Blog";
 import { revalidatePath } from "next/cache";
 
@@ -20,7 +20,7 @@ export async function createBlog(data: any) {
   try {
     await dbConnect();
     const newBlog = await Blog.create(data);
-    revalidatePath("/");
+    revalidatePath("/", "layout"); // پاک کردن کامل کش
     return { success: true, data: JSON.parse(JSON.stringify(newBlog)) };
   } catch (error) {
     return { success: false, error: "خطا در ثبت مقاله" };
@@ -31,8 +31,8 @@ export async function createBlog(data: any) {
 export async function updateBlog(id: string, data: any) {
   try {
     await dbConnect();
-    const updatedBlog = await Blog.findByIdAndUpdate(id, data, { new: true }).lean();
-    revalidatePath("/");
+    const updatedBlog = await Blog.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean(); // اطمینان از اعتبارسنجی
+    revalidatePath("/", "layout"); // پاک کردن کامل کش
     return { success: true, data: JSON.parse(JSON.stringify(updatedBlog)) };
   } catch (error) {
     return { success: false, error: "خطا در ویرایش مقاله" };
@@ -44,7 +44,7 @@ export async function deleteBlog(id: string) {
   try {
     await dbConnect();
     await Blog.findByIdAndDelete(id);
-    revalidatePath("/");
+    revalidatePath("/", "layout"); // پاک کردن کامل کش
     return { success: true };
   } catch (error) {
     return { success: false, error: "خطا در حذف مقاله" };

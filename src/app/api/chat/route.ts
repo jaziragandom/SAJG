@@ -68,6 +68,18 @@ async function loadKnowledge(locale: string) {
 
     ]);
 
+    // استخراج لیست کامل برندها از محصولات
+    const brandsMap = new Map();
+    products.forEach((p: any) => {
+        if (p.brandId && p.brandId.slug) {
+            brandsMap.set(p.brandId.slug, {
+                slug: p.brandId.slug,
+                faTitle: p.brandId.faTitle || p.brandId.slug,
+                title: p.brandId.title || p.brandId.slug
+            });
+        }
+    });
+
     cachedDatabase = {
 
         products: products.map((p: any) => ({
@@ -165,16 +177,7 @@ image:
 
         })),
 
-        brands: Array.from(
-            new Map(
-                products
-                    .filter((p: any) => p.brandId && p.brandId.slug)
-                    .map((p: any) => [
-                        p.brandId.slug,
-                        { slug: p.brandId.slug, faTitle: p.brandId.faTitle || p.brandId.slug, title: p.brandId.title || p.brandId.slug }
-                    ])
-            ).values()
-        ),
+        brands: Array.from(brandsMap.values()),
 
         blogs: blogs.map((b: any) => ({
 
@@ -242,6 +245,46 @@ const lastUserMessage =
             );
 
         }
+
+// ----------------------------------------------------
+// سیستم میان‌بر هوشمند (Fast-Path)
+// صفر کردن مصرف توکن برای احوال‌پرسی‌ها و دستورات تغییر سایت
+// ----------------------------------------------------
+const userTextNorm = lastUserMessage.text.trim().toLowerCase();
+
+if (/^(سلام|خوبه|ممنون|مرسی|تشکر|hello|hi|thanks|thank you)$/i.test(userTextNorm)) {
+    return NextResponse.json({
+        reply: locale === "fa" ? "سلام! من دستیار هوشمند جزیره گندم هستم. چطور می‌توانم کمکتان کنم؟" : "Hello! I am the Jazirah Gandum smart assistant. How can I help you?",
+        products: [],
+        action: null
+    });
+}
+
+let directAction = null;
+let directReply = "";
+
+if (/(تاریک|دارک|dark)/i.test(userTextNorm) && /(تم|حالت|قالب|theme|mode)/i.test(userTextNorm)) {
+    directAction = { type: "theme", value: "dark" };
+    directReply = locale === "fa" ? "حالت تاریک سایت با موفقیت فعال شد 🌙" : "Dark mode activated successfully 🌙";
+} else if (/(روشن|لایت|light)/i.test(userTextNorm) && /(تم|حالت|قالب|theme|mode)/i.test(userTextNorm)) {
+    directAction = { type: "theme", value: "light" };
+    directReply = locale === "fa" ? "حالت روشن سایت با موفقیت فعال شد ☀️" : "Light mode activated successfully ☀️";
+} else if (/(انگلیسی|english)/i.test(userTextNorm) && /(زبان|language|تغییر|سویچ|switch|change)/i.test(userTextNorm)) {
+    directAction = { type: "language", value: "en" };
+    directReply = locale === "fa" ? "در حال تغییر زبان به انگلیسی..." : "Switching language to English...";
+} else if (/(فارسی|persian)/i.test(userTextNorm) && /(زبان|language|تغییر|سویچ|switch|change)/i.test(userTextNorm)) {
+    directAction = { type: "language", value: "fa" };
+    directReply = locale === "fa" ? "در حال تغییر زبان به فارسی..." : "Switching language to Persian...";
+}
+
+if (directAction) {
+    return NextResponse.json({
+        reply: directReply,
+        products: [],
+        action: directAction
+    });
+}
+// ----------------------------------------------------
 
         const database =
             await loadKnowledge(locale);
@@ -332,14 +375,41 @@ flavor:
        let reply = aiResponse.text?.trim() ?? "";
 
 // ----------------------------------------------------
+// شکار اتوماتیک دستورات عملیاتی
+// ----------------------------------------------------
+let actionPayload = null;
+
+const themeMatch = reply.match(/\[ACTION:THEME_(DARK\vert{}LIGHT)\]/i);
+if (themeMatch) {
+    actionPayload = { type: "theme", value: themeMatch[1].toLowerCase() };
+}
+
+const langMatch = reply.match(/\[ACTION:LANG_(EN\vert{}FA)\]/i);
+if (langMatch) {
+    actionPayload = { type: "language", value: langMatch[1].toLowerCase() };
+}
+
+const navMatch = reply.match(/\[NAVIGATE:([^\]]+)\]/i);
+if (navMatch) {
+    actionPayload = { type: "navigate", value: navMatch[1].trim() };
+}
+
+reply = reply.replace(/\[ACTION:[^\]]+\]/gi, "");
+reply = reply.replace(/\[NAVIGATE:[^\]]+\]/gi, "");
+
+reply = reply.trim();
+
+if (!reply && actionPayload) {
+    reply = locale === "fa" ? "در حال انجام درخواست شما..." : "Processing your request...";
+}
+// ----------------------------------------------------
+
 // سیستم همگام‌سازی اسلایدر با متن هوش مصنوعی
-// فقط محصولاتی در اسلایدر نمایش داده می‌شوند که لینک آن‌ها در متن پیام باشد
 const syncedProducts = productsForUi.filter((p: any) => reply.includes(p.slug));
 
 if (syncedProducts.length > 0) {
     reply += "\n\n[UI:SLIDER]";
 }
-// ----------------------------------------------------
 
 if (!reply) {
 
@@ -350,14 +420,12 @@ if (!reply) {
 
 }
 
-reply = reply
-    .replace(/```/g, "")
-    .replace(/\[ACTION:[^\]]+\]/g, "")
-    .trim();
+reply = reply.replace(/```/g, "").trim();
 
 return NextResponse.json({
     reply,
-    products: syncedProducts // ارسال محصولات همگام‌سازی شده به جای لیست پیش‌فرض
+    products: syncedProducts,
+    action: actionPayload
 });
 
     } catch (error: any) {

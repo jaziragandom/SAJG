@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { 
   Plus, Search, Edit3, Trash2, Image as ImageIcon, GripVertical, 
-  X, Upload, CheckCircle2, Wand2, Loader2, Star, ChevronLeft, ChevronRight, Box
+  X, Upload, CheckCircle2, Wand2, Loader2, Star, ChevronLeft, ChevronRight,
+  LayoutGrid, List, AlignJustify
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAdminShortcuts } from "../hooks/useAdminShortcuts";
@@ -26,8 +27,11 @@ export default function ProductsManager() {
   const [editMode, setEditMode] = useState(false);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [translatingField, setTranslatingField] = useState<string | null>(null);
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [viewMode, setViewMode] = useState<"list" | "compact" | "grid">("list");
+
   const [formData, setFormData] = useState({ 
     _id: "", 
     brandId: "", 
@@ -48,6 +52,9 @@ export default function ProductsManager() {
     itemsPerPackage: "", 
     visibilityStatus: "published", 
     isFeatured: false, 
+    hasWarning: false,
+    warningMessageFa: "",
+    warningMessageEn: "",
     mainImage: "",
     nutritionImage: "" 
   });
@@ -110,6 +117,20 @@ export default function ProductsManager() {
     return c ? c.slug : cleanVal;
   };
 
+  const getSpecName = (slug: string, fallback: string) => {
+    if (!slug) return fallback || "-";
+    const cat = categoriesList.find(c => c.slug === slug || c._id === slug);
+    if (cat) return cat.faName;
+    
+    if (fallback && typeof fallback === 'string' && fallback.match(/-[0-9]+$/)) {
+        return fallback.replace(/-[0-9]+$/, '').replace(/-/g, ' ');
+    }
+    if (slug && typeof slug === 'string' && slug.match(/-[0-9]+$/)) {
+        return slug.replace(/-[0-9]+$/, '').replace(/-/g, ' ');
+    }
+    return fallback || slug || "-";
+  };
+
   const handleEdit = (product: any) => {
     setEditMode(true);
     setFormData({ 
@@ -122,6 +143,9 @@ export default function ProductsManager() {
       category: product.category || "", 
       visibilityStatus: product.status || "published", 
       isFeatured: product.isFeatured || false,
+      hasWarning: product.hasWarning || false,
+      warningMessageFa: product.warningMessageFa || "",
+      warningMessageEn: product.warningMessageEn || "",
       faDesc: product.faDesc || "", 
       enDesc: product.enDesc || "", 
       flavor: findCatSlug(product.specs?.flavorFa || product.specs?.flavor || ""),
@@ -162,6 +186,9 @@ export default function ProductsManager() {
       itemsPerPackage: "",
       visibilityStatus: "published", 
       isFeatured: false, 
+      hasWarning: false,
+      warningMessageFa: "",
+      warningMessageEn: "",
       mainImage: "",
       nutritionImage: ""
     });
@@ -189,6 +216,9 @@ export default function ProductsManager() {
       category: formData.category,
       status: formData.visibilityStatus,
       isFeatured: formData.isFeatured,
+      hasWarning: formData.hasWarning,
+      warningMessageFa: formData.warningMessageFa,
+      warningMessageEn: formData.warningMessageEn,
       faDesc: formData.faDesc,
       enDesc: formData.enDesc,
       specs: {
@@ -284,7 +314,7 @@ export default function ProductsManager() {
   
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, itemsPerPage]);
+  }, [searchQuery, itemsPerPage, viewMode]);
 
   const getCatName = (slug: string) => {
     const cat = categoriesList.find(c => c.slug === slug);
@@ -325,116 +355,178 @@ export default function ProductsManager() {
           />
         </div>
 
-        <div className="flex items-center gap-3">
-          <label className="text-xs font-bold text-gray-500">نمایش در صفحه:</label>
-          <select 
-            value={itemsPerPage} 
-            onChange={(e) => setItemsPerPage(Number(e.target.value))}
-            className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-amber-400"
-          >
-            <option value={5}>۵ محصول</option>
-            <option value={10}>۱۰ محصول</option>
-            <option value={20}>۲۰ محصول</option>
-            <option value={50}>۵۰ محصول</option>
-          </select>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`} title="نمایش لیست با عکس">
+              <List size={18} />
+            </button>
+            <button onClick={() => setViewMode("compact")} className={`p-1.5 rounded-md transition-colors ${viewMode === 'compact' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`} title="نمایش لیست ساده">
+              <AlignJustify size={18} />
+            </button>
+            <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`} title="نمایش کارتی">
+              <LayoutGrid size={18} />
+            </button>
+          </div>
+
+          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-bold text-gray-500 hidden sm:block">نمایش:</label>
+            <select 
+              value={itemsPerPage} 
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-amber-400"
+            >
+              <option value={5}>۵ محصول</option>
+              <option value={10}>۱۰ محصول</option>
+              <option value={20}>۲۰ محصول</option>
+              <option value={50}>۵۰ محصول</option>
+            </select>
+          </div>
         </div>
       </div>
 
       <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          
-          <table className="w-full text-sm text-right">
-            <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 font-bold text-xs">
-              <tr>
-                <th className="px-4 py-4 w-10">ترتیب</th>
-                <th className="px-6 py-4">تصویر</th>
-                <th className="px-6 py-4">عنوان (فارسی / انگلیسی)</th>
-                <th className="px-6 py-4">برند</th>
-                <th className="px-6 py-4">وزن/حجم</th>
-                <th className="px-6 py-4">دسته‌بندی‌ها</th>
-                <th className="px-6 py-4">وضعیت</th>
-                <th className="px-6 py-4">عملیات</th>
-               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800 relative">
-              {isLoading ? (
+        
+        {isLoading ? (
+          <div className="flex justify-center items-center py-16 w-full">
+            <Loader2 className="animate-spin text-amber-500" size={40} />
+          </div>
+        ) : viewMode === "grid" ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-4 bg-gray-50/50 dark:bg-gray-800/20">
+            {currentProducts.map((product, index) => (
+              <div 
+                key={product._id}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+                className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col gap-3 relative shadow-sm hover:border-amber-400 dark:hover:border-amber-500 transition-colors group cursor-grab active:cursor-grabbing ${draggedItemIndex === index ? 'opacity-50 border-dashed' : ''}`}
+              >
+                {product.isFeatured && (
+                  <div className="absolute top-2 right-2 bg-amber-400 text-gray-900 p-1.5 rounded-full shadow-sm z-10" title="محصول ویژه">
+                    <Star size={12} className="fill-current" />
+                  </div>
+                )}
+                <div className="w-full h-36 bg-gray-50 dark:bg-gray-800/50 rounded-xl flex items-center justify-center p-3 relative overflow-hidden group-hover:bg-amber-50 dark:group-hover:bg-amber-900/10 transition-colors">
+                   {product.images?.main ? (
+                       <img src={product.images.main} alt={product.faTitle} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                   ) : (
+                       <ImageIcon size={32} className="text-gray-300" />
+                   )}
+                </div>
+                <div className="flex flex-col gap-1 mt-1">
+                   <h3 className="font-black text-gray-900 dark:text-white text-sm truncate" title={product.faTitle}>{product.faTitle}</h3>
+                   <span className="text-xs text-gray-500 font-mono truncate" title={product.enTitle}>{product.enTitle || "---"}</span>
+                </div>
+                <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100 dark:border-gray-800">
+                   <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1 rounded-lg" dir="ltr">
+                      {getSpecName(product.specs?.weight, product.specs?.weightFa)}
+                   </span>
+                   <div className="flex items-center gap-1">
+                      <button onClick={() => handleEdit(product)} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-amber-500 rounded-lg transition-colors"><Edit3 size={16} /></button>
+                      <button onClick={() => handleDelete(String(product._id))} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                   </div>
+                </div>
+              </div>
+            ))}
+            {currentProducts.length === 0 && (
+              <div className="col-span-full text-center py-12 text-gray-400 font-bold">هیچ محصولی یافت نشد.</div>
+            )}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-right">
+              <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 font-bold text-xs">
                 <tr>
-                  <td colSpan={8} className="text-center py-12">
-                    <Loader2 className="animate-spin text-amber-500 mx-auto" size={30} />
-                  </td>
-                </tr>
-               ) : currentProducts.map((product, index) => (
-                <tr 
-                  key={product._id} 
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDragEnd={handleDragEnd}
-                  className={`hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors group ${draggedItemIndex === index ? 'opacity-50 bg-gray-100 dark:bg-gray-800' : ''}`}
-                >
-                  <td className="px-4 py-4 cursor-grab active:cursor-grabbing text-gray-300 hover:text-amber-500 transition-colors">
-                     <GripVertical size={18} />
-                  </td>
-                  <td className="px-6 py-4 relative">
-                    <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 overflow-hidden">
-                      {product.images?.main ? (
-                         <img src={product.images.main} alt="Product" className="w-full h-full object-cover" />
-                      ) : (
-                         <ImageIcon size={20} />
-                      )}
-                    </div>
-                    {product.isFeatured && (
-                      <div className="absolute -top-1 -right-1 bg-amber-400 text-gray-900 p-1 rounded-full shadow-sm" title="محصول ویژه">
-                        <Star size={10} className="fill-current" />
-                      </div>
+                  <th className="px-4 py-4 w-10">ترتیب</th>
+                  {viewMode === "list" && <th className="px-6 py-4">تصویر</th>}
+                  <th className="px-6 py-4">عنوان (فارسی / انگلیسی)</th>
+                  <th className="px-6 py-4">برند</th>
+                  <th className="px-6 py-4">وزن/حجم</th>
+                  <th className="px-6 py-4">دسته‌بندی‌ها</th>
+                  <th className="px-6 py-4">وضعیت</th>
+                  <th className="px-6 py-4">عملیات</th>
+                 </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800 relative">
+                {currentProducts.map((product, index) => (
+                  <tr 
+                    key={product._id} 
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragEnd={handleDragEnd}
+                    className={`hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors group ${draggedItemIndex === index ? 'opacity-50 bg-gray-100 dark:bg-gray-800' : ''}`}
+                  >
+                    <td className="px-4 py-4 cursor-grab active:cursor-grabbing text-gray-300 hover:text-amber-500 transition-colors">
+                       <GripVertical size={18} />
+                    </td>
+                    
+                    {viewMode === "list" && (
+                      <td className="px-6 py-4 relative">
+                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 overflow-hidden p-1">
+                          {product.images?.main ? (
+                             <img src={product.images.main} alt="Product" className="w-full h-full object-contain" />
+                          ) : (
+                             <ImageIcon size={20} />
+                          )}
+                        </div>
+                        {product.isFeatured && (
+                          <div className="absolute -top-1 -right-1 bg-amber-400 text-gray-900 p-1 rounded-full shadow-sm" title="محصول ویژه">
+                            <Star size={10} className="fill-current" />
+                          </div>
+                        )}
+                      </td>
                     )}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="font-bold text-gray-900 dark:text-white">{product.faTitle}</div>
-                    <div className="text-xs text-gray-500 font-mono mt-0.5">{product.enTitle}</div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600 dark:text-gray-300 font-medium">
-                    {product.brandId?.faName || "نامشخص"}
-                  </td>
-                  <td className="px-6 py-4 font-bold text-amber-600 dark:text-amber-500 text-xs" dir="ltr">
-                    {product.specs?.weightFa || product.specs?.weight || "-"}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1">
-                      <span className="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 px-2 py-0.5 rounded text-[10px] w-fit">
-                         گروه: {getCatName(product.mainCat)}
+
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-gray-900 dark:text-white">{product.faTitle}</div>
+                      <div className="text-xs text-gray-500 font-mono mt-0.5">{product.enTitle}</div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600 dark:text-gray-300 font-medium">
+                      {product.brandId?.faName || "نامشخص"}
+                    </td>
+                    <td className="px-6 py-4 font-bold text-amber-600 dark:text-amber-500 text-xs" dir="ltr">
+                      {getSpecName(product.specs?.weight, product.specs?.weightFa)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 px-2 py-0.5 rounded text-[10px] w-fit">
+                           گروه: {getCatName(product.mainCat)}
+                        </span>
+                        <span className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 px-2 py-0.5 rounded text-[10px] w-fit">
+                          دسته: {getCatName(product.category)}
+                         </span>
+                      </div>
+                    </td>
+                    
+                    <td className="px-6 py-4">
+                       <span className="px-3 py-1 text-xs font-bold rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 whitespace-nowrap">
+                        {getCatName(product.status) || (product.status === "published" ? "فعال" : "پیش‌نویس")}
                       </span>
-                      <span className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 px-2 py-0.5 rounded text-[10px] w-fit">
-                        دسته: {getCatName(product.category)}
-                       </span>
-                    </div>
-                  </td>
-                  
-                  <td className="px-6 py-4">
-                     <span className="px-3 py-1 text-xs font-bold rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 whitespace-nowrap">
-                      {getCatName(product.status) || (product.status === "published" ? "فعال" : "پیش‌نویس")}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                       <button onClick={() => handleEdit(product)} className="text-gray-400 hover:text-amber-500 transition-colors" title="ویرایش">
-                        <Edit3 size={18} />
-                      </button>
-                      <button onClick={() => handleDelete(String(product._id))} className="text-gray-400 hover:text-red-500 transition-colors" title="حذف">
-                         <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-               ))}
-              {!isLoading && currentProducts.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="text-center py-8 text-gray-400 font-bold">هیچ محصولی یافت نشد.</td>
-                </tr>
-               )}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                         <button onClick={() => handleEdit(product)} className="text-gray-400 hover:text-amber-500 transition-colors" title="ویرایش">
+                          <Edit3 size={18} />
+                        </button>
+                        <button onClick={() => handleDelete(String(product._id))} className="text-gray-400 hover:text-red-500 transition-colors" title="حذف">
+                           <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                 ))}
+                {currentProducts.length === 0 && (
+                  <tr>
+                    <td colSpan={viewMode === "list" ? 8 : 7} className="text-center py-8 text-gray-400 font-bold">هیچ محصولی یافت نشد.</td>
+                  </tr>
+                 )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {!isLoading && totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-gray-900/30 gap-4">
@@ -623,22 +715,61 @@ export default function ProductsManager() {
                         </select>
                       </div>
 
-                      <div className="flex flex-col gap-2 justify-center">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400 mb-1">محصول ویژه (نمایش در صفحه اصلی)</label>
-                        <button 
-                          type="button"
-                          onClick={() => setFormData({...formData, isFeatured: !formData.isFeatured})}
-                          className={`relative w-14 h-7 rounded-full transition-colors ${formData.isFeatured ? 'bg-amber-400' : 'bg-gray-300 dark:bg-gray-700'}`}
-                        >
-                          <motion.div 
-                            className="w-5 h-5 bg-white rounded-full shadow-sm absolute top-1"
-                            animate={{ left: formData.isFeatured ? '4px' : '32px' }}
-                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                          />
-                        </button>
+                      <div className="flex flex-col gap-2 justify-center md:col-span-2 mt-2 border-t border-gray-100 dark:border-gray-800 pt-4">
+                        <div className="flex items-center gap-6">
+                          <div className="flex items-center gap-3">
+                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">محصول ویژه (نمایش در صفحه اصلی)</label>
+                            <button 
+                              type="button"
+                              onClick={() => setFormData({...formData, isFeatured: !formData.isFeatured})}
+                              className={`relative w-12 h-6 rounded-full transition-colors ${formData.isFeatured ? 'bg-amber-400' : 'bg-gray-300 dark:bg-gray-700'}`}
+                            >
+                              <motion.div 
+                                className="w-4 h-4 bg-white rounded-full shadow-sm absolute top-1"
+                                animate={{ left: formData.isFeatured ? '4px' : '28px' }}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                              />
+                            </button>
+                          </div>
+                          
+                          <div className="flex items-center gap-3 border-r border-gray-200 dark:border-gray-700 pr-6">
+                            <label className="text-xs font-bold text-red-600 dark:text-red-400">ثبت هشدار مصرف برای محصول</label>
+                            <button 
+                              type="button"
+                              onClick={() => setFormData({...formData, hasWarning: !formData.hasWarning})}
+                              className={`relative w-12 h-6 rounded-full transition-colors ${formData.hasWarning ? 'bg-red-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                            >
+                              <motion.div 
+                                className="w-4 h-4 bg-white rounded-full shadow-sm absolute top-1"
+                                animate={{ left: formData.hasWarning ? '4px' : '28px' }}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                              />
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="flex flex-col gap-2 md:col-span-2">
+                      <AnimatePresence>
+                        {formData.hasWarning && (
+                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2 overflow-hidden">
+                             <div className="flex flex-col gap-2 mt-4">
+                                <label className="text-xs font-bold text-red-600 dark:text-red-400">متن هشدار (فارسی) <span className="text-red-500">*</span></label>
+                                <textarea rows={2} value={formData.warningMessageFa} onChange={e => setFormData({...formData, warningMessageFa: e.target.value})} placeholder="مثال: مصرف این محصول برای زنان باردار توصیه نمی‌شود..." className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-400 resize-none"></textarea>
+                              </div>
+                              <div className="flex flex-col gap-2 mt-4">
+                                <label className="text-xs font-bold text-red-600 dark:text-red-400">متن هشدار (انگلیسی)</label>
+                                <div className="relative">
+                                  <textarea rows={2} dir="ltr" value={formData.warningMessageEn} onChange={e => setFormData({...formData, warningMessageEn: e.target.value})} placeholder="Warning message..." className="w-full bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-xl py-3 pr-4 pl-12 text-sm font-mono focus:outline-none focus:border-red-400 resize-none"></textarea>
+                                  <button type="button" onClick={() => handleAutoTranslate(formData.warningMessageFa, 'warningMessageEn')} disabled={translatingField === 'warningMessageEn' || !formData.warningMessageFa} className="absolute left-2 top-3 p-2 bg-red-400/10 text-red-600 hover:bg-red-500 hover:text-white disabled:opacity-50 rounded-lg transition-colors">
+                                    {translatingField === 'warningMessageEn' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                                  </button>
+                                </div>
+                              </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <div className="flex flex-col gap-2 md:col-span-2 mt-2 border-t border-gray-100 dark:border-gray-800 pt-4">
                         <label className="text-xs font-bold text-gray-600 dark:text-gray-400">توضیحات کوتاه (فارسی)</label>
                         <textarea rows={2} value={formData.faDesc} onChange={e => setFormData({...formData, faDesc: e.target.value})} placeholder="توضیح مختصر محصول..." className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 resize-none"></textarea>
                       </div>

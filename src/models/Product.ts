@@ -1,22 +1,27 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IProduct extends Document {
-  brandId: mongoose.Types.ObjectId; // ارتباط مستقیم با کالکشن برند
+  brandId: mongoose.Types.ObjectId; 
   faTitle: string;
   enTitle: string;
   slug: string;
-  mainCat: string; // محدودیت enum برداشته شد تا اسلاگ‌های داینامیک را قبول کند
-  category: string; // دسته‌بندی فرعی
+  mainCat: string; 
+  category: string; 
   status: string;
   isFeatured: boolean;
-  faDesc: string; // اضافه شدن فیلد توضیح کوتاه فارسی
-  enDesc: string; // اضافه شدن فیلد توضیح کوتاه انگلیسی
+  
+  // فیلدهای جدید هشدار
+  hasWarning: boolean;
+  warningMessageFa: string;
+  warningMessageEn: string;
+
+  faDesc: string; 
+  enDesc: string; 
   images: {
     main: string;
     gallery: string[];
     nutrition: string;
   };
-  // جزئیات دیتاشیت گرافیکی
   specs: {
     flavorFa: string;
     flavorEn: string;
@@ -40,9 +45,14 @@ const ProductSchema: Schema = new Schema({
   category: { type: String, required: true },
   status: { type: String, default: 'draft' },
   isFeatured: { type: Boolean, default: false },
+
+  // فیلدهای جدید هشدار
+  hasWarning: { type: Boolean, default: false },
+  warningMessageFa: { type: String, default: "" },
+  warningMessageEn: { type: String, default: "" },
   
-  faDesc: { type: String, default: "" }, // اضافه شدن فیلد دیتابیس
-  enDesc: { type: String, default: "" }, // اضافه شدن فیلد دیتابیس
+  faDesc: { type: String, default: "" }, 
+  enDesc: { type: String, default: "" }, 
 
   images: {
     main: { type: String, required: true },

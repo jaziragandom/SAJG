@@ -63,7 +63,7 @@ export async function createProduct(data: any) {
   try {
     await dbConnect();
     const newProduct = await Product.create(data);
-    revalidatePath("/");
+    revalidatePath("/", "layout");
     return { success: true, data: JSON.parse(JSON.stringify(newProduct)) };
   } catch (error: any) {
     // بهبود لاگ خطا برای پیدا کردن راحت‌تر مشکلاتی مثل خالی بودن برند یا فیلدهای اجباری
@@ -75,8 +75,8 @@ export async function createProduct(data: any) {
 export async function updateProduct(id: string, data: any) {
   try {
     await dbConnect();
-    const updatedProduct = await Product.findByIdAndUpdate(id, data, { new: true }).lean();
-    revalidatePath("/");
+    const updatedProduct = await Product.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean();
+    revalidatePath("/", "layout");
     return { success: true, data: JSON.parse(JSON.stringify(updatedProduct)) };
   } catch (error: any) {
     console.error("❌ [BACKEND] خطا در ویرایش محصول:", error.message || error);
@@ -88,7 +88,7 @@ export async function deleteProduct(id: string) {
   try {
     await dbConnect();
     await Product.findByIdAndDelete(id);
-    revalidatePath("/");
+    revalidatePath("/", "layout");
     return { success: true };
   } catch (error: any) {
     console.error("❌ [BACKEND] خطا در حذف محصول:", error.message || error);

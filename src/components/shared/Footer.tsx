@@ -8,7 +8,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Phone, Mail, Send, ArrowUp, Bot, X, Wheat } from "lucide-react";
 import ChatWindow from "./ChatWindow";
 import { subscribeToNewsletter } from "@/actions/newsletter";
+import { getSiteContent } from "@/actions/siteContent";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { 
+  TbBrandWhatsapp, TbBrandYoutube, TbBrandInstagram, 
+  TbBrandTelegram, TbBrandFacebook 
+} from "react-icons/tb";
 
 interface FooterProps {
   siteLogo?: string | null;
@@ -17,10 +22,13 @@ interface FooterProps {
     email: string;
     faAddress: string;
     enAddress: string;
-    wa: string;
-    tg: string;
-    fb: string;
-    ig: string;
+    mapUrl?: string;
+    wa?: string;
+    tg?: string;
+    fb?: string;
+    ig?: string;
+    yt?: string;
+    socials?: any[];
   };
   footerTexts?: {
     aboutFa: string;
@@ -30,7 +38,6 @@ interface FooterProps {
   };
 }
 
-// دیکشنری محلی جایگزین برای جلوگیری از ارورهای next-intl
 const localTranslations = {
   fa: {
     about_desc: "جزیره گندم، پیشگام در تولید و عرضه بهترین محصولات غذایی با کیفیت جهانی.",
@@ -39,7 +46,6 @@ const localTranslations = {
     contact_info: "ارتباط با ما",
     newsletter: { title: "خبرنامه", desc: "برای اطلاع از جدیدترین‌ها عضو شوید.", placeholder: "ایمیل شما..." },
     copyright: "تمامی حقوق برای گروه جزیره گندم محفوظ است.",
-    
   },
   en: {
     about_desc: "Jazirah Gandum, a pioneer in producing and supplying the best food products.",
@@ -48,20 +54,17 @@ const localTranslations = {
     contact_info: "Contact Us",
     newsletter: { title: "Newsletter", desc: "Subscribe for the latest updates.", placeholder: "Your email..." },
     copyright: "All rights reserved.",
-   
   }
 };
 
 export default function Footer({ siteLogo = null, contactInfo, footerTexts }: FooterProps) {
-  // شناسایی زبان به صورت ایمن بدون نیاز به Provider
   const pathname = usePathname();
   const isRtl = pathname?.startsWith('/fa') || false;
   const locale = isRtl ? 'fa' : 'en';
   
-  // شبیه‌ساز تابع ترجمه
   const t = (key: string) => {
     const keys = key.split('.');
-    let val: any = localTranslations[locale];
+    let val: any = localTranslations[locale as keyof typeof localTranslations];
     for (const k of keys) { val = val?.[k]; }
     return val || key;
   };
@@ -77,6 +80,45 @@ export default function Footer({ siteLogo = null, contactInfo, footerTexts }: Fo
   const [nlEmail, setNlEmail] = useState("");
   const [nlLoading, setNlLoading] = useState(false);
   const [nlResult, setNlResult] = useState({ type: '', text: '' });
+  
+  // استیت برای خواندن مستقیم اطلاعات دفتر مرکزی از دیتابیس
+  const [liveHqData, setLiveHqData] = useState<any>(null);
+
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    // فراخوانی مستقیم اطلاعات از دیتابیس برای دور زدن محدودیت‌های پاس دادن ناقص در Props
+    const fetchHqData = async () => {
+      try {
+        const res = await getSiteContent('corporate_hq');
+        if (res?.success && res.data?.hqData) {
+          setLiveHqData(res.data.hqData);
+        }
+      } catch (error) {
+        console.error("Error fetching live HQ data in footer:", error);
+      }
+    };
+    fetchHqData();
+  }, []);
+
+  // ترکیب داده‌های زنده دیتابیس با داده‌های دریافتی از Props
+  const dataSource = liveHqData || contactInfo || {};
+  const socialsArray = Array.isArray(dataSource.socials) ? dataSource.socials : [];
+  const getSocial = (platform: string) => socialsArray.find((s: any) => s.platform === platform)?.value;
+
+  const safeContact = {
+    phone: dataSource.phone || contactInfo?.phone || "+93 790 71 00 15",
+    email: dataSource.email || contactInfo?.email || "info@jazirahgandumco.com",
+    faAddress: dataSource.faAddress || contactInfo?.faAddress || "دفتر مرکزی، جزیره گندم",
+    enAddress: dataSource.enAddress || contactInfo?.enAddress || "HQ Office, Jazirah Gandum",
+    mapUrl: dataSource.mapUrl || contactInfo?.mapUrl || "#",
+    wa: getSocial('whatsapp') || dataSource.wa || contactInfo?.wa || "#",
+    tg: getSocial('telegram') || dataSource.tg || contactInfo?.tg || "#",
+    fb: getSocial('facebook') || dataSource.fb || contactInfo?.fb || "#",
+    ig: getSocial('instagram') || dataSource.ig || contactInfo?.ig || "#",
+    yt: getSocial('youtube') || dataSource.yt || contactInfo?.yt || "#",
+  };
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,21 +139,6 @@ export default function Footer({ siteLogo = null, contactInfo, footerTexts }: Fo
     } else {
       setNlResult({ type: 'error', text: res.error || "خطا در ثبت." });
     }
-  };
-  
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-const inputRef = useRef<HTMLTextAreaElement | null>(null);
-
-  // سیستم ایمن‌سازی اطلاعات تماس برای جلوگیری قاطع از ارورهای کنسول
-  const safeContact = {
-    phone: contactInfo?.phone || "+93 790 71 00 15",
-    email: contactInfo?.email || "info@jazirah-gandum.com",
-    faAddress: contactInfo?.faAddress || "دفتر مرکزی، جزیره گندم",
-    enAddress: contactInfo?.enAddress || "HQ Office, Jazirah Gandum",
-    wa: contactInfo?.wa || "#",
-    tg: contactInfo?.tg || "#",
-    fb: contactInfo?.fb || "#",
-    ig: contactInfo?.ig || "#",
   };
 
   useEffect(() => {
@@ -153,30 +180,29 @@ const inputRef = useRef<HTMLTextAreaElement | null>(null);
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // اضافه کردن متغیر locale به اطلاعات ارسالی
         body: JSON.stringify({ messages: [...messages, userMsg], locale: locale }),
       });
 
       const data = await response.json();
-      const botProducts =
-    data.products ?? [];
+      const botProducts = data.products ?? [];
+      
       if (!response.ok) throw new Error(data.error || 'Network Error');
       
       let finalReply = data.reply || "";
 
-     if (data.action?.type === "theme") {
-
-    setTheme(data.action.value);
-
-}
-
-if (data.action?.type === "navigate") {
-
-    router.push(`/${locale}${data.action.value}`);
-
-    setIsChatOpen(false);
-
-}
+      if (data.action) {
+          if (data.action.type === "theme") {
+              setTheme(data.action.value);
+          } else if (data.action.type === "language") {
+              window.location.href = `/${data.action.value}`;
+              return; 
+          } else if (data.action.type === "navigate") {
+              let finalPath = data.action.value;
+              if (!finalPath.startsWith('/')) finalPath = '/' + finalPath;
+              router.push(`/${locale}${finalPath}`);
+              setIsChatOpen(false);
+          }
+      }
 
       const navMatch = finalReply.match(/\[NAVIGATE:(.*?)\]/);
       if (navMatch) {
@@ -192,14 +218,14 @@ if (data.action?.type === "navigate") {
       }
 
       setMessages((prev) => [
-  ...prev,
-  {
-    id: Date.now() + 1,
-    text: finalReply,
-    sender: "bot",
-    products: botProducts
-  }
-]);
+        ...prev,
+        {
+          id: Date.now() + 1,
+          text: finalReply,
+          sender: "bot",
+          products: botProducts
+        }
+      ]);
 
     } catch (error) {
       console.error(error);
@@ -286,7 +312,7 @@ if (data.action?.type === "navigate") {
             
             <motion.div variants={itemVariants} transition={{ type: "spring", stiffness: 100, damping: 15 }} className="flex flex-col gap-5 md:gap-6 items-start">
               
-              <Link href={`/${locale}`} className="flex items-center gap-3 group">
+              <Link className="flex items-center gap-3 group" href={`/${locale}`}>
                 {siteLogo ? (
                   <img src={siteLogo} alt="Logo" className="h-11 w-auto max-w-45 object-contain group-hover:scale-105 transition-transform duration-300" />
                 ) : (
@@ -305,25 +331,30 @@ if (data.action?.type === "navigate") {
                   : (footerTexts?.aboutEn || t("about_desc"))}
               </p>
               <div className="flex items-center gap-4 mt-2">
-                {/* شبکه‌های اجتماعی */}
+                {/* شبکه‌های اجتماعی ویرایش شده با React Icons Tabler */}
                 {safeContact.ig !== "#" && (
                   <motion.a whileHover={{ scale: 1.15, y: -4 }} whileTap={{ scale: 0.95 }} href={safeContact.ig.startsWith('http') ? safeContact.ig : `https://instagram.com/${safeContact.ig.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-white flex items-center justify-center hover:bg-amber-400 hover:border-amber-400 hover:text-gray-950 transition-colors shadow-md">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                    <TbBrandInstagram size={20} />
                   </motion.a>
                 )}
                 {safeContact.tg !== "#" && (
                   <motion.a whileHover={{ scale: 1.15, y: -4 }} whileTap={{ scale: 0.95 }} href={safeContact.tg.startsWith('http') ? safeContact.tg : `https://t.me/${safeContact.tg.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-white flex items-center justify-center hover:bg-amber-400 hover:border-amber-400 hover:text-gray-950 transition-colors shadow-md">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    <TbBrandTelegram size={20} />
                   </motion.a>
                 )}
                 {safeContact.wa !== "#" && (
                   <motion.a whileHover={{ scale: 1.15, y: -4 }} whileTap={{ scale: 0.95 }} href={safeContact.wa.startsWith('http') ? safeContact.wa : `https://wa.me/${safeContact.wa.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-white flex items-center justify-center hover:bg-amber-400 hover:border-amber-400 hover:text-gray-950 transition-colors shadow-md">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                    <TbBrandWhatsapp size={20} />
                   </motion.a>
                 )}
                 {safeContact.fb !== "#" && (
                   <motion.a whileHover={{ scale: 1.15, y: -4 }} whileTap={{ scale: 0.95 }} href={safeContact.fb.startsWith('http') ? safeContact.fb : `https://facebook.com/${safeContact.fb}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-white flex items-center justify-center hover:bg-amber-400 hover:border-amber-400 hover:text-gray-950 transition-colors shadow-md">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+                    <TbBrandFacebook size={20} />
+                  </motion.a>
+                )}
+                {safeContact.yt !== "#" && (
+                  <motion.a whileHover={{ scale: 1.15, y: -4 }} whileTap={{ scale: 0.95 }} href={safeContact.yt.startsWith('http') ? safeContact.yt : `https://youtube.com/@${safeContact.yt.replace('@','')}`} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-white flex items-center justify-center hover:bg-amber-400 hover:border-amber-400 hover:text-gray-950 transition-colors shadow-md">
+                    <TbBrandYoutube size={20} />
                   </motion.a>
                 )}
               </div>
@@ -334,11 +365,11 @@ if (data.action?.type === "navigate") {
                 <span className="w-2 h-2 rounded-full bg-primary"></span>{t("quick_links")}
               </h4>
               <ul className="flex flex-col gap-3 text-sm">
-                <li><Link href={`/${locale}/about`} className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.about")}</Link></li>
-                <li><Link href={`/${locale}/products`} className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.products")}</Link></li>
-                <li><Link href={`/${locale}/brands`} className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.factory")}</Link></li>
-                <li><Link href={`/${locale}/about#contact`} className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.agencies")}</Link></li>
-                <li><Link href={`/${locale}/blog`} className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.blog")}</Link></li>
+                <li><Link className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5" href={`/${locale}/about`}><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.about")}</Link></li>
+                <li><Link className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5" href={`/${locale}/products`}><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.products")}</Link></li>
+                <li><Link className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5" href={`/${locale}/brands`}><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.factory")}</Link></li>
+                <li><Link className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5" href={`/${locale}/about#contact`}><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.agencies")}</Link></li>
+                <li><Link className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-1.5" href={`/${locale}/blog`}><span className="w-1 h-1 rounded-full bg-primary-500 dark:bg-white"></span>{t("links.blog")}</Link></li>
               </ul>
             </motion.div>
 
@@ -348,32 +379,33 @@ if (data.action?.type === "navigate") {
               </h4>
               <ul className="flex flex-col gap-4 text-sm font-medium">
                 <li className="flex items-start gap-3">
-                  <MapPin size={18} className="text-primary shrink-0 mt-1" />
+                  <MapPin className="text-primary shrink-0 mt-1" size={18}/>
                   <a 
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(isRtl ? safeContact.faAddress : safeContact.enAddress)}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="leading-relaxed text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-white transition-colors"
+                    href={safeContact.mapUrl !== "#" ? safeContact.mapUrl : undefined} 
+                    target={safeContact.mapUrl !== "#" ? "_blank" : undefined} 
+                    rel={safeContact.mapUrl !== "#" ? "noopener noreferrer" : undefined} 
+                    className={`leading-relaxed text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-white transition-colors ${safeContact.mapUrl !== "#" ? 'cursor-pointer' : 'cursor-default'}`}
                   >
                     {isRtl ? safeContact.faAddress : safeContact.enAddress}
                   </a>
                 </li>
                 <li className="flex items-center gap-3">
-                  <Phone size={18} className="text-primary shrink-0" />
+                  <Phone className="text-primary shrink-0" size={18}/>
                   <a 
                     href={`tel:${safeContact.phone.replace(/[\s-]/g, '')}`} 
                     dir="ltr" 
-                    className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-white transition-colors"
+                    className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-white transition-colors cursor-pointer"
                   >
                     {safeContact.phone}
                   </a>
                 </li>
+                {/* لینک ایمیل با قابلیت Mailto از پیش تنظیم شده */}
                 <li className="flex items-center gap-3">
-                  <Mail size={18} className="text-primary shrink-0" />
+                  <Mail className="text-primary shrink-0" size={18}/>
                   <a 
                     href={`mailto:${safeContact.email}`} 
                     dir="ltr" 
-                    className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-white transition-colors"
+                    className="text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-white transition-colors cursor-pointer"
                   >
                     {safeContact.email}
                   </a>
@@ -403,13 +435,13 @@ if (data.action?.type === "navigate") {
                   disabled={nlLoading}
                   className={`absolute ${isRtl ? "left-2" : "right-2"} top-2 w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white hover:bg-primary-hover dark:bg-primary-500 dark:text-white dark:hover:bg-white dark:hover:text-primary-500 transition-colors duration-300 disabled:opacity-50 cursor-pointer`}
                 >
-                  {nlLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={16} className={isRtl ? "-scale-x-100" : ""} />}
+                  {nlLoading ? <Loader2 className="animate-spin" size={14}/> : <Send className={isRtl ? "-scale-x-100" : ""} size={16}/>}
                 </button>
               </form>
               
               {nlResult.text && (
                 <p className={`text-xs font-bold mt-2 flex items-center gap-1 ${nlResult.type === 'success' ? 'text-emerald-500' : 'text-red-500'}`}>
-                  {nlResult.type === 'success' && <CheckCircle2 size={14} />}
+                  {nlResult.type === 'success' && <CheckCircle2 size={14}/>}
                   {nlResult.text}
                 </p>
               )}
@@ -426,28 +458,26 @@ if (data.action?.type === "navigate") {
         </motion.div>
       </footer>
 
-      {/* سیستم موقعیت‌یابی دکمه شناور و چت‌بات اصلاح شد */}
       <div className={`fixed bottom-6 ${isRtl ? "right-6 items-start" : "left-6 items-start"} z-9999 flex flex-col gap-3 pointer-events-none`}>
         <AnimatePresence>
           {isChatOpen && (
-            <ChatWindow
-              isChatOpen={isChatOpen}
-              setIsChatOpen={setIsChatOpen}
-              messages={messages}
-              input={input}
-              setInput={setInput}
-              handleSend={handleSend}
-              isTyping={isTyping}
-              messagesEndRef={messagesEndRef}
-              inputRef={inputRef}
-              isRtl={isRtl}
-              router={router}
-              locale={locale}
+            <ChatWindow 
+              isChatOpen={isChatOpen} 
+              setIsChatOpen={setIsChatOpen} 
+              messages={messages} 
+              input={input} 
+              setInput={setInput} 
+              handleSend={handleSend} 
+              isTyping={isTyping} 
+              messagesEndRef={messagesEndRef} 
+              inputRef={inputRef} 
+              isRtl={isRtl} 
+              router={router} 
+              locale={locale} 
             />
           )}
         </AnimatePresence>
 
-        {/* دکمه‌های شناور (باز کردن چت و اسکرول به بالا) */}
         <motion.div layout className={`flex gap-3 pointer-events-auto ${isChatOpen ? 'flex-row items-center' : 'flex-col items-center'}`}>
           <motion.button
             layout

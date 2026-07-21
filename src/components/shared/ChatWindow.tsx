@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Bot, X, Send, ShoppingBag } from "lucide-react";
 
 // اضافه کردن isRtl به پروپ‌های اسلایدر برای دوزبانه شدن متون
+// اضافه کردن isRtl به پروپ‌های اسلایدر برای دوزبانه شدن متون
 const MiniProductSlider = ({
   router,
   locale,
@@ -120,6 +121,8 @@ setInput,
     GO_PRODUCTS: isRtl ? "مشاهده محصولات" : "Products",
     GO_BRANDS: isRtl ? "برندها" : "Brands",
     GO_CONTACT: isRtl ? "تماس با ما" : "Contact",
+    LANG_EN: isRtl ? "تغییر زبان به انگلیسی" : "Switch to English",
+    LANG_FA: isRtl ? "تغییر زبان به فارسی" : "Switch to Persian",
   };
 
   return (
@@ -133,6 +136,14 @@ setInput,
 
           case "THEME_LIGHT":
             handleSystemAction("THEME_LIGHT");
+            break;
+
+          case "LANG_EN":
+            window.location.href = "/en"; // انتقال مستقیم و بدون 404
+            break;
+
+          case "LANG_FA":
+            window.location.href = "/fa"; // انتقال مستقیم و بدون 404
             break;
 
           case "GO_PRODUCTS":
@@ -228,6 +239,27 @@ if (categoryMatch) {
             className="inline-flex items-center gap-2 px-3 py-2 mx-1 my-1 rounded-xl bg-blue-500 text-white text-xs font-bold hover:bg-blue-600 transition"
         >
             📂 {isRtl ? "مشاهده دسته" : "View Category"}
+        </button>
+    );
+
+}
+
+const brandMatch = part.match(/BrandLink:\s*\[(.*?)\]/);
+
+if (brandMatch) {
+
+    const target = brandMatch[1];
+
+    return (
+        <button
+            key={index}
+            onClick={()=>{
+                router.push(`/${locale}${target}`);
+                setIsChatOpen(false);
+            }}
+            className="inline-flex items-center gap-2 px-3 py-2 mx-1 my-1 rounded-xl bg-purple-500 text-white text-xs font-bold hover:bg-purple-600 transition"
+        >
+            ✨ {isRtl ? "مشاهده برند" : "View Brand"}
         </button>
     );
 

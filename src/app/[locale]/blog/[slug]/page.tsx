@@ -28,6 +28,12 @@ import { getBlogs } from "@/actions/blog";
 import { submitComment, getApprovedComments } from "@/actions/communications";
 import { subscribeToNewsletter } from "@/actions/newsletter";
 
+// اضافه کردن آیکون‌های سفارشی برای شبکه‌های اجتماعی
+const BrandWhatsapp = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>;
+const BrandTelegram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
+const BrandFacebook = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>;
+
+
 export default function BlogPostPage() {
   const params = useParams();
   const router = useRouter();
@@ -195,11 +201,24 @@ export default function BlogPostPage() {
   const rootComments = approvedComments.filter(c => !c.parentId);
   const getReplies = (commentId: string) => approvedComments.filter(c => c.parentId === commentId);
 
+  // تولید لینک‌های اشتراک‌گذاری
   const currentUrl = typeof window !== "undefined" ? window.location.href : "";
   const articleTitle = isRtl ? post.faTitle : post.enTitle;
-  const shareTwitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(articleTitle)}`;
-  const shareLinkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(currentUrl)}`;
-  const shareTelegramUrl = `https://t.me/share/url?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(articleTitle)}`;
+  
+  const shareText = isRtl
+    ? `📰 ${articleTitle}\n\nمتن خلاصه: ${post.excerpt}\n\nلینک مقاله:`
+    : `📰 ${articleTitle}\n\nSummary: ${post.excerpt}\n\nRead more:`;
+
+  const encodedUrl = encodeURIComponent(currentUrl);
+  const encodedTitle = encodeURIComponent(articleTitle);
+  const encodedText = encodeURIComponent(shareText);
+
+  // لینک‌های شبکه‌های اجتماعی
+  const shareFacebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+  const shareTwitterUrl = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
+  const shareLinkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+  const shareWhatsappUrl = `https://wa.me/?text=${encodedText}%0A${encodedUrl}`;
+  const shareTelegramUrl = `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`;
 
   return (
     <main 
@@ -226,7 +245,7 @@ export default function BlogPostPage() {
               {post.category === 'health' 
                 ? (isRtl ? 'سبک زندگی و سلامت' : 'Health & Lifestyle')
                 : post.category === 'news' 
-                ? (isRtl ? 'اخبار گندم' : 'Gandom News')
+                ? (isRtl ? 'اخبار گندم' : 'Gandum News')
                 : (isRtl ? 'معرفی محصولات' : 'Products')}
             </span>
             
@@ -328,40 +347,26 @@ export default function BlogPostPage() {
                 ))
               ) : (
                 <span className="text-xs font-bold text-gray-500 bg-gray-100/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-md">
-                  {isRtl ? "#جزیره_گندم" : "#Gandom_Island"}
+                  {isRtl ? "#جزیره_گندم" : "#Gandum_Island"}
                 </span>
               )}
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <span className="text-sm font-bold text-gray-500 flex items-center gap-2">
                 <Share2 size={16}/> 
-                {isRtl ? "اشتراک‌گذاری در:" : "Share on:"}
+                {isRtl ? "اشتراک‌گذاری:" : "Share:"}
               </span>
               
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <a 
-                  href={shareLinkedInUrl} 
+                  href={shareFacebookUrl} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="p-2.5 bg-blue-500/10 text-blue-600 rounded-full hover:bg-blue-500 hover:text-white transition-colors" 
-                  title="LinkedIn"
+                  className="p-2.5 bg-blue-600/10 text-blue-600 rounded-full hover:bg-blue-600 hover:text-white transition-colors" 
+                  title="Facebook"
                 >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="16" 
-                    height="16" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  >
-                    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
-                    <rect width="4" height="12" x="2" y="9"/>
-                    <circle cx="4" cy="4" r="2"/>
-                  </svg>
+                  <BrandFacebook size={16} />
                 </a>
                 
                 <a 
@@ -387,13 +392,47 @@ export default function BlogPostPage() {
                 </a>
                 
                 <a 
+                  href={shareWhatsappUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="p-2.5 bg-green-500/10 text-green-500 rounded-full hover:bg-green-500 hover:text-white transition-colors" 
+                  title="WhatsApp"
+                >
+                  <BrandWhatsapp size={16} />
+                </a>
+
+                <a 
                   href={shareTelegramUrl} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="p-2.5 bg-cyan-500/10 text-cyan-500 rounded-full hover:bg-cyan-500 hover:text-white transition-colors" 
+                  className="p-2.5 bg-blue-400/10 text-blue-400 rounded-full hover:bg-blue-400 hover:text-white transition-colors" 
                   title="Telegram"
                 >
-                  <Send size={16} />
+                  <BrandTelegram size={16} />
+                </a>
+
+                <a 
+                  href={shareLinkedInUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="p-2.5 bg-blue-700/10 text-blue-700 rounded-full hover:bg-blue-700 hover:text-white transition-colors" 
+                  title="LinkedIn"
+                >
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+                    <rect width="4" height="12" x="2" y="9"/>
+                    <circle cx="4" cy="4" r="2"/>
+                  </svg>
                 </a>
               </div>
             </div>
@@ -633,7 +672,7 @@ export default function BlogPostPage() {
         <div className="relative z-10">
           <Mail size={48} className="mx-auto text-amber-900 mb-6 opacity-80" />
           <h3 className="text-3xl font-black text-amber-950 mb-4">
-            {isRtl ? "به باشگاه گندم بپیوندید" : "Join Gandom Club"}
+            {isRtl ? "به باشگاه گندم بپیوندید" : "Join Gandum Club"}
           </h3>
           <p className="text-amber-900/80 font-bold mb-8 max-w-md mx-auto">
             {isRtl ? "جدیدترین مقالات سلامت، اخبار افتتاحیه‌ها و تخفیف‌های ویژه را در ایمیل خود دریافت کنید." : "Get the latest health articles, news, and special discounts in your email."}

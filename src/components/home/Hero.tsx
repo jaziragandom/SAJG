@@ -302,10 +302,12 @@ export default function Hero() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20, transition: { duration: 0.2, delay: 0 } }}
                 transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
-                className="text-5xl md:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white leading-[1.1] mb-6 tracking-tighter"
+                // اضافه شدن pr-2 و py-1 به کلاس‌ها برای حل مشکل بریدگی
+                className="text-5xl md:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white leading-[1.1] mb-6 tracking-tighter pr-2 py-1"
               >
                 {titleFirstWord}{" "}
-                <span className={`text-transparent bg-clip-text bg-linear-to-r ${slide.color}`}>
+                {/* اضافه شدن pr-2 به این اسپَن برای جلوگیری از برش گرادیانت */}
+                <span className={`text-transparent bg-clip-text bg-linear-to-r ${slide.color} pr-2`}>
                   {titleRest}
                 </span>
               </motion.h1>

@@ -21,7 +21,8 @@ export default function BlogListPage() {
   // دریافت مقالات از دیتابیس
   useEffect(() => {
     const fetchPosts = async () => {
-      const res = await getBlogs({ status: "published" });
+      // فیلتر status: "published" برداشته شد تا مقالات پیش‌نویس هم موقتاً نمایش داده شوند
+      const res = await getBlogs();
       if (res.success && res.data) {
         setPosts(res.data);
       }
@@ -33,7 +34,7 @@ export default function BlogListPage() {
   const categories = [
     { id: "all", label: isRtl ? "همه مقالات" : "All Articles" },
     { id: "health", label: isRtl ? "سبک زندگی و سلامت" : "Health & Lifestyle" },
-    { id: "news", label: isRtl ? "اخبار گندم" : "Gandom News" },
+    { id: "news", label: isRtl ? "اخبار گندم" : "Gandum News" },
     { id: "products", label: isRtl ? "معرفی محصولات" : "Products" }
   ];
 
@@ -70,7 +71,7 @@ export default function BlogListPage() {
       
       <div className="mb-16 text-center overflow-hidden py-4">
         <motion.h1 {...titleAnim} className="text-4xl md:text-6xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">
-          {isRtl ? "مجله گندم" : "Gandom Magazine"}
+          {isRtl ? "مجله گندم" : "Gandum Magazine"}
         </motion.h1>
         <motion.p {...descAnim} className="text-gray-600 dark:text-gray-300 font-medium max-w-2xl mx-auto">
           {isRtl 

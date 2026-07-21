@@ -273,12 +273,12 @@ export default function Products() {
                           className="p-1 h-full"
                         >
                           <Link href={`/${locale}/products/${product.slug || product._id}`} className="block h-full cursor-pointer">
-                            <Card className="relative overflow-hidden h-100 flex flex-col justify-end p-6 border border-gray-800/60 bg-gray-950 transition-all duration-700 ease-out hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:z-10 group/card">
+                            <Card className="relative overflow-hidden h-100 flex flex-col justify-end p-6 border border-gray-200 dark:border-gray-800/60 bg-white dark:bg-gray-950 transition-all duration-700 ease-out hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:z-10 group/card">
                               
                               {imgUrl && (
                                 <>
                                   {/* ۱. افکت هاله رنگی پشت عکس با کامپوننت Image */}
-                                  <div className="absolute inset-0 w-full h-full z-0 overflow-hidden opacity-40 group-hover/card:opacity-60 transition-opacity duration-700">
+                                  <div className="absolute inset-0 w-full h-full z-0 overflow-hidden opacity-15 group-hover/card:opacity-30 dark:opacity-40 dark:group-hover/card:opacity-60 transition-opacity duration-700">
                                     <Image 
                                       src={imgUrl} 
                                       alt="" 
@@ -296,36 +296,37 @@ export default function Products() {
                                       alt={title} 
                                       fill
                                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                                      className="object-contain transition-transform duration-700 group-hover/card:-translate-y-2 drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] p-4 pb-20" 
+                                      className="object-contain transition-transform duration-700 group-hover/card:-translate-y-2 drop-shadow-[0_20px_25px_rgba(0,0,0,0.2)] dark:drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] p-4 pb-20" 
                                     />
                                   </div>
                                 </>
                               )}
 
-                              <div className="absolute inset-0 bg-linear-to-t from-black/95 via-black/40 to-transparent z-10 pointer-events-none" />
+                              {/* گرادیانت روشن در روز و تاریک در شب */}
+                              <div className="absolute inset-0 bg-linear-to-t from-white/95 via-white/40 dark:from-black/95 dark:via-black/40 to-transparent z-10 pointer-events-none" />
                               
-                              <CardContent className="relative z-20 p-0 text-white w-full text-start">
+                              <CardContent className="relative z-20 p-0 w-full text-start">
                                 {/* سطر بالا: برند و دسته‌بندی */}
                                 <div className="flex justify-between items-center mb-3 w-full">
-                                  {/* نام برند (در حالت فارسی سمت راست قرار می‌گیرد) */}
-                                  <span className="text-xs font-black text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-md shadow-sm">
+                                  {/* نام برند */}
+                                  <span className="text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-md shadow-sm">
                                     {isRtl ? (product.brandId?.faName || "بدون برند") : (product.brandId?.enName || "No Brand")}
                                   </span>
                                   
-                                  {/* نام دسته‌بندی (در حالت فارسی سمت چپ قرار می‌گیرد) */}
-                                  <span className="inline-block px-3 py-1 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-[11px] font-bold shadow-sm">
+                                  {/* نام دسته‌بندی */}
+                                  <span className="inline-block px-3 py-1 bg-white/60 dark:bg-white/10 backdrop-blur-md border border-gray-200 dark:border-white/10 rounded-full text-[11px] font-bold shadow-sm text-gray-800 dark:text-white">
                                     {catLabel}
                                   </span>
                                 </div>
                                 
                                 {/* سطر وسط: نام محصول */}
-                                <h3 className="text-xl md:text-2xl font-black mb-1 leading-tight drop-shadow-md w-full">
-                                  {title}
-                                </h3>
+                                 <h3 className="text-lg md:text-xl font-black mb-1 leading-tight drop-shadow-md w-full text-gray-900 dark:text-white truncate" title={title}>
+                                   {title}
+                                 </h3>
                                 
-                                {/* سطر پایین: وزن/حجم محصول (به جای نام انگلیسی) */}
+                                {/* سطر پایین: وزن/حجم محصول */}
                                 {finalWeight && (
-                                  <p className="text-sm text-gray-300 font-bold drop-shadow-sm w-full">
+                                  <p className="text-sm text-gray-600 dark:text-gray-300 font-bold drop-shadow-sm w-full">
                                     {finalWeight}
                                   </p>
                                 )}
@@ -350,26 +351,6 @@ export default function Products() {
             </Carousel>
           </div>
         </div>
-
-        <div className="flex justify-center mt-10" dir={isRtl ? "rtl" : "ltr"}>
-          <motion.div 
-            initial={{ width: 0, opacity: 0 }}
-            whileInView={{ width: "100%", opacity: 1 }}
-            viewport={{ once: false, amount: 0.1 }}
-            transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
-            className="max-w-md h-1.5 bg-gray-400/20 dark:bg-gray-600/20 rounded-full overflow-hidden shadow-inner flex items-center justify-center"
-          >
-             <motion.div
-               className="h-full bg-amber-500 shadow-[0_0_10px_#f59e0b] rounded-full"
-               initial={{ width: "8px" }}
-               animate={{ 
-                 width: count > 0 ? (current === 0 ? "8px" : `${((current + 1) / count) * 100}%`) : "8px" 
-               }}
-               transition={{ duration: 0.5, ease: "easeInOut" }}
-             />
-          </motion.div>
-        </div>
-
       </div>
     </section>
     </>
