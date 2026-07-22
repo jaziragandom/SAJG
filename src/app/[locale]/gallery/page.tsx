@@ -74,7 +74,7 @@ function GalleryContent() {
 
   // بررسی پارامترهای لینک هنگام لود اولیه صفحه (هماهنگ شده با دیتابیس)
   useEffect(() => {
-    if (mediaList.length === 0) return; // صبر می‌کنیم تا دیتا لود شود
+    if (mediaList.length === 0) return;
 
     const mediaId = searchParams.get("mediaId");
     if (mediaId) {
@@ -244,8 +244,17 @@ function GalleryContent() {
               </motion.div>
             ))}
           </AnimatePresence>
+
+          {/* طراحی جدید برای زمانی که هیچ رسانه‌ای یافت نشود */}
           {filteredMedia.length === 0 && (
-             <div className="col-span-full py-20 text-center text-gray-500 font-bold">رسانه‌ای یافت نشد.</div>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} 
+              className="col-span-full py-20 text-center border-2 border-dashed border-gray-200/50 dark:border-gray-800/50 rounded-[2.5rem] bg-white/20 dark:bg-gray-900/20 backdrop-blur-xl"
+            >
+              <p className="text-gray-500 dark:text-gray-400 font-bold text-sm">
+                {isRtl ? "رسانه‌ای در این دسته‌بندی یافت نشد." : "No media found in this category."}
+              </p>
+            </motion.div>
           )}
         </div>
       )}
@@ -253,7 +262,7 @@ function GalleryContent() {
       {/* --- لایت‌باکس بزرگ و حالت سینمایی (Theater Mode) --- */}
       <AnimatePresence>
         {selectedMedia && (
-          <div className="fixed inset-0 z-100 flex items-center justify-center p-4 md:p-6">
+          <div className="fixed inset-0 z-100 flex items-center justify-center p-2 md:p-6">
             
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
@@ -264,7 +273,8 @@ function GalleryContent() {
             <motion.div 
               initial={{ opacity: 0, scale: 0.96, y: 25 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 25 }} 
               transition={{ duration: 0.5, ease: customEase }}
-              className="relative w-full max-w-6xl h-[85vh] md:h-[75vh] flex flex-col bg-black rounded-[2.5rem] overflow-hidden shadow-2xl border border-gray-800/80"
+              // استفاده از w-[95vw] و h-[90svh] برای جلوگیری از بریدگی در حالت عمودی و افقی (هم در موبایل و هم تبلت)
+              className="relative w-[95vw] max-w-6xl h-[90svh] md:h-[85svh] flex flex-col bg-black rounded-[2rem] overflow-hidden shadow-2xl border border-gray-800/80"
             >
               <button 
                 onClick={closeModal} 
@@ -276,15 +286,17 @@ function GalleryContent() {
               {/* ساختار ۱: آلبوم تصاویر و تصاویر تکی */}
               {(selectedMedia.type === 'image' || selectedMedia.type === 'album') && (
                 <div className="flex flex-col w-full h-full relative bg-gray-950">
-                  <div className="flex-1 w-full flex items-center justify-center p-4 select-none">
+                  {/* افزودن min-h-0 برای حل مشکل Flexbox و بریدگی از پایین */}
+                  <div className="flex-1 min-h-0 w-full flex items-center justify-center p-4 sm:p-8 select-none relative z-0">
                     <img 
                       src={selectedMedia.type === 'album' ? selectedMedia.items[currentAlbumIndex] : selectedMedia.url || selectedMedia.thumbnail} 
                       alt="HQ Asset" 
-                      className="max-w-full max-h-full object-contain rounded-xl drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)]" 
+                      // w-full h-full object-contain باعث می‌شود هیچ‌کجای عکس از کادر خارج نشود
+                      className="w-full h-full object-contain rounded-xl drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)]" 
                     />
                   </div>
                   
-                  <div className="absolute top-0 right-0 p-6 bg-linear-to-b from-black/90 via-black/40 to-transparent w-full pointer-events-none">
+                  <div className="absolute top-0 right-0 p-6 bg-linear-to-b from-black/90 via-black/40 to-transparent w-full pointer-events-none z-10">
                     <h2 className="text-lg md:text-xl font-black text-white pr-8">{isRtl ? selectedMedia.faTitle : selectedMedia.enTitle}</h2>
                     <a 
                       href={selectedMedia.type === 'album' ? selectedMedia.items[currentAlbumIndex] : selectedMedia.url || selectedMedia.thumbnail} 
@@ -296,7 +308,7 @@ function GalleryContent() {
                   </div>
 
                   {selectedMedia.type === 'album' && (
-                    <div className="h-24 bg-black border-t border-gray-900/60 flex items-center px-4 gap-2 overflow-x-auto custom-scrollbar shrink-0 justify-center">
+                    <div className="h-24 bg-black border-t border-gray-900/60 flex items-center px-4 gap-2 overflow-x-auto custom-scrollbar shrink-0 justify-center z-10">
                       {selectedMedia.items.map((img: string, idx: number) => (
                         <button 
                           key={idx} 
@@ -315,14 +327,15 @@ function GalleryContent() {
               {(selectedMedia.type === 'video' || selectedMedia.type === 'playlist') && (
                 <div className="flex flex-col md:flex-row w-full h-full bg-gray-950">
                   
-                  <div className="relative flex-1 bg-black flex flex-col justify-center">
-                    <div className="w-full aspect-video md:flex-1 relative flex items-center justify-center bg-gray-900/40">
+                  {/* اعمال min-h-0 برای ویدیو تا در چرخش موبایل از باکس بیرون نزند */}
+                  <div className="relative flex-1 min-h-0 bg-black flex flex-col justify-center p-2 sm:p-4">
+                    <div className="w-full h-full relative flex items-center justify-center bg-gray-900/40 rounded-xl overflow-hidden">
                       
-                      {/* در اینجا باید تگ <video> واقعی پروژه خودتان را قرار دهید */}
+                      {/* در اینجا باید تگ <video> واقعی پروژه خودتان را با کلاس‌های: w-full h-full object-contain قرار دهید */}
                       <MonitorPlay size={48} className="text-gray-800 animate-pulse" />
                       
                       {!isVideoEnded && (
-                        <button onClick={() => setIsVideoEnded(true)} className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1.5 rounded-lg text-[10px] font-black border border-white/10 hover:bg-amber-400 hover:text-gray-950 transition-all">
+                        <button onClick={() => setIsVideoEnded(true)} className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1.5 rounded-lg text-[10px] font-black border border-white/10 hover:bg-amber-400 hover:text-gray-950 transition-all z-20">
                           شبیه‌سازی پایان ویدیو
                         </button>
                       )}
@@ -345,7 +358,7 @@ function GalleryContent() {
                                   onClick={() => { setSelectedMedia(rec); setIsVideoEnded(false); updateUrlParams(rec, 0, 0); }} 
                                   className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden cursor-pointer hover:border-amber-400 transition-all group/rec"
                                 >
-                                  <div className="h-20 w-full relative">
+                                  <div className="h-16 sm:h-20 w-full relative">
                                     <img src={rec.thumbnail} className="w-full h-full object-cover opacity-70 group-hover/rec:opacity-100 transition-opacity" alt="rec"/>
                                   </div>
                                   <p className="text-white text-[11px] font-black p-2.5 truncate">{isRtl ? rec.faTitle : rec.enTitle}</p>
@@ -363,13 +376,13 @@ function GalleryContent() {
                   </div>
 
                   {selectedMedia.type === 'playlist' && (
-                    <div className="w-full md:w-80 bg-gray-950 border-t md:border-t-0 md:border-r border-gray-900 flex flex-col h-1/2 md:h-full shrink-0">
-                      <div className="p-4 border-b border-gray-900/60 bg-gray-900/10">
+                    <div className="w-full md:w-80 bg-gray-950 border-t md:border-t-0 md:border-r border-gray-900 flex flex-col h-1/3 md:h-full shrink-0">
+                      <div className="p-4 border-b border-gray-900/60 bg-gray-900/10 shrink-0">
                         <h3 className="text-white font-black text-xs line-clamp-1">{isRtl ? selectedMedia.faTitle : selectedMedia.enTitle}</h3>
                         <p className="text-gray-500 text-[10px] font-bold mt-1 uppercase tracking-wider">{selectedMedia.items.length} Episodes</p>
                       </div>
                       
-                      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 flex flex-col gap-1">
+                      <div className="flex-1 overflow-y-auto custom-scrollbar p-2 flex flex-col gap-1 min-h-0">
                         {selectedMedia.items.map((ep: any, idx: number) => (
                           <button 
                             key={idx} 
@@ -408,7 +421,6 @@ function GalleryContent() {
 // =====================================================================
 export default function GalleryPage() {
   return (
-    // قرار دادن محتوا در Suspense الزامی است چون از useSearchParams استفاده کرده‌ایم
     <Suspense fallback={<div className="min-h-screen w-full bg-gray-50 dark:bg-gray-950 flex items-center justify-center font-bold text-gray-500"><Loader2 className="animate-spin text-amber-500" size={40} /></div>}>
       <GalleryContent />
     </Suspense>

@@ -75,7 +75,7 @@ export default function MainDashboard() {
         </div>
         <div className="flex items-center gap-3 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 px-4 py-2 rounded-xl text-sm font-bold border border-green-200 dark:border-green-900/30">
           <Activity size={18} className="animate-pulse" />
-          <span>ارتباط با پایگاه داده برقرار است</span>
+          <span>ارتباط با دیتابیس برقرار است</span>
         </div>
       </motion.div>
 
@@ -183,7 +183,7 @@ export default function MainDashboard() {
             </h3>
             <div className="flex flex-col gap-4 relative z-10">
               <div className="flex justify-between items-center text-sm border-b border-white/10 pb-3">
-                <span className="text-gray-400 font-medium">پایگاه داده (DB)</span>
+                <span className="text-gray-400 font-medium">دیتابیس (DB)</span>
                 <span className="font-bold text-emerald-400 flex items-center gap-1"><CheckCircle2 size={14} /> آنلاین</span>
               </div>
               <div className="flex justify-between items-center text-sm border-b border-white/10 pb-3">

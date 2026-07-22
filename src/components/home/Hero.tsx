@@ -166,7 +166,8 @@ export default function Hero() {
         <AnimatePresence mode="wait">
           <motion.div
             key={current}
-            className="container mx-auto px-4 md:px-8 w-full h-full flex flex-col-reverse md:flex-row items-center justify-between relative"
+            // اضافه شدن pb-24 md:pb-0 برای هول دادن کل محتوا به سمت بالا فقط در موبایل
+            className="container mx-auto px-4 md:px-8 pb-24 md:pb-0 w-full h-full flex flex-col-reverse md:flex-row items-center justify-between relative"
           >
             <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden">
               {slide.floaters && slide.floaters.map((floater: any, index: number) => {
@@ -212,9 +213,30 @@ export default function Hero() {
               })}
             </div>
 
+            {/* ۱. دکمه اختصاصی موبایل */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20, transition: { duration: 0.2, delay: 0 } }}
+              transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
+              // تغییر جایگاه داخلی دکمه برای فاصله گرفتن از نقطه‌ها
+              className="flex md:hidden w-full h-[15%] justify-center items-start pt-10 z-50 pointer-events-auto"
+            >
+              <Link href={targetLink} className="block">
+                <button className="flex items-center gap-2 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-amber-400 dark:hover:bg-amber-400 hover:text-black dark:hover:text-black rounded-2xl font-bold transition-all duration-300 shadow-xl group">
+                  {buttonText}
+                  {isRtl ? (
+                    <ArrowLeft className="w-5 h-5 transform group-hover:-translate-x-2 transition-transform" />
+                  ) : (
+                    <ArrowRight className="w-5 h-5 transform group-hover:translate-x-2 transition-transform" />
+                  )}
+                </button>
+              </Link>
+            </motion.div>
            
+            {/* ۲. کانتینر عکس‌های محصول */}
             <div 
-              className="w-full md:w-[55%] h-[55%] min-h-100 md:h-full relative flex items-center justify-center mt-12 md:mt-0 z-40 pointer-events-none"
+              className="w-full md:w-[55%] h-[45%] min-h-80 md:min-h-100 md:h-full relative flex items-center justify-center mt-0 z-40 pointer-events-none"
               style={{ 
                 WebkitMaskImage: "linear-gradient(to bottom, black calc(100% - 70px), transparent 100%)",
                 maskImage: "linear-gradient(to bottom, black calc(100% - 70px), transparent 100%)"
@@ -286,13 +308,15 @@ export default function Hero() {
               </div>
             </div>
 
-            <div className={`w-full md:w-[45%] h-[50%] md:h-full flex flex-col justify-center items-start ${isRtl ? 'text-right' : 'text-left'} z-30 pt-32 mt-12 md:pt-0 md:mt-0 relative`}>
+            {/* ۳. کانتینر متن‌ها */}
+            {/* کاهش pt-20 به pt-8 برای شیفت دادن متن به فضای خالی بالای موبایل */}
+            <div className={`w-full md:w-[45%] h-[40%] md:h-full flex flex-col justify-center items-start ${isRtl ? 'text-right' : 'text-left'} z-30 pt-8 md:pt-0 mt-0 relative`}>
               <motion.div
                 initial={{ opacity: 0, x: isRtl ? 50 : -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: isRtl ? -50 : 50, transition: { duration: 0.2, delay: 0 } }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                className="inline-block px-4 py-2 rounded-full bg-amber-400/10 text-amber-500 font-bold mb-6 backdrop-blur-sm border border-amber-400/20"
+                className="inline-block px-4 py-2 rounded-full bg-amber-400/10 text-amber-500 font-bold mb-4 md:mb-6 backdrop-blur-sm border border-amber-400/20"
               >
                 {subtitleText}
               </motion.div>
@@ -302,11 +326,9 @@ export default function Hero() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20, transition: { duration: 0.2, delay: 0 } }}
                 transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
-                // اضافه شدن pr-2 و py-1 به کلاس‌ها برای حل مشکل بریدگی
-                className="text-5xl md:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white leading-[1.1] mb-6 tracking-tighter pr-2 py-1"
+                className="text-5xl md:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white leading-[1.1] mb-4 md:mb-6 tracking-tighter pr-2 py-1"
               >
                 {titleFirstWord}{" "}
-                {/* اضافه شدن pr-2 به این اسپَن برای جلوگیری از برش گرادیانت */}
                 <span className={`text-transparent bg-clip-text bg-linear-to-r ${slide.color} pr-2`}>
                   {titleRest}
                 </span>
@@ -317,17 +339,18 @@ export default function Hero() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20, transition: { duration: 0.2, delay: 0 } }}
                 transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
-                className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-10 max-w-lg leading-relaxed font-medium"
+                className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-6 md:mb-10 max-w-lg leading-relaxed font-medium"
               >
                 {descText}
               </motion.p>
 
+              {/* دکمه دسکتاپ (در موبایل مخفی می‌شود) */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20, transition: { duration: 0.2, delay: 0 } }}
                 transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
-                className="flex gap-4"
+                className="hidden md:flex gap-4"
               >
                 <Link href={targetLink} className="pointer-events-auto block">
                   <button className="flex items-center gap-2 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-amber-400 dark:hover:bg-amber-400 hover:text-black dark:hover:text-black rounded-2xl font-bold transition-all duration-300 shadow-xl hover:shadow-amber-400/30 group">

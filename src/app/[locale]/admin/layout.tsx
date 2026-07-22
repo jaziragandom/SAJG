@@ -49,7 +49,7 @@ const menuStructure: Record<string, TabMenuType> = {
     ]
   },
   home: {
-    label: "صفحه‌ساز اصلی",
+    label: "صفحه‌ اصلی",
     icon: LayoutTemplate,
     sidebar: [
       { id: "hero", label: "سکشن هیرو", icon: Sliders },

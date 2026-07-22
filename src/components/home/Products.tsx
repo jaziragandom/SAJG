@@ -17,7 +17,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import GlobalLoading from "@/components/GlobalLoading";
 
-// اکشن‌های اتصال به دیتابیس (محصولات، دسته‌بندی‌ها و تنظیمات سایت)
+// اکشن‌های اتصال به دیتابیس
 import { getProducts } from "@/actions/product";
 import { getSiteContent } from "@/actions/siteContent";
 import { getCategories } from "@/actions/category";
@@ -60,7 +60,6 @@ export default function Products() {
 
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
-  const [count, setCount] = useState(0);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -149,9 +148,11 @@ export default function Products() {
 
   useEffect(() => {
     if (!api) return;
-    setCount(api.scrollSnapList().length);
+    
+    // تنظیم اولیه ایندکس
     setCurrent(api.selectedScrollSnap());
 
+    // آپدیت ایندکس با هر اسکرول یا کلیک
     api.on("select", () => {
       setCurrent(api.selectedScrollSnap());
     });
@@ -171,8 +172,9 @@ export default function Products() {
     if (intervalRef.current) clearInterval(intervalRef.current);
   };
 
-  const prevBtnPosition = "left-[-1rem] lg:left-[-3rem] right-auto";
-  const nextBtnPosition = "right-[-1rem] lg:right-[-3rem] left-auto";
+  // تعیین جایگاه دکمه‌ها کاملاً منطبق با جهت زبان سایت (RTL یا LTR)
+  const prevBtnPosition = isRtl ? "-right-3 md:-right-5 lg:-right-12" : "-left-3 md:-left-5 lg:-left-12";
+  const nextBtnPosition = isRtl ? "-left-3 md:-left-5 lg:-left-12" : "-right-3 md:-right-5 lg:-right-12";
 
   // پردازش تیترها برای ایجاد افکت رنگی روی کلمه آخر
   const fullTitle = isRtl ? (sectionSettings.faTitle || t("title_part1") + " " + t("title_part2")) : (sectionSettings.enTitle || t("title_part1") + " " + t("title_part2"));
@@ -247,7 +249,6 @@ export default function Products() {
                   {productsData.map((product, index) => {
                     const theme = themeList[index % themeList.length];
                     const title = isRtl ? product.faTitle : (product.enTitle || product.faTitle);
-                    const subTitle = isRtl ? product.enTitle : product.faTitle;
                     const imgUrl = product.images?.main;
                     
                     // استخراج داینامیک نام دسته‌بندی
@@ -277,7 +278,7 @@ export default function Products() {
                               
                               {imgUrl && (
                                 <>
-                                  {/* ۱. افکت هاله رنگی پشت عکس با کامپوننت Image */}
+                                  {/* ۱. افکت هاله رنگی پشت عکس */}
                                   <div className="absolute inset-0 w-full h-full z-0 overflow-hidden opacity-15 group-hover/card:opacity-30 dark:opacity-40 dark:group-hover/card:opacity-60 transition-opacity duration-700">
                                     <Image 
                                       src={imgUrl} 
@@ -289,7 +290,7 @@ export default function Products() {
                                     />
                                   </div>
                                   
-                                  {/* ۲. عکس اصلی محصول با کامپوننت Image (اصلاح زوم و پدینگ) */}
+                                  {/* ۲. عکس اصلی محصول */}
                                   <div className="absolute inset-0 w-full h-full z-10 overflow-hidden flex items-center justify-center">
                                     <Image 
                                       src={imgUrl} 
@@ -303,7 +304,7 @@ export default function Products() {
                               )}
 
                               {/* گرادیانت روشن در روز و تاریک در شب */}
-                              <div className="absolute inset-0 bg-linear-to-t from-white/95 via-white/40 dark:from-black/95 dark:via-black/40 to-transparent z-10 pointer-events-none" />
+                              <div className="absolute inset-0 bg-linear-to-t from-white via-white/80 dark:from-black/95 dark:via-black/40 to-transparent z-10 pointer-events-none" />
                               
                               <CardContent className="relative z-20 p-0 w-full text-start">
                                 {/* سطر بالا: برند و دسته‌بندی */}
@@ -340,17 +341,37 @@ export default function Products() {
                 </CarouselContent>
               </div>
               
-              <div className={`hidden md:flex absolute top-1/2 -translate-y-1/2 z-20 touch-none ${prevBtnPosition}`} onPointerDown={() => startPress('prev')} onPointerUp={stopPress} onPointerLeave={stopPress}>
-                <CarouselPrevious className="relative inset-auto translate-y-0 h-12 w-12 border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-colors shadow-xl btn-prev-carousel active:scale-[0.98] active:translate-y-0" />
+              {/* دکمه‌های قبلی و بعدی - اعمال داینامیک برای جایگیری و جهت آیکن‌ها بر اساس زبان */}
+              <div className={`flex absolute top-1/2 -translate-y-1/2 z-20 touch-none ${prevBtnPosition}`} onPointerDown={() => startPress('prev')} onPointerUp={stopPress} onPointerLeave={stopPress}>
+                <CarouselPrevious className={`relative inset-auto translate-y-0 h-8 w-8 md:h-12 md:w-12 border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-colors shadow-xl btn-prev-carousel active:scale-[0.98] active:translate-y-0 [&>svg]:w-4 [&>svg]:h-4 md:[&>svg]:w-6 md:[&>svg]:h-6 ${isRtl ? "[&>svg]:rotate-180" : ""}`} />
               </div>
               
-              <div className={`hidden md:flex absolute top-1/2 -translate-y-1/2 z-20 touch-none ${nextBtnPosition}`} onPointerDown={() => startPress('next')} onPointerUp={stopPress} onPointerLeave={stopPress}>
-                <CarouselNext className="relative inset-auto translate-y-0 h-12 w-12 border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-colors shadow-xl btn-next-carousel active:scale-[0.98] active:translate-y-0" />
+              <div className={`flex absolute top-1/2 -translate-y-1/2 z-20 touch-none ${nextBtnPosition}`} onPointerDown={() => startPress('next')} onPointerUp={stopPress} onPointerLeave={stopPress}>
+                <CarouselNext className={`relative inset-auto translate-y-0 h-8 w-8 md:h-12 md:w-12 border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-colors shadow-xl btn-next-carousel active:scale-[0.98] active:translate-y-0 [&>svg]:w-4 [&>svg]:h-4 md:[&>svg]:w-6 md:[&>svg]:h-6 ${isRtl ? "[&>svg]:rotate-180" : ""}`} />
               </div>
 
             </Carousel>
           </div>
         </div>
+
+        {/* نقطه‌های راهنما (اینستاگرامی) */}
+        {productsData.length > 0 && (
+          <div className="flex justify-center items-center gap-2 mt-8" dir={isRtl ? "rtl" : "ltr"}>
+            {productsData.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={() => api?.scrollTo(idx)}
+                className={`rounded-full transition-all duration-300 outline-none shadow-sm ${
+                  current === idx 
+                    ? "w-3 h-3 bg-amber-500 border border-amber-500 scale-110" 
+                    : "w-2.5 h-2.5 bg-white dark:bg-gray-400 border border-gray-200 dark:border-gray-600 hover:bg-gray-100"
+                }`}
+                aria-label={`Go to slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
       </div>
     </section>
     </>
