@@ -166,8 +166,8 @@ export default function Hero() {
         <AnimatePresence mode="wait">
           <motion.div
             key={current}
-            // اضافه شدن pb-24 md:pb-0 برای هول دادن کل محتوا به سمت بالا فقط در موبایل
-            className="container mx-auto px-4 md:px-8 pb-24 md:pb-0 w-full h-full flex flex-col-reverse md:flex-row items-center justify-between relative"
+            // تغییر pb-24 به pb-12 : برای کم کردن فاصله از نقطه‌های پایین و کشیدن کل محتوا به سمت پایین در موبایل
+            className="container mx-auto px-4 md:px-8 pb-12 md:pb-0 w-full h-full flex flex-col-reverse md:flex-row items-center justify-between relative"
           >
             <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden">
               {slide.floaters && slide.floaters.map((floater: any, index: number) => {
@@ -219,8 +219,8 @@ export default function Hero() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20, transition: { duration: 0.2, delay: 0 } }}
               transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
-              // تغییر جایگاه داخلی دکمه برای فاصله گرفتن از نقطه‌ها
-              className="flex md:hidden w-full h-[15%] justify-center items-start pt-10 z-50 pointer-events-auto"
+              // تغییر h-[15%] به h-auto : تا فضای عکس را اشغال نکند
+              className="flex md:hidden w-full h-auto justify-center items-start mt-2 mb-2 z-50 pointer-events-auto"
             >
               <Link href={targetLink} className="block">
                 <button className="flex items-center gap-2 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-amber-400 dark:hover:bg-amber-400 hover:text-black dark:hover:text-black rounded-2xl font-bold transition-all duration-300 shadow-xl group">
@@ -236,7 +236,8 @@ export default function Hero() {
            
             {/* ۲. کانتینر عکس‌های محصول */}
             <div 
-              className="w-full md:w-[55%] h-[45%] min-h-80 md:min-h-100 md:h-full relative flex items-center justify-center mt-0 z-40 pointer-events-none"
+              // تغییر h-[45%] به flex-1 : این کار باعث می‌شود عکس تمام فضای آزاد را بگیرد و هرگز از بالا بریده نشود
+              className="w-full md:w-[55%] flex-1 min-h-75 md:min-h-100 md:h-full relative flex items-center justify-center mt-2 md:mt-0 z-40 pointer-events-none"
               style={{ 
                 WebkitMaskImage: "linear-gradient(to bottom, black calc(100% - 70px), transparent 100%)",
                 maskImage: "linear-gradient(to bottom, black calc(100% - 70px), transparent 100%)"
@@ -309,8 +310,10 @@ export default function Hero() {
             </div>
 
             {/* ۳. کانتینر متن‌ها */}
-            {/* کاهش pt-20 به pt-8 برای شیفت دادن متن به فضای خالی بالای موبایل */}
-            <div className={`w-full md:w-[45%] h-[40%] md:h-full flex flex-col justify-center items-start ${isRtl ? 'text-right' : 'text-left'} z-30 pt-8 md:pt-0 mt-0 relative`}>
+            <div 
+              // تغییر pt-8 به pt-28 : برای هل دادن بج و تایتل به پایین تا زیر ناوبار قرار نگیرند
+              className={`w-full md:w-[45%] h-auto md:h-full shrink-0 flex flex-col justify-center items-start ${isRtl ? 'text-right' : 'text-left'} z-30 pt-28 md:pt-0 mt-0 relative`}
+            >
               <motion.div
                 initial={{ opacity: 0, x: isRtl ? 50 : -50 }}
                 animate={{ opacity: 1, x: 0 }}
