@@ -166,7 +166,6 @@ export default function Hero() {
         <AnimatePresence mode="wait">
           <motion.div
             key={current}
-            // تغییر pb-24 به pb-12 : برای کم کردن فاصله از نقطه‌های پایین و کشیدن کل محتوا به سمت پایین در موبایل
             className="container mx-auto px-4 md:px-8 pb-12 md:pb-0 w-full h-full flex flex-col-reverse md:flex-row items-center justify-between relative"
           >
             <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden">
@@ -219,7 +218,6 @@ export default function Hero() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20, transition: { duration: 0.2, delay: 0 } }}
               transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
-              // تغییر h-[15%] به h-auto : تا فضای عکس را اشغال نکند
               className="flex md:hidden w-full h-auto justify-center items-start mt-2 mb-2 z-50 pointer-events-auto"
             >
               <Link href={targetLink} className="block">
@@ -234,18 +232,19 @@ export default function Hero() {
               </Link>
             </motion.div>
            
-            {/* ۲. کانتینر عکس‌های محصول */}
+            {/* ۲. کانتینر عکس‌های محصول (افزایش ارتفاع کادر و کشیدن به سمت بالا با mt-6-) */}
             <div 
-              // تغییر h-[45%] به flex-1 : این کار باعث می‌شود عکس تمام فضای آزاد را بگیرد و هرگز از بالا بریده نشود
-              className="w-full md:w-[55%] flex-1 min-h-75 md:min-h-100 md:h-full relative flex items-center justify-center mt-2 md:mt-0 z-40 pointer-events-none"
+              className="w-full md:w-[55%] flex-1 min-h-90 md:min-h-100 md:h-full relative flex items-center justify-center -mt-6 md:mt-0 z-40 pointer-events-none"
               style={{ 
                 WebkitMaskImage: "linear-gradient(to bottom, black calc(100% - 70px), transparent 100%)",
                 maskImage: "linear-gradient(to bottom, black calc(100% - 70px), transparent 100%)"
               }}
             >
-              <div className="relative w-64 h-80 md:h-96 flex items-center justify-center">
+              <div className="relative w-full h-72 md:h-96 flex items-center justify-center">
+                
+                {/* عکس فرعی سمت چپ (کمی کوچکتر در موبایل) */}
                 <motion.div
-                  className="absolute w-44 md:w-52 h-64 md:h-80 origin-bottom"
+                  className="absolute w-36 md:w-52 h-56 md:h-80 origin-bottom"
                   initial={{ rotate: 0, x: 0, y: 0, opacity: 0, scale: 0.5 }}
                   animate={{ rotate: -15, x: -60, y: 15, opacity: 1, scale: 0.85 }}
                   exit={{ rotate: 0, x: 0, y: 0, opacity: 0, scale: 0.5, transition: { duration: 0.2, delay: 0 } }}
@@ -265,8 +264,9 @@ export default function Hero() {
                   </motion.div>
                 </motion.div>
 
+                {/* عکس فرعی سمت راست (کمی کوچکتر در موبایل) */}
                 <motion.div
-                  className="absolute w-44 md:w-52 h-64 md:h-80 origin-bottom"
+                  className="absolute w-36 md:w-52 h-56 md:h-80 origin-bottom"
                   initial={{ rotate: 0, x: 0, y: 0, opacity: 0, scale: 0.5 }}
                   animate={{ rotate: 15, x: 60, y: 15, opacity: 1, scale: 0.85 }}
                   exit={{ rotate: 0, x: 0, y: 0, opacity: 0, scale: 0.5, transition: { duration: 0.2, delay: 0 } }}
@@ -286,8 +286,9 @@ export default function Hero() {
                   </motion.div>
                 </motion.div>
 
+                {/* عکس اصلی محصول (کوچک‌تر در موبایل برای جلوگیری از برش خوردن) */}
                 <motion.div
-                  className="absolute z-50 origin-bottom w-56 md:w-80 h-80 md:h-112"
+                  className="absolute z-50 origin-bottom w-48 md:w-80 h-72 md:h-112"
                   initial={{ opacity: 0, scale: 0.2, y: 50 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.2, y: -50, transition: { duration: 0.2, delay: 0 } }}
@@ -309,17 +310,16 @@ export default function Hero() {
               </div>
             </div>
 
-            {/* ۳. کانتینر متن‌ها */}
+            {/* ۳. کانتینر متن‌ها (کم شدن فاصله‌های داخلی) */}
             <div 
-              // تغییر pt-8 به pt-28 : برای هل دادن بج و تایتل به پایین تا زیر ناوبار قرار نگیرند
-              className={`w-full md:w-[45%] h-auto md:h-full shrink-0 flex flex-col justify-center items-start ${isRtl ? 'text-right' : 'text-left'} z-30 pt-28 md:pt-0 mt-0 relative`}
+              className={`w-full md:w-[45%] h-auto md:h-full shrink-0 flex flex-col justify-center items-start ${isRtl ? 'text-right' : 'text-left'} z-30 pt-20 md:pt-0 mt-0 relative`}
             >
               <motion.div
                 initial={{ opacity: 0, x: isRtl ? 50 : -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: isRtl ? -50 : 50, transition: { duration: 0.2, delay: 0 } }}
                 transition={{ duration: 0.5, ease: "easeOut" }}
-                className="inline-block px-4 py-2 rounded-full bg-amber-400/10 text-amber-500 font-bold mb-4 md:mb-6 backdrop-blur-sm border border-amber-400/20"
+                className="inline-block px-4 py-2 rounded-full bg-amber-400/10 text-amber-500 font-bold mb-2 md:mb-6 backdrop-blur-sm border border-amber-400/20"
               >
                 {subtitleText}
               </motion.div>
@@ -329,7 +329,7 @@ export default function Hero() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20, transition: { duration: 0.2, delay: 0 } }}
                 transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
-                className="text-5xl md:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white leading-[1.1] mb-4 md:mb-6 tracking-tighter pr-2 py-1"
+                className="text-5xl md:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white leading-none md:leading-[1.1] mb-2 md:mb-6 tracking-tighter pr-2 py-1"
               >
                 {titleFirstWord}{" "}
                 <span className={`text-transparent bg-clip-text bg-linear-to-r ${slide.color} pr-2`}>
@@ -342,7 +342,7 @@ export default function Hero() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20, transition: { duration: 0.2, delay: 0 } }}
                 transition={{ duration: 0.5, delay: 0.2, ease: "easeOut" }}
-                className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-6 md:mb-10 max-w-lg leading-relaxed font-medium"
+                className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-2 md:mb-10 max-w-lg leading-relaxed font-medium"
               >
                 {descText}
               </motion.p>
