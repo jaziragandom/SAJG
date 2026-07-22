@@ -218,7 +218,7 @@ export default function Hero() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20, transition: { duration: 0.2, delay: 0 } }}
               transition={{ duration: 0.5, delay: 0.4, ease: "easeOut" }}
-              className="flex md:hidden w-full h-auto justify-center items-start mt-2 mb-2 z-50 pointer-events-auto"
+              className="flex md:hidden w-full h-auto justify-center items-start mt-2 mb-8 z-50 pointer-events-auto"
             >
               <Link href={targetLink} className="block">
                 <button className="flex items-center gap-2 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-amber-400 dark:hover:bg-amber-400 hover:text-black dark:hover:text-black rounded-2xl font-bold transition-all duration-300 shadow-xl group">
