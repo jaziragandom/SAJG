@@ -1,7 +1,7 @@
 "use client";
 
 import GlobalLoading from "@/components/GlobalLoading";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useLocale } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
@@ -13,6 +13,9 @@ import {
 import { getProducts } from "@/actions/product";
 import { getCategories } from "@/actions/category";
 import { getBrands } from "@/actions/brand";
+
+import { useReactToPrint } from "react-to-print";
+import DatasheetPrint from "@/components/shared/DatasheetPrint";
 
 const BrandWhatsapp = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>;
 const BrandTelegram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
@@ -26,25 +29,39 @@ export default function ProductDetailsPage() {
   const router = useRouter();
   
   const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
+  
+  // تمام هوک‌ها قبل از هرگونه return تعریف می‌شوند
   const [isDatasheetOpen, setIsDatasheetOpen] = useState(false);
   const [activeImageTab, setActiveImageTab] = useState<'main' | 'nutrition'>('main');
-  
   const [isImgHovered, setIsImgHovered] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const [productObj, setProductObj] = useState<any>(null);
+  const [similarProducts, setSimilarProducts] = useState<any[]>([]);
+  const [categoriesData, setCategoriesData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [catName, setCatName] = useState<string | null>(null);
+  const [statusName, setStatusName] = useState<string | null>(null);
+  const [brandObj, setBrandObj] = useState<any>(null);
+  
+  const printRef = useRef<HTMLDivElement>(null);
+
+  // استخراج ایمن عنوان برای هوک پرینت
+  const safeTitle = productObj ? (isRtl ? productObj.faTitle : (productObj.enTitle || productObj.faTitle)) : "Datasheet";
+
+  const handlePrintDatasheet = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: `${safeTitle}-Datasheet`,
+    pageStyle: `
+      @page { size: A4 portrait; margin: 0; }
+      html, body { margin: 0; padding: 0; background: white; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    `,
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => setHasLoaded(true), 700);
     return () => clearTimeout(timer);
   }, [activeImageTab]);
-
-  const [productObj, setProductObj] = useState<any>(null);
-  const [similarProducts, setSimilarProducts] = useState<any[]>([]);
-  const [categoriesData, setCategoriesData] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  
-  const [catName, setCatName] = useState<string | null>(null);
-  const [statusName, setStatusName] = useState<string | null>(null);
-  const [brandObj, setBrandObj] = useState<any>(null);
 
   useEffect(() => {
     const fetchProductDetails = async () => {
@@ -94,12 +111,10 @@ export default function ProductDetailsPage() {
 
             if (catsRes?.success && catsRes.data) {
               const allCats = catsRes.data;
-              
               if (foundProduct.category) {
                 const matchedCat = allCats.find((c: any) => c.slug === foundProduct.category);
                 setCatName(matchedCat ? (isRtl ? matchedCat.faName : matchedCat.enName) : foundProduct.category);
               }
-              
               if (foundProduct.status) {
                 const matchedStatus = allCats.find((c: any) => c.slug === foundProduct.status);
                 setStatusName(matchedStatus ? (isRtl ? matchedStatus.faName : matchedStatus.enName) : foundProduct.status);
@@ -110,17 +125,14 @@ export default function ProductDetailsPage() {
       } catch (error) {
         console.error("Error fetching product details:", error);
       }
-      
       setIsLoading(false);
     };
 
     fetchProductDetails();
   }, [params, isRtl]);
 
-  if (isLoading) {
-    return <GlobalLoading />;
-  }
-
+  // چک کردن لودینگ بعد از تمام هوک‌ها
+  if (isLoading) return <GlobalLoading />;
   if (!productObj) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-transparent px-4">
@@ -154,17 +166,14 @@ export default function ProductDetailsPage() {
 
   const title = isRtl ? p.faTitle : (p.enTitle || p.faTitle);
 
-  // وزن
   const pWeightVal = p.specs?.weight || p.weight || "";
   const weightCat = categoriesData.find(c => c.slug === pWeightVal || c.faName === pWeightVal || c._id === pWeightVal);
   const pWeight = weightCat ? (isRtl ? weightCat.faName : weightCat.enName) : (isRtl ? (p.specs?.weightFa || pWeightVal || "نامشخص") : (p.specs?.weightEn || pWeightVal || "N/A"));
 
-  // طعم
   const pFlavorVal = p.specs?.flavor || p.flavor || "";
   const flavorCat = categoriesData.find(c => c.slug === pFlavorVal || c.faName === pFlavorVal || c._id === pFlavorVal);
   const pFlavor = flavorCat ? (isRtl ? flavorCat.faName : flavorCat.enName) : (isRtl ? (p.specs?.flavorFa || pFlavorVal || "نامشخص") : (p.specs?.flavorEn || pFlavorVal || "N/A"));
 
-  // بسته‌بندی
   const pPackagingVal = p.specs?.packaging || p.packaging || "";
   const packCat = categoriesData.find(c => c.slug === pPackagingVal || c.faName === pPackagingVal || c._id === pPackagingVal);
   const pPackaging = packCat ? (isRtl ? packCat.faName : packCat.enName) : (isRtl ? (p.specs?.packagingFa || pPackagingVal || "نامشخص") : (p.specs?.packagingEn || pPackagingVal || "N/A"));
@@ -173,10 +182,6 @@ export default function ProductDetailsPage() {
   const ingredients = isRtl ? p.specs?.ingredientsFa : p.specs?.ingredientsEn;
   const shelfLife = isRtl ? p.specs?.shelfLifeFa : p.specs?.shelfLifeEn;
   const packCount = p.specs?.itemsPerPackage || p.packCount || (isRtl ? "نامشخص" : "N/A");
-
-  const handlePrintDatasheet = () => {
-    window.print();
-  };
 
   const fadeUpItem: Variants = {
     hidden: { opacity: 0, y: 40 },
@@ -188,7 +193,6 @@ export default function ProductDetailsPage() {
     show: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
-  // آماده‌سازی متن‌های اشتراک‌گذاری هوشمند با کپشن درخواستی
   const shareText = isRtl
     ? `📄 مشخصات فنی محصول: ${title}\n🌐 وب‌سایت: www.jazirahgandumco.com\n📞 واتس‌اپ: +93790710015\n🔗 لینک مشاهده و دریافت دیتاشیت:`
     : `📄 Product Technical Datasheet: ${title}\n🌐 Website: www.jazirahgandumco.com\n📞 WhatsApp: +93790710015\n🔗 View & Download Datasheet:`;
@@ -362,7 +366,6 @@ export default function ProductDetailsPage() {
                 {description}
               </motion.p>
               
-              {/* باکس هشدار محصول */}
               {p.hasWarning && (p.warningMessageFa || p.warningMessageEn) && (
                  <motion.div variants={fadeUpItem} className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3 mt-6">
                     <AlertTriangle size={20} className="text-red-500 shrink-0 mt-0.5" />
@@ -599,82 +602,20 @@ export default function ProductDetailsPage() {
                   </button>
                 </div>
               </div>
-
-              <div className="p-8 md:p-12 bg-white text-gray-900 flex flex-col gap-8 overflow-y-auto max-h-[75vh] print:max-h-none print:p-0">
-                
-                <div className="flex justify-between items-center border-b-2 border-gray-900 pb-4">
-                  <div className="flex flex-col gap-1">
-                    <h3 className="text-xl font-black tracking-tight text-gray-950">{isRtl ? "شرکت صنعتی جزیره گندم" : "Jazirah Gandum Co."}</h3>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Product Technical Datasheet (TDS)</p>
-                  </div>
-                  <div className="text-left">
-                    <p className="text-[10px] font-bold text-gray-400">شناسه محصول: #00{p._id || p.id}9</p>
-                    <p className="text-[10px] font-bold text-gray-400 mt-0.5">تاریخ صدور: {new Date().toLocaleDateString(isRtl ? 'fa-IR' : 'en-US')}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-6 items-center bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                  <div className="col-span-2 flex flex-col gap-2">
-                    <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wide">{isRtl ? "شناسنامه فنی محصول" : "Product ID"}</span>
-                    <h4 className="text-xl font-black text-gray-950">{title}</h4>
-                  </div>
-                  <div className="flex justify-end h-24 w-full">
-                    <img src={pImg} alt={title} className="h-full object-contain mix-blend-multiply" />
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <h5 className={`text-xs font-black text-gray-900 ${isRtl ? 'border-r-4 pr-2' : 'border-l-4 pl-2'} border-amber-400`}>
-                    {isRtl ? "جدول مشخصات و پارامترهای فنی" : "Technical Parameters"}
-                  </h5>
-                  <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                    <table className={`w-full text-xs ${isRtl ? 'text-right' : 'text-left'} border-collapse`}>
-                      <thead>
-                        <tr className="bg-gray-100 text-gray-600 font-bold border-b border-gray-200">
-                          <th className="px-4 py-3 w-1/3">{isRtl ? "نام پارامتر" : "Parameter"}</th>
-                          <th className="px-4 py-3">{isRtl ? "مقدار / مشخصه" : "Value / Specs"}</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200 font-medium text-gray-700">
-                        <tr>
-                          <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "برند / دسته‌بندی" : "Brand / Category"}</td>
-                          <td className="px-4 py-3">{pBrand} - {catName || p.category || "-"}</td>
-                        </tr>
-                        <tr className="bg-gray-50/50">
-                          <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "وزن خالص / حجم ظرف" : "Net Weight / Volume"}</td>
-                          <td className="px-4 py-3">{pWeight}</td>
-                        </tr>
-                        <tr>
-                          <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "بسته‌بندی / تعداد در کارتن" : "Packaging / Pack Count"}</td>
-                          <td className="px-4 py-3"><bdi>{packCount}</bdi> - <bdi>{pPackaging}</bdi></td>
-                        </tr>
-                        <tr className="bg-gray-50/50">
-                          <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "طعم و عصاره پایه" : "Base Flavor"}</td>
-                          <td className="px-4 py-3">{pFlavor}</td>
-                        </tr>
-                        <tr>
-                          <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "ترکیبات اصلی" : "Main Ingredients"}</td>
-                          <td className="px-4 py-3 leading-relaxed">{ingredients}</td>
-                        </tr>
-                        <tr className="bg-gray-50/50">
-                          <td className="px-4 py-3 font-bold text-gray-900">{isRtl ? "تاریخ انقضا (ماندگاری)" : "Shelf Life"}</td>
-                          <td className="px-4 py-3">{shelfLife}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div className="mt-auto pt-8 border-t border-dashed border-gray-300 flex justify-between items-center text-[10px] font-medium text-gray-400">
-                  <p>{isRtl ? "تأیید شده توسط واحد کنترل کیفیت (QC) جزیره گندم" : "Approved by Jazirah Gandum Quality Control (QC)"}</p>
-                  <p className="text-left font-mono">www.jazirahgandumco.com</p>
-                </div>
-
-              </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+      
+      <div className="hidden">
+        <DatasheetPrint
+            ref={printRef}
+            locale={locale}
+            product={p}
+            categories={categoriesData}
+            brand={brandObj}
+        />
+      </div>
 
     </div>
   );

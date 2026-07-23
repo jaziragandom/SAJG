@@ -6,11 +6,12 @@ import Link from "next/link";
 import { useLocale } from "next-intl";
 import { 
   Menu, X, ShieldCheck, ChevronDown, ChevronLeft, ChevronRight,
-  ArrowLeft, ArrowRight, Wheat, Droplets, Sparkles, Tag, LayoutGrid, Store
+  ArrowLeft, ArrowRight, Wheat, Droplets, Sparkles, Tag, LayoutGrid, Store, FileText
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import LangSwitch from "./LangSwitch";
 import { getNavbarData } from "@/actions/navbar";
+import CatalogBuilderModal from "./CatalogBuilderModal";
 
 interface NavbarProps {
   brands?: any[];
@@ -43,8 +44,15 @@ export default function Navbar({
   const [expandedMobileMenu, setExpandedMobileMenu] = useState<string | null>(null); 
   const [expandedNestedMobile, setExpandedNestedMobile] = useState<string | null>(null);
 
-  // استیت برای مدیریت خطای لود عکس برندها در ناوبار
   const [imgError, setImgError] = useState<Record<string, boolean>>({});
+
+  const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpenCatalog = () => setIsCatalogModalOpen(true);
+    window.addEventListener('openCatalogModal', handleOpenCatalog);
+    return () => window.removeEventListener('openCatalogModal', handleOpenCatalog);
+  }, []);
 
   useEffect(() => {
     const fetchNav = async () => {
@@ -66,7 +74,6 @@ export default function Navbar({
     else setIsHidden(false); 
   });
 
-  // قفل کردن اسکرول صفحه اصلی هنگام باز بودن منوی موبایل
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -107,7 +114,8 @@ export default function Navbar({
     };
   });
 
-  const productsNestedMenu = [
+  // رفع ارور تایپ‌اسکریپت با تعریف دقیق any[]
+  const productsNestedMenu: any[] = [
     ...dynamicProductsMenu,
     {
       id: "brands",
@@ -116,6 +124,15 @@ export default function Navbar({
       icon: <Tag size={16} />,
       items: brands, 
       filterKey: "brand"
+    },
+    {
+      id: "catalog",
+      fa: "کاتالوگ‌ساز زنده",
+      en: "Live Catalog",
+      icon: <FileText size={16} />,
+      items: [], 
+      isAction: true,
+      action: () => setIsCatalogModalOpen(true)
     }
   ];
 
@@ -138,7 +155,6 @@ export default function Navbar({
   return (
     <motion.header
       initial={false}
-      // در نمای موبایل، اگر منو باز باشد، ناوبار نباید هاید شود
       animate={{ y: (isHidden && !isMobileMenuOpen) ? "-100%" : 0 }}
       transition={{ duration: 0.35, ease: customEase }}
       className={`fixed top-0 left-0 w-full transition-all duration-500 ${isMobileMenuOpen ? "z-100" : "z-50"} ${
@@ -206,7 +222,6 @@ export default function Navbar({
                 )}
               </Link>
 
-              {/* === منوی آبشاری محصولات و زیرمجموعه‌های آن === */}
               <AnimatePresence>
                 {link.isProductsDropdown && hoveredLink === link.key && (
                   <motion.div
@@ -225,22 +240,26 @@ export default function Navbar({
                           onMouseEnter={() => setHoveredNestedLink(nested.id)}
                           onMouseLeave={() => setHoveredNestedLink(null)}
                         >
-                          <div className={`flex items-center justify-between px-4 py-2.5 text-sm font-bold rounded-xl cursor-pointer transition-colors ${hoveredNestedLink === nested.id ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}>
+                          <div 
+                            onClick={nested.isAction ? nested.action : undefined}
+                            className={`flex items-center justify-between px-4 py-2.5 text-sm font-bold rounded-xl cursor-pointer transition-colors ${hoveredNestedLink === nested.id ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
+                          >
                             <div className="flex items-center gap-2">
                               <span className="text-amber-500 opacity-70">{nested.icon}</span>
                               {isRtl ? nested.fa : nested.en}
                             </div>
-                            {isRtl ? <ChevronLeft size={16} className="opacity-50" /> : <ChevronRight size={16} className="opacity-50" />}
+                            {!nested.isAction && (
+                               isRtl ? <ChevronLeft size={16} className="opacity-50" /> : <ChevronRight size={16} className="opacity-50" />
+                            )}
                           </div>
 
                           <AnimatePresence>
-                            {hoveredNestedLink === nested.id && nested.items.length > 0 && (
+                            {hoveredNestedLink === nested.id && !nested.isAction && nested.items && nested.items.length > 0 && (
                               <motion.div
                                 initial={{ opacity: 0, x: isRtl ? 10 : -10 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: isRtl ? 5 : -5 }}
                                 transition={{ duration: 0.3, ease: customEase }}
-                                // جهت‌دهی صحیح: فارسی به سمت چپ (right-full)، انگلیسی به راست (left-full)
                                 className="absolute top-0 rtl:right-full rtl:mr-2 rtl:left-auto ltr:left-full ltr:ml-2 ltr:right-auto w-56 z-50"
                               >
                                 <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-2 shadow-2xl flex flex-col gap-1">
@@ -275,7 +294,6 @@ export default function Navbar({
                 )}
               </AnimatePresence>
 
-              {/* === منوی آبشاری مستقل برندها با لوگوها === */}
               <AnimatePresence>
                 {link.isBrandsMenu && hoveredLink === link.key && (
                   <motion.div
@@ -291,7 +309,6 @@ export default function Navbar({
                         const brandId = brand._id || brand.slug;
                         const hasError = imgError?.[brandId];
                         
-                        // جستجوی جامع برای پیدا کردن لینک عکس در ساختارهای مختلف دیتابیس
                         const currentLogo = 
                                 (isRtl ? brand.logoFa : brand.logoEn) || 
                                 brand.logo || 
@@ -306,10 +323,8 @@ export default function Navbar({
                             href={`/${locale}/brands/${brand.slug}`}
                             className="flex items-center justify-between px-4 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors group"
                           >
-                            {/* نام برند */}
                             <span>{isRtl ? brand.faName : brand.enName}</span>
                             
-                            {/* لوگوی برند */}
                             <div className="w-6 h-6 shrink-0 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
                               {currentLogo && !hasError ? (
                                 <img 
@@ -346,7 +361,6 @@ export default function Navbar({
                 )}
               </AnimatePresence>
 
-              {/* === منوی آبشاری درباره ما === */}
               <AnimatePresence>
                 {link.subLinks && hoveredLink === link.key && (
                   <motion.div
@@ -448,18 +462,27 @@ export default function Navbar({
                             {productsNestedMenu.map((nested) => (
                               <div key={nested.id} className="flex flex-col">
                                 <button 
-                                  onClick={() => setExpandedNestedMobile(expandedNestedMobile === nested.id ? null : nested.id)}
+                                  onClick={() => {
+                                    if(nested.isAction && nested.action) {
+                                      nested.action();
+                                      setIsMobileMenuOpen(false);
+                                    } else {
+                                      setExpandedNestedMobile(expandedNestedMobile === nested.id ? null : nested.id);
+                                    }
+                                  }}
                                   className={`flex items-center justify-between py-3 px-3 text-sm font-bold rounded-xl transition-colors ${expandedNestedMobile === nested.id ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' : 'text-gray-700 dark:text-gray-300'}`}
                                 >
                                   <div className="flex items-center gap-2">
                                     <span className={`${expandedNestedMobile === nested.id ? 'text-amber-500' : 'text-gray-400'}`}>{nested.icon}</span>
                                     {isRtl ? nested.fa : nested.en}
                                   </div>
-                                  <ChevronDown size={14} className={`transition-transform ${expandedNestedMobile === nested.id ? 'rotate-180' : ''}`} />
+                                  {!nested.isAction && (
+                                    <ChevronDown size={14} className={`transition-transform ${expandedNestedMobile === nested.id ? 'rotate-180' : ''}`} />
+                                  )}
                                 </button>
                                 
                                 <AnimatePresence>
-                                  {expandedNestedMobile === nested.id && (
+                                  {expandedNestedMobile === nested.id && !nested.isAction && nested.items && nested.items.length > 0 && (
                                     <motion.div 
                                       initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                                       className="overflow-hidden"
@@ -508,7 +531,6 @@ export default function Navbar({
                               const brandId = brand._id || brand.slug;
                               const hasError = imgError?.[brandId];
                               
-                              // جستجوی جامع برای نمای موبایل
                               const currentLogo = 
                                 (isRtl ? brand.logoFa : brand.logoEn) || 
                                 brand.logo || 
@@ -611,6 +633,11 @@ export default function Navbar({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <CatalogBuilderModal 
+        isOpen={isCatalogModalOpen} 
+        onClose={() => setIsCatalogModalOpen(false)} 
+      />
     </motion.header>
   );
 }

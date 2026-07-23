@@ -141,7 +141,6 @@ export default function AboutFactory() {
             </div>
 
             {/* ستون ویدیو */}
-            {/* ستون ویدیو */}
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -151,13 +150,26 @@ export default function AboutFactory() {
             >
               <div className="absolute inset-0 bg-zinc-900 rounded-3xl overflow-hidden shadow-lg z-10 flex items-center justify-center group">
                 
-                {isVideoPlaying ? (
-                  <video 
-                    src={introData.videoUrl} 
-                    controls 
-                    autoPlay 
-                    className="w-full h-full object-cover rounded-3xl"
-                  />
+                {introData?.videoUrl ? (
+                  <>
+                    <video 
+                      src={introData.videoUrl} 
+                      controls={isVideoPlaying}
+                      autoPlay={isVideoPlaying}
+                      className="w-full h-full object-cover rounded-3xl"
+                    />
+                    {!isVideoPlaying && (
+                      <>
+                        <div className="absolute inset-0 bg-black/40 z-10 transition-opacity group-hover:bg-black/50" />
+                        <div className="absolute z-20 flex flex-col items-center cursor-pointer" onClick={handlePlayVideo}>
+                          <div className="w-20 h-20 bg-white/20 hover:bg-amber-500 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 transition-colors">
+                            <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                          </div>
+                          <span className="mt-4 font-bold text-white text-sm tracking-widest drop-shadow-md">{isRtl ? "تور مجازی کارخانه" : "VIRTUAL TOUR"}</span>
+                        </div>
+                      </>
+                    )}
+                  </>
                 ) : (
                   <>
                     <div className="absolute inset-0 bg-linear-to-tr from-black/70 to-transparent z-10" />

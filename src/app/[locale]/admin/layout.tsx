@@ -78,7 +78,6 @@ const menuStructure: Record<string, TabMenuType> = {
           { id: "cat_status", label: "لیبل‌های وضعیت", icon: CheckCircle2 },
         ]
       },
-      { id: "catalog", label: "کاتالوگ‌ساز پویا", icon: FileText },
     ]
   },
   gallery: {

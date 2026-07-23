@@ -9,7 +9,7 @@ import { submitMessage, submitAgencyForm } from "@/actions/communications";
 import { 
   Building2, Target, Users, Award, MapPin, Download, X, 
   Mail, Phone, ShieldCheck, MapPinned, MessageCircle, Send, Briefcase, CheckCircle2,
-  Music2, MessageSquare, Share2, Loader2
+  Music2, MessageSquare, Share2, Loader2, Layers
 } from "lucide-react";
 import { 
   TbBrandWhatsapp, TbBrandInstagram, TbBrandFacebook, TbBrandTwitter, 
@@ -241,9 +241,32 @@ export default function AboutPage() {
         <motion.div variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.2 }} className="scroll-mt-28 flex flex-col items-center text-center">
           <motion.div variants={fadeInUp} className="p-3 bg-amber-400/10 rounded-2xl mb-4 mx-auto w-max"><Building2 size={40} className="text-amber-500" /></motion.div>
           <motion.h1 variants={fadeInUp} className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-6">{isRtl ? "درباره جزیره گندم" : "About Jazirah Gandum"}</motion.h1>
-          <motion.p variants={fadeInUp} className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed max-w-4xl mx-auto text-justify md:text-center">
+          <motion.p variants={fadeInUp} className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed max-w-4xl mx-auto text-justify md:text-center mb-8">
             {isRtl ? introData.aboutFa : introData.aboutEn}
           </motion.p>
+          
+          <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
+             <button 
+                type="button"
+                onClick={() => {
+                   window.dispatchEvent(new Event('openCatalogModal'));
+                }}
+                className="w-full sm:w-auto bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-amber-400 dark:hover:bg-amber-400 hover:text-gray-950 dark:hover:text-gray-950 px-8 py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-3 shadow-lg transition-colors duration-300 group"
+              >
+                <Layers size={20} className="group-hover:scale-110 transition-transform" />
+                <span>{isRtl ? "ساخت و دریافت کاتالوگ" : "Generate Catalog"}</span>
+              </button>
+              
+              <a 
+                href={introData.profilePdfUrl || "/company-profile.pdf"} 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto bg-amber-400 hover:bg-amber-500 text-gray-950 px-8 py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-3 shadow-lg shadow-amber-400/20 transition-colors duration-300 group"
+              >
+                <Download size={20} className="group-hover:-translate-y-1 transition-transform" />
+                <span>{isRtl ? "دانلود پروفایل کمپنی" : "Download Company Profile"}</span>
+              </a>
+          </motion.div>
         </motion.div>
 
         {/* ۲. ماموریت و چشم‌انداز */}
@@ -306,8 +329,26 @@ export default function AboutPage() {
 
             <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: false, amount: 0.1 }} transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }} className="relative w-full h-96 lg:h-auto grow flex">
               <div className="absolute inset-0 bg-zinc-900 rounded-3xl overflow-hidden shadow-lg z-10 flex items-center justify-center group">
-                {isVideoPlaying ? (
-                  <video src={introData.videoUrl} controls autoPlay className="w-full h-full object-cover rounded-3xl" />
+                {introData?.videoUrl ? (
+                  <>
+                    <video 
+                      src={introData.videoUrl} 
+                      controls={isVideoPlaying}
+                      autoPlay={isVideoPlaying}
+                      className="w-full h-full object-cover rounded-3xl"
+                    />
+                    {!isVideoPlaying && (
+                      <>
+                        <div className="absolute inset-0 bg-black/40 z-10 transition-opacity group-hover:bg-black/50" />
+                        <div className="absolute z-20 flex flex-col items-center cursor-pointer" onClick={handlePlayVideo}>
+                          <div className="w-20 h-20 bg-white/20 hover:bg-amber-500 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 transition-colors">
+                            <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                          </div>
+                          <span className="mt-4 font-bold text-white text-sm tracking-widest drop-shadow-md">{isRtl ? "تور مجازی کارخانه" : "VIRTUAL TOUR"}</span>
+                        </div>
+                      </>
+                    )}
+                  </>
                 ) : (
                   <>
                     <div className="absolute inset-0 bg-linear-to-tr from-black/70 to-transparent z-10" />

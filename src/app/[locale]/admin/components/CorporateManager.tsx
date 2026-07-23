@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2, Target, Users, Award, MapPin, CheckCircle2,
-  Plus, Trash2, Edit3, Image as ImageIcon, Wand2, Loader2, Factory, X, BarChart, Film, ClipboardList, Eye
+  Plus, Trash2, Edit3, Image as ImageIcon, Wand2, Loader2, Factory, X, BarChart, Film, ClipboardList, Eye, FileText
 } from "lucide-react";
 import { getSiteContent, saveSiteContent } from "@/actions/siteContent";
 import * as LucideIcons from "lucide-react";
@@ -46,7 +46,7 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
   // --- دیتای استاتیک ---
   const [introData, setIntroData] = useState({
     aboutFa: "", aboutEn: "", badgeFA: "", badgeEN: "",
-    titleFA: "", titleEN: "", descFA: "", descEN: "", videoUrl: ""
+    titleFA: "", titleEN: "", descFA: "", descEN: "", videoUrl: "", profilePdfUrl: ""
   });
 
   const [strategyData, setStrategyData] = useState({
@@ -458,22 +458,88 @@ export default function CorporateManager({ currentSection }: CorporateManagerPro
 
               <div className="flex flex-col gap-2 bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 mt-2">
                 <label className="text-xs font-bold text-gray-600 dark:text-gray-400">آپلود ویدیوی پس‌زمینه (MP4)</label>
-                <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-3 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800 cursor-pointer transition-colors group">
-                  <input type="file" accept="video/mp4" className="hidden" onChange={async(e) => { 
+                
+                {introData.videoUrl ? (
+                  <div className="flex flex-col items-center gap-4 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 bg-white dark:bg-gray-900">
+                    <video 
+                      src={introData.videoUrl} 
+                      controls 
+                      className="w-full max-h-48 object-cover rounded-xl shadow-sm"
+                    />
+                    <label className="cursor-pointer bg-amber-400 hover:bg-amber-500 text-gray-900 px-6 py-2 rounded-xl font-bold transition-colors text-sm flex items-center gap-2">
+                      <input type="file" accept="video/mp4" className="hidden" onChange={async(e) => { 
+                        const f = e.target.files?.[0]; 
+                        if(!f) return;
+                        if(introData.videoUrl) { 
+                          await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: introData.videoUrl }) }).catch(e => console.error(e));
+                        } 
+                        const fd = new FormData();
+                        fd.append('file', f); 
+                        const r = await fetch('/api/upload', {method:'POST',body:fd}); 
+                        const d = await r.json(); 
+                        if(d.success) { 
+                          setIntroData({...introData, videoUrl: d.url});
+                          alert('ویدیو جدید آپلود و ویدیوی قبلی حذف شد!'); 
+                        } 
+                      }} />
+                      <Film size={18} />
+                      آپلود ویدیوی جدید
+                    </label>
+                    <span className="text-xs font-bold text-red-500 text-center">تذکر: با آپلود ویدیوی جدید، ویدیوی قدیمی از سرور حذف می‌شود.</span>
+                  </div>
+                ) : (
+                  <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-32 flex flex-col items-center justify-center gap-3 bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800 cursor-pointer transition-colors group">
+                    <input type="file" accept="video/mp4" className="hidden" onChange={async(e) => { 
+                      const f = e.target.files?.[0]; 
+                      if(!f) return;
+                      const fd = new FormData();
+                      fd.append('file', f); 
+                      const r = await fetch('/api/upload', {method:'POST',body:fd}); 
+                      const d = await r.json(); 
+                      if(d.success) { 
+                        setIntroData({...introData, videoUrl: d.url});
+                        alert('ویدیو با موفقیت آپلود شد!'); 
+                      } 
+                    }} />
+                    <Film size={32} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                    <span className="text-sm font-bold text-gray-500 group-hover:text-blue-600">برای انتخاب و آپلود فایل ویدیویی از هاست خود کلیک کنید</span>
+                  </label>
+                )}
+              </div>
+
+              {/* بخش آپلود پروفایل شرکت (PDF) */}
+              <div className="flex flex-col gap-2 bg-blue-50/30 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-800/30 mt-2">
+                <label className="text-xs font-bold text-gray-600 dark:text-gray-400 flex items-center gap-2">
+                  <FileText size={16} className="text-blue-500" /> آپلود فایل پروفایل شرکت (فرمت PDF)
+                </label>
+                <label className="border-2 border-dashed border-blue-200 dark:border-blue-800/50 rounded-2xl h-32 flex flex-col items-center justify-center gap-3 bg-white hover:bg-blue-50 dark:bg-gray-900 dark:hover:bg-gray-800 cursor-pointer transition-colors group">
+                  <input type="file" accept="application/pdf" className="hidden" onChange={async(e) => { 
                     const f = e.target.files?.[0]; 
                     if(!f) return;
-                    if(introData.videoUrl) { 
-                      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: introData.videoUrl }) }).catch(e => console.error(e));
+                    // پاک کردن فایل قبلی در صورت وجود
+                    if(introData.profilePdfUrl) { 
+                      await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: introData.profilePdfUrl }) }).catch(e => console.error(e));
                     } 
                     const fd = new FormData();
                     fd.append('file', f); 
                     const r = await fetch('/api/upload', {method:'POST',body:fd}); 
                     const d = await r.json(); 
-                    if(d.success) { setIntroData({...introData, videoUrl: d.url});
-                      alert('ویدیو جدید آپلود و ویدیوی قبلی حذف شد!'); } 
+                    if(d.success) { 
+                      setIntroData({...introData, profilePdfUrl: d.url});
+                      alert('فایل PDF پروفایل شرکت با موفقیت آپلود شد!'); 
+                    } else {
+                      alert('خطا در آپلود فایل!');
+                    }
                   }} />
-                  {introData.videoUrl ? <span className="text-sm font-bold text-green-500">ویدیو آپلود شده است</span> : <Film size={32} className="text-gray-400 group-hover:text-blue-500 transition-colors" />}
-                  <span className="text-sm font-bold text-gray-500 group-hover:text-blue-600">برای انتخاب و آپلود فایل ویدیویی از هاست خود کلیک کنید</span>
+                  {introData.profilePdfUrl ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <span className="text-sm font-bold text-green-500 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-lg">فایل PDF با موفقیت آپلود شده است</span>
+                      <a href={introData.profilePdfUrl} target="_blank" className="text-xs text-blue-500 hover:underline" onClick={e => e.stopPropagation()}>مشاهده فایل فعلی</a>
+                    </div>
+                  ) : (
+                    <FileText size={32} className="text-gray-400 group-hover:text-blue-500 transition-colors" />
+                  )}
+                  <span className="text-sm font-bold text-gray-500 group-hover:text-blue-600">برای انتخاب و آپلود فایل PDF پروفایل کلیک کنید</span>
                 </label>
               </div>
 
