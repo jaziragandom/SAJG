@@ -82,7 +82,6 @@ export default function AboutPage() {
   const isRtl = locale === 'fa';
   const [selectedCert, setSelectedCert] = useState<string | null>(null);
   const [isAgencyModalOpen, setIsAgencyModalOpen] = useState(false);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   
   // دیتای داینامیک
   const [introData, setIntroData] = useState<any>({});
@@ -103,6 +102,12 @@ export default function AboutPage() {
   // استیت‌های فرم درخواست اخذ نمایندگی
   const [agencyForm, setAgencyForm] = useState({ name: "", phone: "", city: "", experience: "", description: "" });
   const [isSubmittingAgency, setIsSubmittingAgency] = useState(false);
+
+  // استیت‌ها و رفرنس‌های کنترل هوشمند ویدیو
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const isVideoInView = useInView(containerRef, { once: false, amount: 0.3 });
+  const [isMuted, setIsMuted] = useState(true);
 
   useEffect(() => {
     const fetchPageData = async () => {
@@ -158,6 +163,26 @@ export default function AboutPage() {
     fetchPageData();
   }, []);
 
+  // افکت کنترل پخش و توقف با اسکرول
+  useEffect(() => {
+    if (videoRef.current) {
+      if (isVideoInView) {
+        const playPromise = videoRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(e => console.log("Auto-play prevented:", e));
+        }
+      } else {
+        if (!videoRef.current.paused) {
+          videoRef.current.pause();
+        }
+      }
+    }
+  }, [isVideoInView]);
+
+  const handleVideoClick = () => {
+    setIsMuted(prev => !prev);
+  };
+
   const downloadVCF = (contact: any) => {
     const name = isRtl ? contact.faName : contact.enName;
     const address = isRtl ? contact.faAddress : contact.enAddress;
@@ -168,14 +193,6 @@ export default function AboutPage() {
     link.href = url;
     link.setAttribute("download", `${name}.vcf`);
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
-  };
-
-  const handlePlayVideo = () => {
-    if (introData?.videoUrl) {
-      setIsVideoPlaying(true);
-    } else {
-      alert(isRtl ? "ویدیویی برای پخش آپلود نشده است." : "No video uploaded to play.");
-    }
   };
 
   const handleContactSubmit = async (e: React.FormEvent) => {
@@ -327,40 +344,51 @@ export default function AboutPage() {
               </div>
             </div>
 
-            <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: false, amount: 0.1 }} transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }} className="relative w-full h-96 lg:h-auto grow flex">
+            <motion.div 
+              ref={containerRef}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, amount: 0.1 }}
+              transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
+              className="relative w-full h-96 lg:h-auto grow flex"
+            >
               <div className="absolute inset-0 bg-zinc-900 rounded-3xl overflow-hidden shadow-lg z-10 flex items-center justify-center group">
+                
                 {introData?.videoUrl ? (
-                  <>
+                  <div className="relative w-full h-full cursor-pointer group/video" onClick={handleVideoClick}>
                     <video 
+                      ref={videoRef}
                       src={introData.videoUrl} 
-                      controls={isVideoPlaying}
-                      autoPlay={isVideoPlaying}
-                      className="w-full h-full object-cover rounded-3xl"
+                      muted={isMuted}
+                      loop
+                      playsInline
+                      disablePictureInPicture
+                      controlsList="nodownload"
+                      onContextMenu={(e) => e.preventDefault()}
+                      className="w-full h-full object-cover rounded-3xl pointer-events-none"
                     />
-                    {!isVideoPlaying && (
-                      <>
-                        <div className="absolute inset-0 bg-black/40 z-10 transition-opacity group-hover:bg-black/50" />
-                        <div className="absolute z-20 flex flex-col items-center cursor-pointer" onClick={handlePlayVideo}>
-                          <div className="w-20 h-20 bg-white/20 hover:bg-amber-500 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 transition-colors">
-                            <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                          </div>
-                          <span className="mt-4 font-bold text-white text-sm tracking-widest drop-shadow-md">{isRtl ? "تور مجازی کارخانه" : "VIRTUAL TOUR"}</span>
-                        </div>
-                      </>
-                    )}
-                  </>
+                    <div className="absolute bottom-4 right-4 z-20 bg-black/60 hover:bg-amber-500 p-3 rounded-2xl text-white backdrop-blur-md transition-all flex items-center gap-2">
+                      {isMuted ? <LucideIcons.VolumeX size={20} /> : <LucideIcons.Volume2 size={20} />}
+                      <span className="text-xs font-bold opacity-0 w-0 overflow-hidden group-hover/video:w-auto group-hover/video:opacity-100 transition-all whitespace-nowrap">
+                        {isRtl ? (isMuted ? "پخش صدا" : "قطع صدا") : (isMuted ? "Unmute" : "Mute")}
+                      </span>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <div className="absolute inset-0 bg-linear-to-tr from-black/70 to-transparent z-10" />
                     <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=2070')] bg-cover bg-center opacity-70 group-hover:scale-105 transition-transform duration-1000" />
-                    <div className="relative z-20 flex flex-col items-center cursor-pointer" onClick={handlePlayVideo}>
-                      <div className="w-20 h-20 bg-white/20 hover:bg-amber-500 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 transition-colors">
-                        <svg className="w-8 h-8 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <div className="relative z-20 flex flex-col items-center">
+                      <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 transition-colors">
+                        <LucideIcons.VideoOff size={32} />
                       </div>
-                      <span className="mt-4 font-bold text-white text-sm tracking-widest drop-shadow-md">{isRtl ? "تور مجازی کارخانه" : "VIRTUAL TOUR"}</span>
+                      <span className="mt-4 font-bold text-white text-sm tracking-widest drop-shadow-md">
+                        {isRtl ? "ویدیویی آپلود نشده" : "NO VIDEO UPLOADED"}
+                      </span>
                     </div>
                   </>
                 )}
+                
               </div>
             </motion.div>
           </div>
