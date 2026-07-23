@@ -167,25 +167,17 @@ export default function AboutFactory() {
               <div className="absolute inset-0 bg-zinc-900 rounded-3xl overflow-hidden shadow-lg z-10 flex items-center justify-center group">
                 
                 {introData?.videoUrl ? (
-                  <div className="relative w-full h-full cursor-pointer group/video" onClick={handleVideoClick}>
-                    <video 
-                      ref={videoRef}
-                      src={introData.videoUrl} 
-                      muted={isMuted}
-                      loop
-                      playsInline
-                      disablePictureInPicture
-                      controlsList="nodownload"
-                      onContextMenu={(e) => e.preventDefault()}
-                      className="w-full h-full object-cover rounded-3xl pointer-events-none"
-                    />
-                    <div className="absolute bottom-4 right-4 z-20 bg-black/60 hover:bg-amber-500 p-3 rounded-2xl text-white backdrop-blur-md transition-all flex items-center gap-2">
-                      {isMuted ? <LucideIcons.VolumeX size={20} /> : <LucideIcons.Volume2 size={20} />}
-                      <span className="text-xs font-bold opacity-0 w-0 overflow-hidden group-hover/video:w-auto group-hover/video:opacity-100 transition-all whitespace-nowrap">
-                        {isRtl ? (isMuted ? "پخش صدا" : "قطع صدا") : (isMuted ? "Unmute" : "Mute")}
-                      </span>
-                    </div>
-                  </div>
+                  <video 
+                    ref={videoRef}
+                    src={introData.videoUrl} 
+                    controls
+                    muted
+                    loop
+                    playsInline
+                    controlsList="nodownload"
+                    onContextMenu={(e) => e.preventDefault()}
+                    className="w-full h-full object-cover rounded-3xl"
+                  />
                 ) : (
                   <>
                     <div className="absolute inset-0 bg-linear-to-tr from-black/70 to-transparent z-10" />
