@@ -1,36 +1,36 @@
 "use client";
 
 import GlobalLoading from "@/components/GlobalLoading";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { useLocale } from "next-intl";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { 
-  ArrowLeft, FileText, Download, Star, Package, Droplets, Sparkles, Scale, 
+import {
+  ArrowLeft, FileText, Download, Star, Package, Droplets, Sparkles, Scale,
   Activity, ShieldCheck, Printer, X, Calendar, Hash, List, ArrowRight, AlertTriangle
 } from "lucide-react";
 import { getProducts } from "@/actions/product";
 import { getCategories } from "@/actions/category";
 import { getBrands } from "@/actions/brand";
 
-import { useReactToPrint } from "react-to-print";
 import DatasheetPrint from "@/components/shared/DatasheetPrint";
 
-const BrandWhatsapp = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>;
-const BrandTelegram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>;
-const BrandFacebook = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>;
-const BrandInstagram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>;
+const BrandWhatsapp = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" /></svg>;
+const BrandTelegram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" x2="11" y1="2" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" /></svg>;
+const BrandFacebook = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>;
+const BrandInstagram = (props: any) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" x2="17.51" y1="6.5" y2="6.5" /></svg>;
 
 export default function ProductDetailsPage() {
   const locale = useLocale();
   const isRtl = locale === 'fa';
   const params = useParams();
   const router = useRouter();
-  
+
   const customEase: [number, number, number, number] = [0.22, 1, 0.36, 1];
-  
-  // تمام هوک‌ها قبل از هرگونه return تعریف می‌شوند
+
+  const [isMounted, setIsMounted] = useState(false);
   const [isDatasheetOpen, setIsDatasheetOpen] = useState(false);
   const [activeImageTab, setActiveImageTab] = useState<'main' | 'nutrition'>('main');
   const [isImgHovered, setIsImgHovered] = useState(false);
@@ -42,21 +42,10 @@ export default function ProductDetailsPage() {
   const [catName, setCatName] = useState<string | null>(null);
   const [statusName, setStatusName] = useState<string | null>(null);
   const [brandObj, setBrandObj] = useState<any>(null);
-  
-  const printRef = useRef<HTMLDivElement>(null);
 
-  // استخراج ایمن عنوان برای هوک پرینت
-  const safeTitle = productObj ? (isRtl ? productObj.faTitle : (productObj.enTitle || productObj.faTitle)) : "Datasheet";
-
-  const handlePrintDatasheet = useReactToPrint({
-    contentRef: printRef,
-    documentTitle: `${safeTitle}-Datasheet`,
-    pageStyle: `
-      @page { size: A4 portrait; margin: 0; }
-      html, body { margin: 0; padding: 0; background: white; }
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    `,
-  });
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setHasLoaded(true), 700);
@@ -65,7 +54,7 @@ export default function ProductDetailsPage() {
 
   useEffect(() => {
     const fetchProductDetails = async () => {
-      const identifier = (params?.id || params?.slug) as string; 
+      const identifier = (params?.id || params?.slug) as string;
       if (!identifier) return;
 
       try {
@@ -74,39 +63,39 @@ export default function ProductDetailsPage() {
           getCategories(),
           getBrands()
         ]);
-        
+
         if (catsRes?.success && catsRes.data) {
           setCategoriesData(catsRes.data);
         }
 
         if (res?.success && res.data) {
-          const foundProduct = res.data.find((p: any) => 
+          const foundProduct = res.data.find((p: any) =>
             p.slug === identifier || String(p._id) === identifier
           );
-          
+
           if (foundProduct) {
             setProductObj(foundProduct);
 
             if (brandsRes?.success && brandsRes.data) {
               const allBrands = brandsRes.data;
               const bId = foundProduct.brandId?._id || foundProduct.brandId || foundProduct.brand;
-              const matchedBrand = allBrands.find((b: any) => 
-                String(b._id) === String(bId) || 
-                b.slug === String(bId) || 
-                b.faName === String(bId) || 
+              const matchedBrand = allBrands.find((b: any) =>
+                String(b._id) === String(bId) ||
+                b.slug === String(bId) ||
+                b.faName === String(bId) ||
                 b.enName === String(bId)
               );
               if (matchedBrand) setBrandObj(matchedBrand);
             }
 
             const similars = res.data
-              .filter((p: any) => 
-                p._id !== foundProduct._id && 
+              .filter((p: any) =>
+                p._id !== foundProduct._id &&
                 (p.mainCat === foundProduct.mainCat || p.category === foundProduct.category) &&
-                p.status !== 'draft' 
+                p.status !== 'draft'
               )
               .slice(0, 5);
-            
+
             setSimilarProducts(similars);
 
             if (catsRes?.success && catsRes.data) {
@@ -131,7 +120,6 @@ export default function ProductDetailsPage() {
     fetchProductDetails();
   }, [params, isRtl]);
 
-  // چک کردن لودینگ بعد از تمام هوک‌ها
   if (isLoading) return <GlobalLoading />;
   if (!productObj) {
     return (
@@ -140,11 +128,11 @@ export default function ProductDetailsPage() {
         <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-4">
           {isRtl ? "محصول مورد نظر یافت نشد!" : "Product not found!"}
         </h2>
-        <button 
+        <button
           onClick={() => router.push(`/${locale}/products`)}
           className="bg-amber-400 hover:bg-amber-500 text-gray-950 px-6 py-3 rounded-full font-black text-sm flex items-center gap-2 transition-colors"
         >
-          <ArrowLeft size={16} className={isRtl ? "rotate-180" : ""} /> 
+          <ArrowLeft size={16} className={isRtl ? "rotate-180" : ""} />
           {isRtl ? "بازگشت به ویترین محصولات" : "Back to Products"}
         </button>
       </div>
@@ -154,13 +142,13 @@ export default function ProductDetailsPage() {
   const p: any = productObj;
   const pImg = p.images?.main || "https://placehold.co/400x400/png";
   const nutritionImage = p.images?.nutrition || p.specs?.nutritionImg || null;
-  
+
   const activeBrand = brandObj || (p.brandId && typeof p.brandId === 'object' ? p.brandId : null);
-  const pBrand = activeBrand 
+  const pBrand = activeBrand
     ? (isRtl ? (activeBrand.faName || activeBrand.enName) : (activeBrand.enName || activeBrand.faName))
     : (p.brand || (isRtl ? "نامشخص" : "Unknown"));
 
-  const brandLogo = activeBrand 
+  const brandLogo = activeBrand
     ? (isRtl ? (activeBrand.logoFa || activeBrand.logo || activeBrand.logoEn) : (activeBrand.logoEn || activeBrand.logo || activeBrand.logoFa))
     : "";
 
@@ -202,11 +190,22 @@ export default function ProductDetailsPage() {
   const encodedTelegramText = encodeURIComponent(shareText);
   const encodedUrl = encodeURIComponent(shareUrl);
 
+  // منطق استاندارد و بی‌نقص کاتالوگ بیلدر برای پرینت
+  const printStyles = `
+    @media print {
+      @page { size: A4 portrait; margin: 0; }
+      body > *:not(#print-portal) { display: none !important; }
+      #print-portal { display: block !important; position: absolute; top: 0; left: 0; width: 100%; z-index: 999999; background: white !important; }
+      html, body { height: auto !important; overflow: visible !important; background: white !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
+  `;
+
   return (
     <div className="w-full min-h-screen bg-transparent pb-24 pt-28 px-4 md:px-8" dir={isRtl ? "rtl" : "ltr"}>
       <div className="max-w-7xl mx-auto">
-        
-        <motion.button 
+
+        <motion.button
           initial={{ opacity: 0, x: isRtl ? 20 : -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, ease: customEase }}
@@ -218,8 +217,8 @@ export default function ProductDetailsPage() {
         </motion.button>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-          
-          <motion.div 
+
+          <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: false, amount: 0.1 }}
@@ -229,7 +228,7 @@ export default function ProductDetailsPage() {
             <div className="relative w-full h-87.5 md:h-112.5 lg:h-137.5 flex items-center justify-center select-none mb-6">
               <AnimatePresence mode="wait">
                 {activeImageTab === 'main' ? (
-                  <motion.div 
+                  <motion.div
                     key="main-image"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -238,55 +237,55 @@ export default function ProductDetailsPage() {
                     className="relative w-full h-full flex items-center justify-center bg-white dark:bg-gray-900/40 rounded-[2.5rem] border border-gray-200/60 dark:border-gray-800/50 shadow-xl overflow-hidden"
                   >
                     <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] from-amber-100/50 dark:from-amber-900/10 to-transparent rounded-[2.5rem] pointer-events-none" />
-                    
-                    <motion.img 
+
+                    <motion.img
                       src={pImg} alt={`${title} - Back Left`}
                       initial={{ opacity: 0, scale: 0.5, rotate: 0, x: 0 }}
-                      animate={{ 
-                        opacity: isImgHovered ? 0.35 : 0.5, 
-                        scale: isImgHovered ? 0.63 : 0.74, 
-                        rotate: -18, 
-                        x: isImgHovered ? -88 : -65 
+                      animate={{
+                        opacity: isImgHovered ? 0.35 : 0.5,
+                        scale: isImgHovered ? 0.63 : 0.74,
+                        rotate: -18,
+                        x: isImgHovered ? -88 : -65
                       }}
-                      transition={{ 
-                        duration: hasLoaded ? 0.35 : 0.8, 
-                        delay: hasLoaded ? 0 : 0.5, 
-                        ease: customEase 
+                      transition={{
+                        duration: hasLoaded ? 0.35 : 0.8,
+                        delay: hasLoaded ? 0 : 0.5,
+                        ease: customEase
                       }}
                       className="absolute w-[65%] h-[65%] object-contain z-10 blur-[2px] pointer-events-none select-none drop-shadow-lg"
                     />
 
-                    <motion.img 
+                    <motion.img
                       src={pImg} alt={`${title} - Back Right`}
                       initial={{ opacity: 0, scale: 0.5, rotate: 0, x: 0 }}
-                      animate={{ 
-                        opacity: isImgHovered ? 0.35 : 0.5, 
-                        scale: isImgHovered ? 0.63 : 0.74, 
-                        rotate: 18, 
-                        x: isImgHovered ? 88 : 65 
+                      animate={{
+                        opacity: isImgHovered ? 0.35 : 0.5,
+                        scale: isImgHovered ? 0.63 : 0.74,
+                        rotate: 18,
+                        x: isImgHovered ? 88 : 65
                       }}
-                      transition={{ 
-                        duration: hasLoaded ? 0.35 : 0.8, 
-                        delay: hasLoaded ? 0 : 0.5, 
-                        ease: customEase 
+                      transition={{
+                        duration: hasLoaded ? 0.35 : 0.8,
+                        delay: hasLoaded ? 0 : 0.5,
+                        ease: customEase
                       }}
                       className="absolute w-[65%] h-[65%] object-contain z-10 blur-[2px] pointer-events-none select-none drop-shadow-lg"
                     />
 
-                    <motion.img 
+                    <motion.img
                       src={pImg} alt={title}
                       onMouseEnter={() => setIsImgHovered(true)}
                       onMouseLeave={() => setIsImgHovered(false)}
                       initial={{ opacity: 0.2, y: 25, scale: 0.82 }}
-                      animate={{ 
-                        opacity: 1, 
-                        y: 0, 
-                        scale: isImgHovered ? 1.06 : 1 
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                        scale: isImgHovered ? 1.06 : 1
                       }}
-                      transition={{ 
-                        duration: hasLoaded ? 0.35 : 0.5, 
-                        delay: 0, 
-                        ease: customEase 
+                      transition={{
+                        duration: hasLoaded ? 0.35 : 0.5,
+                        delay: 0,
+                        ease: customEase
                       }}
                       className="relative w-[80%] h-[80%] object-contain z-20 drop-shadow-2xl cursor-pointer"
                     />
@@ -298,7 +297,7 @@ export default function ProductDetailsPage() {
                     )}
                   </motion.div>
                 ) : (
-                  <motion.div 
+                  <motion.div
                     key="nutrition-image"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -320,14 +319,14 @@ export default function ProductDetailsPage() {
             </div>
 
             <div className="flex bg-gray-100 dark:bg-gray-800/80 p-1.5 rounded-[1.25rem] w-full max-w-sm mx-auto shadow-inner border border-gray-200/50 dark:border-gray-700/50">
-              <button 
+              <button
                 onClick={() => setActiveImageTab('main')}
                 className={`flex-1 py-3 rounded-xl text-xs font-black transition-all duration-300 ${activeImageTab === 'main' ? 'bg-white dark:bg-gray-900 shadow-md text-amber-500 scale-[1.02]' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
               >
                 {isRtl ? "تصویر محصول" : "Product Image"}
               </button>
               {nutritionImage && (
-                <button 
+                <button
                   onClick={() => setActiveImageTab('nutrition')}
                   className={`flex-1 py-3 rounded-xl text-xs font-black transition-all duration-300 ${activeImageTab === 'nutrition' ? 'bg-white dark:bg-gray-900 shadow-md text-amber-500 scale-[1.02]' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                 >
@@ -336,11 +335,11 @@ export default function ProductDetailsPage() {
               )}
             </div>
           </motion.div>
-          
+
           <div className="lg:col-span-7 w-full flex flex-col justify-center">
-            
+
             <motion.div variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.2 }} className="flex flex-col gap-4">
-              
+
               <motion.div variants={fadeUpItem} className="flex flex-wrap items-center gap-3 mb-2">
                 {brandLogo && (
                   <div className="bg-white dark:bg-gray-800 px-3 py-1 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center">
@@ -350,7 +349,7 @@ export default function ProductDetailsPage() {
                 <span className="text-xs font-black text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-3 py-1.5 rounded-xl border border-amber-200/30 dark:border-amber-500/20">
                   {isRtl ? "برند: " : "Brand: "} {pBrand}
                 </span>
-                
+
                 {catName && (
                   <span className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-xl">
                     {catName}
@@ -361,27 +360,27 @@ export default function ProductDetailsPage() {
               <motion.h1 variants={fadeUpItem} className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white leading-tight">
                 {title}
               </motion.h1>
-              
+
               <motion.p variants={fadeUpItem} className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mt-2 border-r-2 border-amber-400 pr-4 whitespace-pre-wrap text-justify">
                 {description}
               </motion.p>
-              
+
               {p.hasWarning && (p.warningMessageFa || p.warningMessageEn) && (
-                 <motion.div variants={fadeUpItem} className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3 mt-6">
-                    <AlertTriangle size={20} className="text-red-500 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-black text-red-600 dark:text-red-400 mb-1">{isRtl ? "هشدار مصرف" : "Warning"}</p>
-                      <p className="text-[11px] font-medium text-gray-900 dark:text-white leading-relaxed text-justify">
-                        {isRtl ? p.warningMessageFa : p.warningMessageEn}
-                      </p>
-                    </div>
-                 </motion.div>
+                <motion.div variants={fadeUpItem} className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-2xl p-4 flex items-start gap-3 mt-6">
+                  <AlertTriangle size={20} className="text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-black text-red-600 dark:text-red-400 mb-1">{isRtl ? "هشدار مصرف" : "Warning"}</p>
+                    <p className="text-[11px] font-medium text-gray-900 dark:text-white leading-relaxed text-justify">
+                      {isRtl ? p.warningMessageFa : p.warningMessageEn}
+                    </p>
+                  </div>
+                </motion.div>
               )}
 
             </motion.div>
 
             <motion.div variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.1 }} className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-10">
-              
+
               {pPackaging && (
                 <motion.div variants={fadeUpItem} className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 flex flex-col gap-2 hover:border-amber-400 transition-colors">
                   <Package className="text-amber-500" size={20} />
@@ -471,7 +470,7 @@ export default function ProductDetailsPage() {
             </motion.div>
 
             <motion.div variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: false, amount: 0.1 }} className="flex flex-col sm:flex-row items-center gap-4 mt-8 w-full">
-              <motion.button 
+              <motion.button
                 variants={fadeUpItem}
                 type="button"
                 onClick={() => setIsDatasheetOpen(true)}
@@ -481,8 +480,8 @@ export default function ProductDetailsPage() {
                 <span>{isRtl ? "مشاهده دیتاشیت فنی" : "View Technical Datasheet"}</span>
                 <Download size={16} className="opacity-60" />
               </motion.button>
-              
-              <motion.button 
+
+              <motion.button
                 variants={fadeUpItem}
                 type="button"
                 onClick={() => router.push(`/${locale}/about#contact`)}
@@ -513,7 +512,7 @@ export default function ProductDetailsPage() {
                 const simTitle = isRtl ? simProd.faTitle : (simProd.enTitle || simProd.faTitle);
                 const simBrand = isRtl ? (simProd.brandId?.faName || "") : (simProd.brandId?.enName || "");
                 const simImg = simProd.images?.main || "https://placehold.co/400x400/png";
-                
+
                 const sWeightVal = simProd.specs?.weight || simProd.weight || "";
                 const sWeightCat = categoriesData.find(c => c.slug === sWeightVal || c.faName === sWeightVal || c._id === sWeightVal);
                 const simWeight = sWeightCat ? (isRtl ? sWeightCat.faName : sWeightCat.enName) : (isRtl ? (simProd.specs?.weightFa || sWeightVal) : (simProd.specs?.weightEn || sWeightVal));
@@ -532,7 +531,7 @@ export default function ProductDetailsPage() {
                     transition={{ duration: 0.5, delay: index * 0.1, ease: customEase }}
                     className={`${displayClass} flex-col w-full sm:w-[calc(50%-1rem)] md:w-[calc(33.333%-1rem)] lg:w-[calc(20%-1.2rem)] max-w-70 shrink-0`}
                   >
-                    <a href={`/${locale}/products/${simProd.slug}`} className="flex flex-col h-full bg-white dark:bg-gray-900/40 rounded-[2rem] border border-gray-200/60 dark:border-gray-800/50 hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-xl transition-all overflow-hidden group">  
+                    <a href={`/${locale}/products/${simProd.slug}`} className="flex flex-col h-full bg-white dark:bg-gray-900/40 rounded-[2rem] border border-gray-200/60 dark:border-gray-800/50 hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-xl transition-all overflow-hidden group">
                       <div className="relative h-48 shrink-0 w-full bg-linear-to-b from-gray-50/50 to-white dark:from-gray-800/30 dark:to-gray-900/30 flex items-center justify-center p-4">
                         <Image src={simImg} alt={simTitle} fill sizes="(max-width: 768px) 100vw, 20vw" className="object-contain p-4 group-hover:scale-110 group-hover:-translate-y-1 transition-transform duration-500 drop-shadow-md" />
                       </div>
@@ -541,14 +540,14 @@ export default function ProductDetailsPage() {
                         <span className="text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-md w-fit mb-2">
                           {simBrand}
                         </span>
-                        
+
                         <h4 className="text-sm font-black text-gray-900 dark:text-white leading-tight mb-1 group-hover:text-amber-500 transition-colors line-clamp-2">
                           {simTitle}
                         </h4>
                         <p className="text-[9px] font-bold text-gray-400 truncate mb-2">
                           {simCatLabel}
                         </p>
-                        
+
                         <div className="mt-auto pt-3 flex justify-between items-center text-gray-400">
                           <span className="text-[10px] font-bold">{simWeight}</span>
                           <ArrowRight size={14} className={`${isRtl ? 'rotate-45' : '-rotate-45'} group-hover:text-amber-500 group-hover:rotate-0 transition-all`} />
@@ -566,26 +565,26 @@ export default function ProductDetailsPage() {
 
       <AnimatePresence>
         {isDatasheetOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 overflow-y-auto">
-            <motion.div 
+          <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 md:p-6 overflow-y-auto">
+            <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsDatasheetOpen(false)}
-              className="fixed inset-0 bg-gray-950/40 backdrop-blur-md"
+              className="fixed inset-0 bg-gray-950/60 backdrop-blur-md"
             />
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 30 }}
               transition={{ duration: 0.5, ease: customEase }}
-              className="relative w-full max-w-4xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-[2rem] shadow-2xl flex flex-col my-auto overflow-hidden print:border-none print:shadow-none print:bg-white print:text-black print:rounded-none"
+              className="relative w-full max-w-4xl bg-white dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-[2rem] shadow-2xl flex flex-col my-auto overflow-hidden z-[100001]"
             >
-              <div className="flex flex-wrap items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-900 bg-gray-50 dark:bg-gray-900/50 print:hidden gap-4">
+              <div className="flex flex-wrap items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-900 bg-gray-50 dark:bg-gray-900/50 gap-4">
                 <div className="flex items-center gap-2 text-gray-900 dark:text-white font-black text-sm">
                   <FileText size={18} className="text-amber-500" />
                   <span>{isRtl ? "پیش‌نمایش سند فنی رسمی (TDS)" : "Technical Datasheet Preview"}</span>
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="hidden sm:flex items-center gap-1.5 mr-2 ml-2 rtl:ml-0 rtl:mr-2" dir="ltr">
                     <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`} target="_blank" rel="noreferrer" className="p-2 text-gray-500 hover:text-blue-600 bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-full transition-colors"><BrandFacebook size={16} /></a>
@@ -593,8 +592,8 @@ export default function ProductDetailsPage() {
                     <a href={`https://t.me/share/url?url=${encodedUrl}&text=${encodedTelegramText}`} target="_blank" rel="noreferrer" className="p-2 text-gray-500 hover:text-blue-400 bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-full transition-colors"><BrandTelegram size={16} /></a>
                     <a href={`https://www.instagram.com/?url=${encodedUrl}`} target="_blank" rel="noreferrer" className="p-2 text-gray-500 hover:text-pink-600 bg-gray-100 dark:bg-gray-800 hover:bg-pink-50 dark:hover:bg-gray-700 rounded-full transition-colors"><BrandInstagram size={16} /></a>
                   </div>
-                  
-                  <button onClick={handlePrintDatasheet} className="bg-gray-900 dark:bg-white hover:bg-amber-400 dark:hover:bg-amber-400 hover:text-gray-950 dark:hover:text-gray-950 text-white dark:text-gray-900 px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors">
+
+                  <button onClick={() => window.print()} className="bg-gray-900 dark:bg-white hover:bg-amber-400 dark:hover:bg-amber-400 hover:text-gray-950 dark:hover:text-gray-950 text-white dark:text-gray-900 px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-colors">
                     <Printer size={14} /> {isRtl ? "چاپ / PDF" : "Print / PDF"}
                   </button>
                   <button onClick={() => setIsDatasheetOpen(false)} className="p-2 text-gray-400 hover:text-red-500 bg-gray-100 dark:bg-gray-800 rounded-full transition-colors">
@@ -602,20 +601,48 @@ export default function ProductDetailsPage() {
                   </button>
                 </div>
               </div>
+
+              {/* نمایش نسخه پیش‌نمایش در پاپ‌آپ (بدون استفاده از ref برای پرینت) */}
+              <div className="w-full max-h-[75vh] overflow-y-auto overflow-x-hidden bg-gray-200/40 dark:bg-gray-900/40 flex justify-center p-4 md:p-8 custom-scrollbar">
+                <div className="transform scale-[0.45] sm:scale-[0.65] md:scale-90 lg:scale-100 origin-top h-fit pb-10 transition-transform">
+                  <DatasheetPrint
+                    locale={locale}
+                    product={p}
+                    categories={categoriesData}
+                    brand={brandObj}
+                  />
+                </div>
+              </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-      
-      <div className="hidden">
-        <DatasheetPrint
-            ref={printRef}
-            locale={locale}
-            product={p}
-            categories={categoriesData}
-            brand={brandObj}
-        />
-      </div>
+
+      {/* اتصال کامل و اصولی پورتال چاپ دقیقاً بر اساس کاتالوگ بیلدر */}
+      {isMounted && createPortal(
+        <>
+          <style>{`
+            @media print {
+              @page { size: A4 portrait; margin: 0; }
+              body > *:not(#print-portal) { display: none !important; }
+              #print-portal { display: block !important; position: absolute; top: 0; left: 0; width: 100%; z-index: 999999; background: white !important; }
+              html, body { height: auto !important; overflow: visible !important; background: white !important; }
+              * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            }
+          `}</style>
+          <div id="print-portal" className="hidden">
+            {isDatasheetOpen && (
+              <DatasheetPrint
+                locale={locale}
+                product={p}
+                categories={categoriesData}
+                brand={brandObj}
+              />
+            )}
+          </div>
+        </>,
+        document.body
+      )}
 
     </div>
   );
