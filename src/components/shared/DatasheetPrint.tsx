@@ -2,6 +2,7 @@
 
 import React, { forwardRef } from "react";
 import QRCode from "react-qr-code";
+import { Award, ShieldCheck, CheckCircle } from "lucide-react"; // آیکن‌های گواهینامه‌ها اضافه شد
 
 export interface DatasheetPrintProps {
   locale: string;
@@ -24,23 +25,29 @@ const DatasheetPrint = forwardRef<HTMLDivElement, DatasheetPrintProps>(
       ? isRtl ? brand.faName || brand.enName : brand.enName || brand.faName
       : "-";
 
-    const catName = product.category || "-";
+    const catObj = categories?.find((c: any) => c.slug === product.category || c._id === product.category);
+    const catName = catObj ? (isRtl ? catObj.faName : catObj.enName) : (product.category || "-");
 
-    const weight = isRtl
-      ? product.specs?.weightFa || product.specs?.weight || "-"
-      : product.specs?.weightEn || product.specs?.weight || "-";
+    const resolveSpec = (val: any, faVal: any, enVal: any) => {
+      if (!val) return "-";
+      const cat = categories?.find((c: any) => c.slug === val || c._id === val || c.faName === val);
+      if (cat) return isRtl ? cat.faName : (cat.enName || cat.faName);
+      return isRtl ? (faVal || val) : (enVal || val);
+    };
 
-    const packaging = isRtl
-      ? product.specs?.packagingFa || product.specs?.packaging || "-"
-      : product.specs?.packagingEn || product.specs?.packaging || "-";
-
-    const flavor = isRtl
-      ? product.specs?.flavorFa || product.specs?.flavor || "-"
-      : product.specs?.flavorEn || product.specs?.flavor || "-";
+    const weight = resolveSpec(product.specs?.weight, product.specs?.weightFa, product.specs?.weightEn);
+    const packagingRaw = resolveSpec(product.specs?.packaging, product.specs?.packagingFa, product.specs?.packagingEn);
+    const flavor = resolveSpec(product.specs?.flavor, product.specs?.flavorFa, product.specs?.flavorEn);
 
     const ingredients = isRtl ? product.specs?.ingredientsFa : product.specs?.ingredientsEn;
     const shelfLife = isRtl ? product.specs?.shelfLifeFa : product.specs?.shelfLifeEn;
-    const packCount = product.specs?.itemsPerPackage || "-";
+    const packCountRaw = product.specs?.itemsPerPackage || "-";
+
+    // منطق اصلاح شده برای جلوگیری از نمایش خط تیره‌های اضافی و خام در بسته‌بندی
+    const packArr = [];
+    if (packCountRaw && packCountRaw !== "-" && packCountRaw !== "نامشخص" && packCountRaw !== "N/A") packArr.push(packCountRaw);
+    if (packagingRaw && packagingRaw !== "-" && packagingRaw !== "نامشخص" && packagingRaw !== "N/A") packArr.push(packagingRaw);
+    const displayPackaging = packArr.length > 0 ? packArr.join(" - ") : "-";
 
     const issueDate = new Date().toLocaleDateString(isRtl ? "fa-IR" : "en-US");
     const documentNo = `TDS-${String(product._id || product.id).slice(-8)}`;
@@ -59,7 +66,6 @@ const DatasheetPrint = forwardRef<HTMLDivElement, DatasheetPrintProps>(
           </span>
         </div>
 
-        {/* باگ‌فیکس: افزودن relative به کانتینر محتوا برای جلوگیری از مسطح شدن لایه‌ها توسط کروم */}
         <div className="relative z-10 flex flex-col h-full w-full gap-8">
 
           <div className="flex justify-between items-center border-b-2 border-gray-900 pb-4">
@@ -131,11 +137,12 @@ const DatasheetPrint = forwardRef<HTMLDivElement, DatasheetPrintProps>(
                     </tr>
                     <tr className="bg-gray-50/50">
                       <td className="px-4 py-3 font-bold text-gray-900 text-start">{isRtl ? "وزن خالص / حجم ظرف" : "Net Weight / Volume"}</td>
-                      <td className="px-4 py-3 text-start">{weight}</td>
+                      <td className="px-4 py-3 text-start"><bdi>{weight}</bdi></td>
                     </tr>
                     <tr>
                       <td className="px-4 py-3 font-bold text-gray-900 text-start">{isRtl ? "بسته‌بندی / تعداد در کارتن" : "Packaging / Pack Count"}</td>
-                      <td className="px-4 py-3 text-start"><bdi>{packCount}</bdi> - <bdi>{packaging}</bdi></td>
+                      {/* جایگزینی با متغیر اصلاح‌شده */}
+                      <td className="px-4 py-3 text-start"><bdi>{displayPackaging}</bdi></td>
                     </tr>
                     <tr className="bg-gray-50/50">
                       <td className="px-4 py-3 font-bold text-gray-900 text-start">{isRtl ? "طعم و عصاره پایه" : "Base Flavor"}</td>
@@ -143,11 +150,11 @@ const DatasheetPrint = forwardRef<HTMLDivElement, DatasheetPrintProps>(
                     </tr>
                     <tr>
                       <td className="px-4 py-3 font-bold text-gray-900 text-start">{isRtl ? "ترکیبات اصلی" : "Main Ingredients"}</td>
-                      <td className="px-4 py-3 leading-relaxed text-start">{ingredients}</td>
+                      <td className="px-4 py-3 leading-relaxed text-start">{ingredients || "-"}</td>
                     </tr>
                     <tr className="bg-gray-50/50">
                       <td className="px-4 py-3 font-bold text-gray-900 text-start align-top">{isRtl ? "تاریخ انقضا (ماندگاری)" : "Shelf Life"}</td>
-                      <td className="px-4 py-3 text-start align-top">{shelfLife}</td>
+                      <td className="px-4 py-3 text-start align-top">{shelfLife || "-"}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -160,24 +167,44 @@ const DatasheetPrint = forwardRef<HTMLDivElement, DatasheetPrintProps>(
                     {isRtl ? "اسکن برای مشاهده آنلاین" : "Scan to view online"}
                   </div>
                 </div>
-                <div className="shrink-0 h-[48px] border border-gray-200 rounded-xl p-2 flex flex-col items-center justify-center bg-gray-50/50 shadow-sm">
-                  <div className="text-[11px] font-black text-gray-800">ISO 22000</div>
-                  <div className="text-[8px] font-medium text-gray-500 mt-0.5 text-center">
-                    {isRtl ? "مدیریت ایمنی مواد غذایی" : "Food Safety Management"}
+
+                {/* تغییر طراحی کارت‌های ایزو و گواهینامه به صورت دو‌بخشی (لوگو + متن) */}
+                <div className="shrink-0 h-[48px] border border-gray-200 rounded-xl px-2.5 py-1.5 flex items-center bg-gray-50/50 shadow-sm gap-2.5">
+                  <div className="w-8 h-8 bg-white border border-gray-100 rounded-lg flex items-center justify-center shrink-0 shadow-sm">
+                    <Award size={16} className="text-blue-600" />
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <div className="text-[11px] font-black text-gray-800 leading-tight">ISO 22000</div>
+                    <div className="text-[7px] font-bold text-gray-500 mt-0.5 text-start leading-tight">
+                      {isRtl ? "مدیریت ایمنی مواد غذایی" : "Food Safety Management"}
+                    </div>
                   </div>
                 </div>
-                <div className="shrink-0 h-[48px] border border-gray-200 rounded-xl p-2 flex flex-col items-center justify-center bg-gray-50/50 shadow-sm">
-                  <div className="text-[11px] font-black text-gray-800">HACCP</div>
-                  <div className="text-[8px] font-medium text-gray-500 mt-0.5 text-center">
-                    {isRtl ? "تحلیل خطر و کنترل بحرانی" : "Hazard Analysis"}
+
+                <div className="shrink-0 h-[48px] border border-gray-200 rounded-xl px-2.5 py-1.5 flex items-center bg-gray-50/50 shadow-sm gap-2.5">
+                  <div className="w-8 h-8 bg-white border border-gray-100 rounded-lg flex items-center justify-center shrink-0 shadow-sm">
+                    <ShieldCheck size={16} className="text-emerald-600" />
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <div className="text-[11px] font-black text-gray-800 leading-tight">HACCP</div>
+                    <div className="text-[7px] font-bold text-gray-500 mt-0.5 text-start leading-tight">
+                      {isRtl ? "تحلیل خطر و کنترل بحرانی" : "Hazard Analysis"}
+                    </div>
                   </div>
                 </div>
-                <div className="shrink-0 h-[48px] border border-gray-200 rounded-xl p-2 flex flex-col items-center justify-center bg-gray-50/50 shadow-sm">
-                  <div className="text-[11px] font-black text-gray-800">GMP</div>
-                  <div className="text-[8px] font-medium text-gray-500 mt-0.5 text-center">
-                    {isRtl ? "شرایط خوب تولید" : "Good Manufacturing Practice"}
+
+                <div className="shrink-0 h-[48px] border border-gray-200 rounded-xl px-2.5 py-1.5 flex items-center bg-gray-50/50 shadow-sm gap-2.5">
+                  <div className="w-8 h-8 bg-white border border-gray-100 rounded-lg flex items-center justify-center shrink-0 shadow-sm">
+                    <CheckCircle size={16} className="text-amber-600" />
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <div className="text-[11px] font-black text-gray-800 leading-tight">GMP</div>
+                    <div className="text-[7px] font-bold text-gray-500 mt-0.5 text-start leading-tight">
+                      {isRtl ? "شرایط خوب تولید" : "Good Manufacturing Practice"}
+                    </div>
                   </div>
                 </div>
+
               </div>
             </div>
 

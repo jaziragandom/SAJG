@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { motion, useScroll, useMotionValueEvent, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useLocale } from "next-intl";
-import { 
+import {
   Menu, X, ShieldCheck, ChevronDown, ChevronLeft, ChevronRight,
   ArrowLeft, ArrowRight, Wheat, Droplets, Sparkles, Tag, LayoutGrid, Store, FileText
 } from "lucide-react";
@@ -19,10 +19,10 @@ interface NavbarProps {
   siteLogo?: string | null;
 }
 
-export default function Navbar({ 
-  brands: initialBrands = [], 
-  categories: initialCategories = [], 
-  siteLogo: initialSiteLogo = null 
+export default function Navbar({
+  brands: initialBrands = [],
+  categories: initialCategories = [],
+  siteLogo: initialSiteLogo = null
 }: NavbarProps) {
   const locale = useLocale();
   const isRtl = locale === 'fa';
@@ -37,11 +37,11 @@ export default function Navbar({
   const [isScrolled, setIsScrolled] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
   const [hoveredNestedLink, setHoveredNestedLink] = useState<string | null>(null);
-  
-  const [expandedMobileMenu, setExpandedMobileMenu] = useState<string | null>(null); 
+
+  const [expandedMobileMenu, setExpandedMobileMenu] = useState<string | null>(null);
   const [expandedNestedMobile, setExpandedNestedMobile] = useState<string | null>(null);
 
   const [imgError, setImgError] = useState<Record<string, boolean>>({});
@@ -70,8 +70,8 @@ export default function Navbar({
     const previous = scrollY.getPrevious() ?? 0;
     if (latest > 50) setIsScrolled(true);
     else setIsScrolled(false);
-    if (latest > 150 && latest > previous) setIsHidden(true); 
-    else setIsHidden(false); 
+    if (latest > 150 && latest > previous) setIsHidden(true);
+    else setIsHidden(false);
   });
 
   useEffect(() => {
@@ -122,15 +122,15 @@ export default function Navbar({
       fa: "برندها",
       en: "Brands",
       icon: <Tag size={16} />,
-      items: brands, 
+      items: brands,
       filterKey: "brand"
     },
     {
       id: "catalog",
-      fa: "کاتالوگ‌ساز زنده",
+      fa: "کاتالوگ‌ساز",
       en: "Live Catalog",
       icon: <FileText size={16} />,
-      items: [], 
+      items: [],
       isAction: true,
       action: () => setIsCatalogModalOpen(true)
     }
@@ -142,7 +142,8 @@ export default function Navbar({
     { key: "brands", fa: "برندها", en: "Brands", href: `/${locale}/brands`, isBrandsMenu: true },
     { key: "gallery", fa: "گالری", en: "Gallery", href: `/${locale}/gallery` },
     { key: "blog", fa: "مجله گندم", en: "Blog", href: `/${locale}/blog` },
-    { key: "about", fa: "درباره ما", en: "About Us", href: `/${locale}/about`, subLinks: [
+    {
+      key: "about", fa: "درباره ما", en: "About Us", href: `/${locale}/about`, subLinks: [
         { id: "history", fa: "تاریخچه و معرفی", en: "History & About" },
         { id: "mission", fa: "ماموریت و چشم‌انداز", en: "Mission & Vision" },
         { id: "partners", fa: "شرکای تجاری ما", en: "Our Partners" },
@@ -157,21 +158,20 @@ export default function Navbar({
       initial={false}
       animate={{ y: (isHidden && !isMobileMenuOpen) ? "-100%" : 0 }}
       transition={{ duration: 0.35, ease: customEase }}
-      className={`fixed top-0 left-0 w-full transition-all duration-500 ${isMobileMenuOpen ? "z-100" : "z-50"} ${
-        isScrolled || isMobileMenuOpen
-          ? "bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 py-3 shadow-sm" 
+      className={`fixed top-0 left-0 w-full transition-all duration-500 ${isMobileMenuOpen ? "z-100" : "z-50"} ${isScrolled || isMobileMenuOpen
+          ? "bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-800/50 py-3 shadow-sm"
           : "bg-white/40 dark:bg-gray-950/40 backdrop-blur-md border-b border-gray-200/20 dark:border-gray-800/20 py-5"
-      }`}
+        }`}
     >
-  
+
       <div className="container mx-auto px-4 md:px-8 flex items-center justify-between">
-        
+
         <Link href={`/${locale}`} className="text-2xl font-black tracking-tighter flex items-center gap-3 z-50 group">
           {siteLogo ? (
-            <img 
-              src={siteLogo} 
-              alt="Logo" 
-              className="h-11 w-auto max-w-45 object-contain group-hover:scale-105 transition-transform duration-300" 
+            <img
+              src={siteLogo}
+              alt="Logo"
+              className="h-11 w-auto max-w-45 object-contain group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
             <span className="w-10 h-10 bg-amber-400 text-gray-900 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
@@ -195,8 +195,8 @@ export default function Navbar({
 
         <nav className="hidden md:flex items-center gap-2">
           {navLinks.map((link) => (
-            <div 
-              key={link.key} 
+            <div
+              key={link.key}
               className="relative"
               onMouseEnter={() => setHoveredLink(link.key)}
               onMouseLeave={() => {
@@ -211,8 +211,8 @@ export default function Navbar({
                   transition={{ duration: 0.3, ease: customEase }}
                 />
               )}
-              
-              <Link 
+
+              <Link
                 href={link.href}
                 className="relative z-10 flex items-center gap-1 px-4 py-2 text-sm font-bold text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white transition-colors"
               >
@@ -232,15 +232,15 @@ export default function Navbar({
                     className="absolute top-full pt-4 rtl:right-0 rtl:left-auto ltr:left-0 ltr:right-auto w-64 cursor-default z-50"
                   >
                     <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-3xl p-3 shadow-2xl flex flex-col gap-1">
-                      
+
                       {productsNestedMenu.map((nested) => (
-                        <div 
+                        <div
                           key={nested.id}
                           className="relative"
                           onMouseEnter={() => setHoveredNestedLink(nested.id)}
                           onMouseLeave={() => setHoveredNestedLink(null)}
                         >
-                          <div 
+                          <div
                             onClick={nested.isAction ? nested.action : undefined}
                             className={`flex items-center justify-between px-4 py-2.5 text-sm font-bold rounded-xl cursor-pointer transition-colors ${hoveredNestedLink === nested.id ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
                           >
@@ -249,7 +249,7 @@ export default function Navbar({
                               {isRtl ? nested.fa : nested.en}
                             </div>
                             {!nested.isAction && (
-                               isRtl ? <ChevronLeft size={16} className="opacity-50" /> : <ChevronRight size={16} className="opacity-50" />
+                              isRtl ? <ChevronLeft size={16} className="opacity-50" /> : <ChevronRight size={16} className="opacity-50" />
                             )}
                           </div>
 
@@ -264,8 +264,8 @@ export default function Navbar({
                               >
                                 <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-2xl p-2 shadow-2xl flex flex-col gap-1">
                                   {nested.items.map((item: any, idx: number) => (
-                                    <Link 
-                                      key={idx} 
+                                    <Link
+                                      key={idx}
                                       href={`/${locale}/products?${nested.filterKey}=${encodeURIComponent(item.slug)}`}
                                       className="px-4 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors"
                                     >
@@ -280,8 +280,8 @@ export default function Navbar({
                       ))}
 
                       <div className="border-t border-gray-100 dark:border-gray-800 mt-1 pt-1">
-                        <Link 
-                          href={`/${locale}/products`} 
+                        <Link
+                          href={`/${locale}/products`}
                           className="flex items-center gap-2 px-4 py-3 text-sm font-black text-gray-900 dark:text-white hover:text-amber-600 dark:hover:text-amber-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors"
                         >
                           <LayoutGrid size={16} className="text-amber-500 opacity-70" />
@@ -304,32 +304,32 @@ export default function Navbar({
                     className="absolute top-full pt-4 rtl:right-0 rtl:left-auto ltr:left-0 ltr:right-auto w-56 cursor-default z-40"
                   >
                     <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-3xl p-3 shadow-2xl flex flex-col gap-1">
-                      
+
                       {brands.map((brand) => {
                         const brandId = brand._id || brand.slug;
                         const hasError = imgError?.[brandId];
-                        
-                        const currentLogo = 
-                                (isRtl ? brand.logoFa : brand.logoEn) || 
-                                brand.logo || 
-                                brand.images?.logo || 
-                                brand.images?.main || 
-                                brand.image || 
-                                brand.icon;
-                        
+
+                        const currentLogo =
+                          (isRtl ? brand.logoFa : brand.logoEn) ||
+                          brand.logo ||
+                          brand.images?.logo ||
+                          brand.images?.main ||
+                          brand.image ||
+                          brand.icon;
+
                         return (
-                          <Link 
-                            key={brandId} 
+                          <Link
+                            key={brandId}
                             href={`/${locale}/brands/${brand.slug}`}
                             className="flex items-center justify-between px-4 py-2 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors group"
                           >
                             <span>{isRtl ? brand.faName : brand.enName}</span>
-                            
+
                             <div className="w-6 h-6 shrink-0 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
                               {currentLogo && !hasError ? (
-                                <img 
-                                  src={currentLogo} 
-                                  alt={isRtl ? brand.faName : brand.enName} 
+                                <img
+                                  src={currentLogo}
+                                  alt={isRtl ? brand.faName : brand.enName}
                                   className="w-full h-full object-contain drop-shadow-sm"
                                   onError={(e) => {
                                     e.currentTarget.style.display = 'none';
@@ -347,8 +347,8 @@ export default function Navbar({
                       })}
 
                       <div className="border-t border-gray-100 dark:border-gray-800 mt-2 pt-2">
-                        <Link 
-                          href={`/${locale}/brands`} 
+                        <Link
+                          href={`/${locale}/brands`}
                           className="px-4 py-3 text-xs font-bold text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl flex items-center gap-1 justify-center transition-colors"
                         >
                           {isRtl ? "مشاهده همه برندها" : "View all brands"}
@@ -372,9 +372,9 @@ export default function Navbar({
                   >
                     <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-2xl border border-gray-100 dark:border-gray-800 rounded-3xl p-3 shadow-2xl flex flex-col gap-1">
                       {link.subLinks.map((sub) => (
-                        <Link 
-                          key={sub.id} 
-                          href={`/${locale}/about#${sub.id}`} 
+                        <Link
+                          key={sub.id}
+                          href={`/${locale}/about#${sub.id}`}
                           onClick={(e) => handleAnchorClick(e, sub.id)}
                           className="px-4 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-300 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors"
                         >
@@ -395,8 +395,8 @@ export default function Navbar({
             <ThemeToggle />
             <LangSwitch />
           </div>
-          
-          <Link 
+
+          <Link
             href={`/${locale}/admin/login`}
             className="flex items-center justify-center w-10 h-10 bg-red-600 text-white hover:bg-amber-400 hover:text-black rounded-full transition-all duration-300 shadow-lg hover:shadow-amber-400/50 hover:scale-105 active:scale-95"
           >
@@ -404,8 +404,8 @@ export default function Navbar({
           </Link>
         </div>
 
-        <button 
-          className="md:hidden text-gray-900 dark:text-white z-50 p-2 bg-gray-100/50 dark:bg-gray-800/50 rounded-full backdrop-blur-md" 
+        <button
+          className="md:hidden text-gray-900 dark:text-white z-50 p-2 bg-gray-100/50 dark:bg-gray-800/50 rounded-full backdrop-blur-md"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         >
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -414,7 +414,7 @@ export default function Navbar({
 
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "100vh" }}
             exit={{ opacity: 0, height: 0 }}
@@ -431,7 +431,7 @@ export default function Navbar({
                     key={index}
                     className="flex flex-col"
                   >
-                    <Link 
+                    <Link
                       href={(link.isProductsDropdown || link.subLinks || link.isBrandsMenu) ? "#" : link.href}
                       className="text-xl font-black text-gray-900 dark:text-white hover:text-amber-500 flex items-center justify-between py-3"
                       onClick={(e) => {
@@ -452,18 +452,18 @@ export default function Navbar({
 
                     <AnimatePresence>
                       {expandedMobileMenu === link.key && link.isProductsDropdown && (
-                        <motion.div 
+                        <motion.div
                           initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.3, ease: customEase }}
                           className="overflow-hidden mb-2"
                         >
                           <div className="flex flex-col gap-2 py-2 px-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
-                            
+
                             {productsNestedMenu.map((nested) => (
                               <div key={nested.id} className="flex flex-col">
-                                <button 
+                                <button
                                   onClick={() => {
-                                    if(nested.isAction && nested.action) {
+                                    if (nested.isAction && nested.action) {
                                       nested.action();
                                       setIsMobileMenuOpen(false);
                                     } else {
@@ -480,19 +480,19 @@ export default function Navbar({
                                     <ChevronDown size={14} className={`transition-transform ${expandedNestedMobile === nested.id ? 'rotate-180' : ''}`} />
                                   )}
                                 </button>
-                                
+
                                 <AnimatePresence>
                                   {expandedNestedMobile === nested.id && !nested.isAction && nested.items && nested.items.length > 0 && (
-                                    <motion.div 
+                                    <motion.div
                                       initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                                       className="overflow-hidden"
                                     >
                                       <div className="flex flex-col gap-1 px-4 py-2 border-l-2 rtl:border-l-0 rtl:border-r-2 border-amber-400/50 mr-4 rtl:mr-6 ltr:ml-6 mt-1 mb-2">
                                         {nested.items.map((item: any, idx: number) => (
-                                          <Link 
-                                            key={idx} 
-                                            href={`/${locale}/products?${nested.filterKey}=${encodeURIComponent(item.slug)}`} 
-                                            onClick={() => setIsMobileMenuOpen(false)} 
+                                          <Link
+                                            key={idx}
+                                            href={`/${locale}/products?${nested.filterKey}=${encodeURIComponent(item.slug)}`}
+                                            onClick={() => setIsMobileMenuOpen(false)}
                                             className="text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 py-2 flex items-center justify-between"
                                           >
                                             <span>{isRtl ? item.faName : item.enName}</span>
@@ -506,8 +506,8 @@ export default function Navbar({
                             ))}
 
                             <div className="border-t border-gray-200 dark:border-gray-700 mt-1 pt-1 pb-1">
-                              <Link 
-                                href={`/${locale}/products`} 
+                              <Link
+                                href={`/${locale}/products`}
                                 onClick={() => setIsMobileMenuOpen(false)}
                                 className="flex items-center gap-2 px-3 py-3 text-sm font-black text-gray-900 dark:text-white"
                               >
@@ -521,7 +521,7 @@ export default function Navbar({
                       )}
 
                       {expandedMobileMenu === link.key && link.isBrandsMenu && (
-                        <motion.div 
+                        <motion.div
                           initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.3, ease: customEase }}
                           className="overflow-hidden mb-2"
@@ -530,29 +530,29 @@ export default function Navbar({
                             {brands.map((brand) => {
                               const brandId = brand._id || brand.slug;
                               const hasError = imgError?.[brandId];
-                              
-                              const currentLogo = 
-                                (isRtl ? brand.logoFa : brand.logoEn) || 
-                                brand.logo || 
-                                brand.images?.logo || 
-                                brand.images?.main || 
-                                brand.image || 
+
+                              const currentLogo =
+                                (isRtl ? brand.logoFa : brand.logoEn) ||
+                                brand.logo ||
+                                brand.images?.logo ||
+                                brand.images?.main ||
+                                brand.image ||
                                 brand.icon;
-                              
+
                               return (
-                                <Link 
-                                  key={brandId} 
-                                  href={`/${locale}/brands/${brand.slug}`} 
-                                  onClick={() => setIsMobileMenuOpen(false)} 
+                                <Link
+                                  key={brandId}
+                                  href={`/${locale}/brands/${brand.slug}`}
+                                  onClick={() => setIsMobileMenuOpen(false)}
                                   className="text-sm font-bold text-gray-600 dark:text-gray-300 py-2 hover:text-amber-500 flex items-center justify-between group"
                                 >
                                   <span>{isRtl ? brand.faName : brand.enName}</span>
-                                  
+
                                   <div className="w-6 h-6 shrink-0 flex items-center justify-center opacity-80 group-hover:opacity-100 transition-opacity">
                                     {currentLogo && !hasError ? (
-                                      <img 
-                                        src={currentLogo} 
-                                        alt={isRtl ? brand.faName : brand.enName} 
+                                      <img
+                                        src={currentLogo}
+                                        alt={isRtl ? brand.faName : brand.enName}
                                         className="w-full h-full object-contain"
                                         onError={(e) => {
                                           e.currentTarget.style.display = 'none';
@@ -569,11 +569,11 @@ export default function Navbar({
                               );
                             })}
 
-                            <Link 
-                               href={`/${locale}/brands`} 
-                              onClick={() => setIsMobileMenuOpen(false)} 
+                            <Link
+                              href={`/${locale}/brands`}
+                              onClick={() => setIsMobileMenuOpen(false)}
                               className="text-xs font-black text-amber-500 py-2 mt-2 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between"
-                             >
+                            >
                               {isRtl ? "مشاهده همه برندها" : "View all brands"}
                               {isRtl ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
                             </Link>
@@ -582,17 +582,17 @@ export default function Navbar({
                       )}
 
                       {expandedMobileMenu === link.key && link.subLinks && (
-                        <motion.div 
+                        <motion.div
                           initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                           transition={{ duration: 0.3, ease: customEase }}
                           className="overflow-hidden mb-2"
                         >
                           <div className="flex flex-col gap-2 py-3 px-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
                             {link.subLinks.map((sub) => (
-                              <Link 
-                                key={sub.id} 
-                                href={`/${locale}/about#${sub.id}`} 
-                                onClick={(e) => handleAnchorClick(e, sub.id)} 
+                              <Link
+                                key={sub.id}
+                                href={`/${locale}/about#${sub.id}`}
+                                onClick={(e) => handleAnchorClick(e, sub.id)}
                                 className="text-sm font-bold text-gray-600 dark:text-gray-300 py-2 hover:text-amber-500"
                               >
                                 {isRtl ? sub.fa : sub.en}
@@ -606,9 +606,9 @@ export default function Navbar({
                   </motion.div>
                 ))}
               </div>
-              
+
               <hr className="border-gray-100 dark:border-gray-800/50 my-2" />
-              
+
               <div className="flex flex-col gap-6">
                 <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-900 p-4 rounded-2xl">
                   <span className="font-bold text-gray-600 dark:text-gray-300 text-sm">
@@ -619,9 +619,9 @@ export default function Navbar({
                     <LangSwitch />
                   </div>
                 </div>
-          
-                <Link 
-                  href={`/${locale}/admin/login`} 
+
+                <Link
+                  href={`/${locale}/admin/login`}
                   className="flex items-center justify-center gap-2 w-full py-4 bg-red-600 text-white hover:bg-amber-400 hover:text-black rounded-2xl font-black transition-all duration-300 shadow-lg shadow-red-600/20"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -634,9 +634,9 @@ export default function Navbar({
         )}
       </AnimatePresence>
 
-      <CatalogBuilderModal 
-        isOpen={isCatalogModalOpen} 
-        onClose={() => setIsCatalogModalOpen(false)} 
+      <CatalogBuilderModal
+        isOpen={isCatalogModalOpen}
+        onClose={() => setIsCatalogModalOpen(false)}
       />
     </motion.header>
   );
