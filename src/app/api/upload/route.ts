@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
 
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.name); 
+    const ext = path.extname(file.name);
     const safeName = file.name.replace(ext, "").replace(/[^a-zA-Z0-9]/g, "-");
     const filename = `${safeName}-${uniqueSuffix}${ext}`;
 
@@ -30,9 +30,9 @@ export async function POST(request: NextRequest) {
 
     const filePath = path.join(uploadDir, filename);
     await writeFile(filePath, buffer);
-    
-    return NextResponse.json({ success: true, url: `/uploads/${filename}` });
-    
+
+    return NextResponse.json({ success: true, url: `/api/uploads/${filename}` });
+
   } catch (error: any) {
     console.error("Upload API Error:", error);
     return NextResponse.json({ success: false, error: "خطای سرور: " + error.message }, { status: 500 });
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { fileUrl } = await request.json();
-    
+
     if (!fileUrl) {
       return NextResponse.json({ success: false, error: "آدرس فایل ارسال نشده است." }, { status: 400 });
     }
