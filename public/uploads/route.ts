@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, chmod } from "fs/promises";
 import path from "path";
 
 export async function POST(request: NextRequest) {
@@ -18,14 +18,14 @@ export async function POST(request: NextRequest) {
     // ساخت یک نام یکتا برای فایل (برای جلوگیری از تداخل اسم‌های تکراری)
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     // استخراج فرمت فایل (مثلا .jpg یا .mp4)
-    const ext = path.extname(file.name); 
+    const ext = path.extname(file.name);
     // حذف فاصله‌ها و کاراکترهای عجیب از اسم فایل
     const safeName = file.name.replace(ext, "").replace(/[^a-zA-Z0-9]/g, "-");
     const filename = `${safeName}-${uniqueSuffix}${ext}`;
 
     // تعیین مسیر دقیق ذخیره‌سازی در پوشه public/uploads
     const uploadDir = path.join(process.cwd(), "public", "uploads");
-    
+
     // اطمینان از وجود پوشه (اگر نبود ساخته می‌شود)
     try {
       await mkdir(uploadDir, { recursive: true });
@@ -34,9 +34,12 @@ export async function POST(request: NextRequest) {
     }
 
     const filePath = path.join(uploadDir, filename);
-    
+
     // ذخیره فیزیکی فایل روی هارد سرور
     await writeFile(filePath, buffer);
+
+    // تغییر سطح دسترسی فایل به حالت استاندارد برای نمایش در سایت
+    await chmod(filePath, 0o644);
 
     // تولید لینکی که باید در دیتابیس (MongoDB) ذخیره شود
     const fileUrl = `/uploads/${filename}`;
