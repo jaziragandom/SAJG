@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic'; // جلوگیری قطعی از کش شدن مسیر در سرور
+export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
@@ -10,11 +10,7 @@ export async function GET(
 ) {
     try {
         const { filename } = await context.params;
-
-        // پیدا کردن مسیر فیزیکی عکس روی هارد سرور
         const filePath = path.join(process.cwd(), "public", "uploads", filename);
-
-        // خواندن زنده فایل از روی هارد
         const fileBuffer = await readFile(filePath);
 
         const ext = path.extname(filename).toLowerCase();
