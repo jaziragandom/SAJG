@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     await chmod(filePath, 0o644);
 
     // تولید لینکی که باید در دیتابیس (MongoDB) ذخیره شود
-    const fileUrl = `/uploads/${filename}`;
+    const fileUrl = `/api/uploads/${filename}`;
 
     return NextResponse.json({ success: true, url: fileUrl });
   } catch (error) {
