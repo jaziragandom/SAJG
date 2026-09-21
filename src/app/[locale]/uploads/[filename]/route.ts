@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
 
-export async function GET(request: NextRequest, { params }: { params: { filename: string } }) {
+// تغییر مهم: اضافه شدن locale و تعریف params به صورت Promise
+export async function GET(
+    request: NextRequest,
+    context: { params: Promise<{ locale: string; filename: string }> }
+) {
     try {
-        // دریافت نام عکس از URL
-        const filename = params.filename;
+        // باز کردن Promise پارامترها (الزام نسخه‌های جدید Next.js)
+        const { filename } = await context.params;
 
         // پیدا کردن مسیر فیزیکی عکس روی هارد سرور
         const filePath = path.join(process.cwd(), "public", "uploads", filename);
