@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, unlink } from "fs/promises";
+import { writeFile, unlink, chmod, mkdir } from "fs/promises";
 import path from "path";
 import fs from "fs";
 
@@ -20,17 +20,21 @@ export async function POST(request: NextRequest) {
 
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.name);
-    const safeName = file.name.replace(ext, "").replace(/[^a-zA-Z0-9]/g, "-");
-    const filename = `${safeName}-${uniqueSuffix}${ext}`;
+    // تغییر مهم: نام‌گذاری استاندارد برای جلوگیری از حذف شدن حروف فارسی
+    const filename = `img-${uniqueSuffix}${ext}`;
 
     const uploadDir = path.join(process.cwd(), "public", "uploads");
     if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+      await mkdir(uploadDir, { recursive: true });
     }
 
     const filePath = path.join(uploadDir, filename);
     await writeFile(filePath, buffer);
 
+    // تغییر مهم: دادن دسترسی خواندن به عکس به صورت اتوماتیک
+    await chmod(filePath, 0o644);
+
+    // آدرس‌دهی به روت جدید برای نمایش زنده
     return NextResponse.json({ success: true, url: `/api/uploads/${filename}` });
 
   } catch (error: any) {
@@ -50,16 +54,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: "آدرس فایل ارسال نشده است." }, { status: 400 });
     }
 
-    // استخراج نام فایل از آدرس (مثلاً /uploads/image-123.jpg تبدیل می‌شود به image-123.jpg)
     const filename = fileUrl.split('/').pop();
     if (!filename) {
       return NextResponse.json({ success: false, error: "فرمت آدرس نامعتبر است." }, { status: 400 });
     }
 
-    // پیدا کردن مسیر دقیق فایل در سرور
     const filePath = path.join(process.cwd(), "public", "uploads", filename);
 
-    // بررسی وجود فایل و حذف آن
     if (fs.existsSync(filePath)) {
       await unlink(filePath);
       return NextResponse.json({ success: true, message: "فایل با موفقیت از هاست پاک شد." });
