@@ -1,22 +1,23 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IProduct extends Document {
-  brandId: mongoose.Types.ObjectId; 
+  brandId: mongoose.Types.ObjectId;
   faTitle: string;
   enTitle: string;
   slug: string;
-  mainCat: string; 
-  category: string; 
+  mainCat: string;
+  category: string;
   status: string;
   isFeatured: boolean;
-  
+  order: number;
+
   // فیلدهای جدید هشدار
   hasWarning: boolean;
   warningMessageFa: string;
   warningMessageEn: string;
 
-  faDesc: string; 
-  enDesc: string; 
+  faDesc: string;
+  enDesc: string;
   images: {
     main: string;
     gallery: string[];
@@ -41,25 +42,26 @@ const ProductSchema: Schema = new Schema({
   faTitle: { type: String, required: true },
   enTitle: { type: String, required: true },
   slug: { type: String, required: true, unique: true, lowercase: true },
-  mainCat: { type: String, required: true }, 
+  mainCat: { type: String, required: true },
   category: { type: String, required: true },
   status: { type: String, default: 'draft' },
   isFeatured: { type: Boolean, default: false },
+  order: { type: Number, default: 0 },
 
   // فیلدهای جدید هشدار
   hasWarning: { type: Boolean, default: false },
   warningMessageFa: { type: String, default: "" },
   warningMessageEn: { type: String, default: "" },
-  
-  faDesc: { type: String, default: "" }, 
-  enDesc: { type: String, default: "" }, 
+
+  faDesc: { type: String, default: "" },
+  enDesc: { type: String, default: "" },
 
   images: {
     main: { type: String, required: true },
     gallery: [{ type: String }],
     nutrition: { type: String, default: "" }
   },
-  
+
   specs: {
     flavorFa: { type: String, default: "" },
     flavorEn: { type: String, default: "" },

@@ -8,48 +8,48 @@ export async function getProducts(filter: any = {}) {
   try {
     await dbConnect();
     let dbFilter: any = {};
-    
+
     // حذف فیلتر اجباری published چون وضعیت‌ها کاملاً داینامیک شده‌اند
     if (filter.status && filter.status !== 'all') {
-        dbFilter.status = filter.status;
+      dbFilter.status = filter.status;
     }
 
     // منطق فیلتر محصولات ویژه (Featured) برای سکشن محصولات صفحه اصلی
     if (filter.isFeatured !== undefined) {
-        dbFilter.isFeatured = filter.isFeatured;
+      dbFilter.isFeatured = filter.isFeatured;
     }
 
     // هوشمندسازی دریافت فیلترها از ناوبار
     if (filter.brand) {
-        dbFilter.brandId = filter.brand;
+      dbFilter.brandId = filter.brand;
     }
-    
+
     // اگر کاربر از ناوبار دسته‌بندی را انتخاب کرد
     if (filter.category) {
-        // چون ناوبار ممکن است یک گروه اصلی (mainCat) یا زیردسته (category) بفرستد
-        // ما هر دو فیلد را جستجو می‌کنیم تا کاربر دقیقاً به خواسته خود برسد
-        dbFilter.$or = [
-            { mainCat: filter.category },
-            { category: filter.category }
-        ];
+      // چون ناوبار ممکن است یک گروه اصلی (mainCat) یا زیردسته (category) بفرستد
+      // ما هر دو فیلد را جستجو می‌کنیم تا کاربر دقیقاً به خواسته خود برسد
+      dbFilter.$or = [
+        { mainCat: filter.category },
+        { category: filter.category }
+      ];
     }
 
     // جستجوی متنی هوشمند (برای زمانی که کاربر مستقیماً متنی را تایپ می‌کند)
     if (filter.search) {
-        dbFilter.$or = [
-            ...(dbFilter.$or || []),
-            { faTitle: { $regex: filter.search, $options: 'i' } },
-            { enTitle: { $regex: filter.search, $options: 'i' } }
-        ];
+      dbFilter.$or = [
+        ...(dbFilter.$or || []),
+        { faTitle: { $regex: filter.search, $options: 'i' } },
+        { enTitle: { $regex: filter.search, $options: 'i' } }
+      ];
     }
 
     console.log("🔍 [BACKEND] کوئری پردازش شده برای دیتابیس:", JSON.stringify(dbFilter));
 
     const products = await Product.find(dbFilter)
       .populate('brandId', 'faName enName slug logo')
-      .sort({ createdAt: -1 })
+      .sort({ order: 1, createdAt: -1 }) // اضافه شدن order
       .lean();
-      
+
     console.log(`✅ [BACKEND] تعداد محصولات یافت شده: ${products.length}`);
 
     return { success: true, data: JSON.parse(JSON.stringify(products)) };
@@ -102,11 +102,11 @@ export async function getProductById(id: string) {
     const product = await Product.findById(id)
       .populate('brandId', 'faName enName slug logo')
       .lean();
-    
+
     if (!product) {
       return { success: false, error: "محصول یافت نشد" };
     }
-    
+
     return { success: true, data: JSON.parse(JSON.stringify(product)) };
   } catch (error: any) {
     console.error("❌ [BACKEND] خطا در دریافت تک محصول:", error.message || error);

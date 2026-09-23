@@ -80,9 +80,9 @@ export default function Products() {
         getSiteContent("home_products_settings"),
         getCategories()
       ]);
-      
+
       let currentSettings = { displayType: "featured", maxItems: "8", faTitle: "", enTitle: "", faSubtitle: "", enSubtitle: "" };
-      
+
       if (settingsRes?.data) {
         currentSettings = { ...currentSettings, ...settingsRes.data };
         setSectionSettings(currentSettings);
@@ -92,11 +92,11 @@ export default function Products() {
         setCategoriesData(catsRes.data);
       }
 
-      const filter: any = {}; 
+      const filter: any = {};
       if (currentSettings.displayType === 'featured') {
         filter.isFeatured = true;
       }
-      
+
       const productsRes = await getProducts(filter);
       let loadedProducts = fallbackProducts;
 
@@ -111,14 +111,14 @@ export default function Products() {
         if (loadedProducts.length > 0 && loadedProducts[0].images?.main) {
           const img = new window.Image();
           img.src = loadedProducts[0].images.main;
-          
+
           img.onload = () => {
             setTimeout(() => {
               sessionStorage.setItem('home_products_loaded', 'true');
               setIsLoading(false);
             }, 2500);
           };
-          
+
           img.onerror = () => {
             setTimeout(() => {
               sessionStorage.setItem('home_products_loaded', 'true');
@@ -148,7 +148,7 @@ export default function Products() {
 
   useEffect(() => {
     if (!api) return;
-    
+
     // تنظیم اولیه ایندکس
     setCurrent(api.selectedScrollSnap());
 
@@ -187,193 +187,191 @@ export default function Products() {
   return (
     <>
       {isLoading && <GlobalLoading />}
-      <section ref={sectionRef} className="py-24 bg-gray-50 dark:bg-dark-card/30 relative overflow-hidden">      
-      <div className="container mx-auto px-4 md:px-8">
-        
-        <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6 overflow-hidden">
-          <div className="max-w-2xl">
-            <motion.h2 
-              initial={{ opacity: 0, x: isRtl ? 50 : -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: false, amount: 0.1 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0 }}
-              className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 leading-tight"
-            >
-              {restOfTitle} {lastWord && <span className="drop-shadow-md text-amber-500">{lastWord}</span>}
-            </motion.h2>
+      <section ref={sectionRef} className="py-24 bg-gray-50 dark:bg-dark-card/30 relative overflow-hidden">
+        <div className="container mx-auto px-4 md:px-8">
 
-            <motion.p 
-              initial={{ opacity: 0, x: isRtl ? 50 : -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: false, amount: 0.1 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
-              className="text-gray-700 dark:text-gray-200 text-lg font-medium"
-            >
-              {subtitleText}
-            </motion.p>
-          </div>
-          
-          <Link href={`/${locale}/products`}>
-            <motion.button 
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: false }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
-              className="flex items-center gap-2 font-bold transition-colors group text-amber-500 hover:text-amber-600" 
-            >
-              {t("view_catalog")}
-              {isRtl ? (
-                <ArrowLeft className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" />
-              ) : (
-                <ArrowRight className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" />
-              )}
-            </motion.button>
-          </Link>
-        </div>
-
-        <div className="relative group px-4 md:px-12">
-          <div dir={isRtl ? "rtl" : "ltr"}>
-            <Carousel 
-              setApi={setApi}
-              opts={{ align: "start", loop: true, direction: isRtl ? "rtl" : "ltr" }} 
-              className="w-full"
-            >
-              <div 
-                className="w-full" 
-                style={{ 
-                  WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', 
-                  maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' 
-                }}
+          <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6 overflow-hidden">
+            <div className="max-w-2xl">
+              <motion.h2
+                initial={{ opacity: 0, x: isRtl ? 50 : -50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: false, amount: 0.1 }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0 }}
+                className="text-3xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 leading-tight"
               >
-                <CarouselContent className="-ml-2 md:-ml-4 py-6">
-                  {productsData.map((product, index) => {
-                    const theme = themeList[index % themeList.length];
-                    const title = isRtl ? product.faTitle : (product.enTitle || product.faTitle);
-                    const imgUrl = product.images?.main;
-                    
-                    // استخراج داینامیک نام دسته‌بندی
-                    const subCatObj = categoriesData.find(c => c.slug === product.category);
-                    const catLabel = subCatObj ? (isRtl ? subCatObj.faName : subCatObj.enName) : (product.category || product.mainCat);
+                {restOfTitle} {lastWord && <span className="drop-shadow-md text-amber-500">{lastWord}</span>}
+              </motion.h2>
 
-                    // استخراج داینامیک وزن
-                    const weightVal = product.specs?.weight || product.weight || "";
-                    const weightCat = categoriesData.find(c => c.slug === weightVal || c.faName === weightVal || c._id === weightVal);
-                    const finalWeight = weightCat ? (isRtl ? weightCat.faName : weightCat.enName) : (isRtl ? (product.specs?.weightFa || weightVal) : (product.specs?.weightEn || weightVal));
+              <motion.p
+                initial={{ opacity: 0, x: isRtl ? 50 : -50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: false, amount: 0.1 }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
+                className="text-gray-700 dark:text-gray-200 text-lg font-medium"
+              >
+                {subtitleText}
+              </motion.p>
+            </div>
 
-                    return (
-                      <CarouselItem key={product._id || index} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/4">
-                        <motion.div 
-                          initial={{ opacity: 0, y: 80 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={{ once: false, amount: 0.2 }} 
-                          transition={{ 
-                            duration: 0.7, 
-                            delay: !isDominoDone ? 0.45 + ((index % 4) * 0.15) : 0, 
-                            ease: "easeOut" 
-                          }}
-                          className="p-1 h-full"
-                        >
-                          <Link href={`/${locale}/products/${product.slug || product._id}`} className="block h-full cursor-pointer">
-                            <Card className="relative overflow-hidden h-100 flex flex-col justify-end p-6 border border-gray-200 dark:border-gray-800/60 bg-white dark:bg-gray-950 transition-all duration-700 ease-out hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:z-10 group/card">
-                              
-                              {imgUrl && (
-                                <>
-                                  {/* ۱. افکت هاله رنگی پشت عکس */}
-                                  <div className="absolute inset-0 w-full h-full z-0 overflow-hidden opacity-15 group-hover/card:opacity-30 dark:opacity-40 dark:group-hover/card:opacity-60 transition-opacity duration-700">
-                                    <Image 
-                                      src={imgUrl} 
-                                      alt="" 
-                                      fill
-                                      sizes="(max-width: 768px) 100vw, 50vw"
-                                      aria-hidden="true"
-                                      className="object-cover blur-[60px] scale-150 saturate-150" 
-                                    />
-                                  </div>
-                                  
-                                  {/* ۲. عکس اصلی محصول */}
-                                  <div className="absolute inset-0 w-full h-full z-10 overflow-hidden flex items-center justify-center">
-                                    <Image 
-                                      src={imgUrl} 
-                                      alt={title} 
-                                      fill
-                                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                                      className="object-contain transition-transform duration-700 group-hover/card:-translate-y-2 drop-shadow-[0_20px_25px_rgba(0,0,0,0.2)] dark:drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] p-4 pb-20" 
-                                    />
-                                  </div>
-                                </>
-                              )}
+            <Link href={`/${locale}/products`}>
+              <motion.button
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: false }}
+                transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+                className="flex items-center gap-2 font-bold transition-colors group text-amber-500 hover:text-amber-600"
+              >
+                {t("view_catalog")}
+                {isRtl ? (
+                  <ArrowLeft className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" />
+                ) : (
+                  <ArrowRight className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" />
+                )}
+              </motion.button>
+            </Link>
+          </div>
 
-                              {/* گرادیانت روشن در روز و تاریک در شب */}
-                              <div className="absolute inset-0 bg-linear-to-t from-white via-white/80 dark:from-black/95 dark:via-black/40 to-transparent z-10 pointer-events-none" />
-                              
-                              <CardContent className="relative z-20 p-0 w-full text-start">
-                                {/* سطر بالا: برند و دسته‌بندی */}
-                                <div className="flex justify-between items-center mb-3 w-full">
-                                  {/* نام برند */}
-                                  <span className="text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-md shadow-sm">
-                                    {isRtl ? (product.brandId?.faName || "بدون برند") : (product.brandId?.enName || "No Brand")}
-                                  </span>
-                                  
-                                  {/* نام دسته‌بندی */}
-                                  <span className="inline-block px-3 py-1 bg-white/60 dark:bg-white/10 backdrop-blur-md border border-gray-200 dark:border-white/10 rounded-full text-[11px] font-bold shadow-sm text-gray-800 dark:text-white">
-                                    {catLabel}
-                                  </span>
-                                </div>
-                                
-                                {/* سطر وسط: نام محصول */}
-                                 <h3 className="text-lg md:text-xl font-black mb-1 leading-tight drop-shadow-md w-full text-gray-900 dark:text-white truncate" title={title}>
-                                   {title}
-                                 </h3>
-                                
-                                {/* سطر پایین: وزن/حجم محصول */}
-                                {finalWeight && (
-                                  <p className="text-sm text-gray-600 dark:text-gray-300 font-bold drop-shadow-sm w-full">
-                                    {finalWeight}
-                                  </p>
+          <div className="relative group px-4 md:px-12">
+            <div dir={isRtl ? "rtl" : "ltr"}>
+              <Carousel
+                setApi={setApi}
+                opts={{ align: "start", loop: true, direction: isRtl ? "rtl" : "ltr" }}
+                className="w-full"
+              >
+                <div
+                  className="w-full"
+                  style={{
+                    WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)',
+                    maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)'
+                  }}
+                >
+                  <CarouselContent className="-ml-2 md:-ml-4 py-6">
+                    {productsData.map((product, index) => {
+                      const theme = themeList[index % themeList.length];
+                      const title = isRtl ? product.faTitle : (product.enTitle || product.faTitle);
+                      const imgUrl = product.images?.main;
+
+                      // استخراج داینامیک نام دسته‌بندی
+                      const subCatObj = categoriesData.find(c => c.slug === product.category);
+                      const catLabel = subCatObj ? (isRtl ? subCatObj.faName : subCatObj.enName) : (product.category || product.mainCat);
+
+                      // استخراج داینامیک وزن
+                      const weightVal = product.specs?.weight || product.weight || "";
+                      const weightCat = categoriesData.find(c => c.slug === weightVal || c.faName === weightVal || c._id === weightVal);
+                      const finalWeight = weightCat ? (isRtl ? weightCat.faName : weightCat.enName) : (isRtl ? (product.specs?.weightFa || weightVal) : (product.specs?.weightEn || weightVal));
+
+                      return (
+                        <CarouselItem key={product._id || index} className="pl-2 md:pl-4 md:basis-1/2 lg:basis-1/4">
+                          <motion.div
+                            initial={{ opacity: 0, y: 80 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: false, amount: 0.2 }}
+                            transition={{
+                              duration: 0.7,
+                              delay: !isDominoDone ? 0.45 + ((index % 4) * 0.15) : 0,
+                              ease: "easeOut"
+                            }}
+                            className="p-1 h-full"
+                          >
+                            <Link href={`/${locale}/products/${product.slug || product._id}`} className="block h-full cursor-pointer">
+                              <Card className="relative overflow-hidden h-100 flex flex-col justify-end p-6 border border-gray-200 dark:border-gray-800/60 bg-white dark:bg-gray-950 transition-all duration-700 ease-out hover:shadow-[0_20px_40px_rgba(0,0,0,0.1)] dark:hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)] hover:z-10 group/card">
+
+                                {imgUrl && (
+                                  <>
+                                    {/* ۱. افکت هاله رنگی پشت عکس */}
+                                    <div className="absolute inset-0 w-full h-full z-0 overflow-hidden opacity-15 group-hover/card:opacity-30 dark:opacity-40 dark:group-hover/card:opacity-60 transition-opacity duration-700">
+                                      <Image
+                                        src={imgUrl}
+                                        alt=""
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, 50vw"
+                                        aria-hidden="true"
+                                        className="object-cover blur-[60px] scale-150 saturate-150"
+                                      />
+                                    </div>
+
+                                    {/* ۲. عکس اصلی محصول */}
+                                    <div className="absolute inset-0 w-full h-full z-10 overflow-hidden flex items-center justify-center">
+                                      <Image
+                                        src={imgUrl}
+                                        alt={title}
+                                        fill
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                                        className="object-contain transition-transform duration-700 group-hover/card:-translate-y-2 drop-shadow-[0_20px_25px_rgba(0,0,0,0.2)] dark:drop-shadow-[0_20px_25px_rgba(0,0,0,0.8)] p-4 pb-20"
+                                      />
+                                    </div>
+                                  </>
                                 )}
-                              </CardContent>
-                            </Card>
-                          </Link>
-                        </motion.div>
-                      </CarouselItem>
-                    )
-                  })}
-                </CarouselContent>
-              </div>
-              
-              {/* دکمه‌های قبلی و بعدی - اعمال داینامیک برای جایگیری و جهت آیکن‌ها بر اساس زبان */}
-              <div className={`flex absolute top-1/2 -translate-y-1/2 z-20 touch-none ${prevBtnPosition}`} onPointerDown={() => startPress('prev')} onPointerUp={stopPress} onPointerLeave={stopPress}>
-                <CarouselPrevious className={`relative inset-auto translate-y-0 h-8 w-8 md:h-12 md:w-12 border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-colors shadow-xl btn-prev-carousel active:scale-[0.98] active:translate-y-0 [&>svg]:w-4 [&>svg]:h-4 md:[&>svg]:w-6 md:[&>svg]:h-6 ${isRtl ? "[&>svg]:rotate-180" : ""}`} />
-              </div>
-              
-              <div className={`flex absolute top-1/2 -translate-y-1/2 z-20 touch-none ${nextBtnPosition}`} onPointerDown={() => startPress('next')} onPointerUp={stopPress} onPointerLeave={stopPress}>
-                <CarouselNext className={`relative inset-auto translate-y-0 h-8 w-8 md:h-12 md:w-12 border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-colors shadow-xl btn-next-carousel active:scale-[0.98] active:translate-y-0 [&>svg]:w-4 [&>svg]:h-4 md:[&>svg]:w-6 md:[&>svg]:h-6 ${isRtl ? "[&>svg]:rotate-180" : ""}`} />
-              </div>
 
-            </Carousel>
+                                {/* گرادیانت اصلاح‌شده: در تم روشن فقط بخش پایینی را می‌پوشاند */}
+                                <div className="absolute inset-0 bg-linear-to-t from-white from-10% via-white/40 via-30% dark:from-black/95 dark:via-black/40 to-transparent z-10 pointer-events-none" />
+                                <CardContent className="relative z-20 p-0 w-full text-start">
+                                  {/* سطر بالا: برند و دسته‌بندی */}
+                                  <div className="flex justify-between items-center mb-3 w-full">
+                                    {/* نام برند */}
+                                    <span className="text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-md shadow-sm">
+                                      {isRtl ? (product.brandId?.faName || "بدون برند") : (product.brandId?.enName || "No Brand")}
+                                    </span>
+
+                                    {/* نام دسته‌بندی */}
+                                    <span className="inline-block px-3 py-1 bg-white/60 dark:bg-white/10 backdrop-blur-md border border-gray-200 dark:border-white/10 rounded-full text-[11px] font-bold shadow-sm text-gray-800 dark:text-white">
+                                      {catLabel}
+                                    </span>
+                                  </div>
+
+                                  {/* سطر وسط: نام محصول */}
+                                  <h3 className="text-lg md:text-xl font-black mb-1 leading-tight drop-shadow-md w-full text-gray-900 dark:text-white truncate" title={title}>
+                                    {title}
+                                  </h3>
+
+                                  {/* سطر پایین: وزن/حجم محصول */}
+                                  {finalWeight && (
+                                    <p className="text-sm text-gray-600 dark:text-gray-300 font-bold drop-shadow-sm w-full">
+                                      {finalWeight}
+                                    </p>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            </Link>
+                          </motion.div>
+                        </CarouselItem>
+                      )
+                    })}
+                  </CarouselContent>
+                </div>
+
+                {/* دکمه‌های قبلی و بعدی - اعمال داینامیک برای جایگیری و جهت آیکن‌ها بر اساس زبان */}
+                <div className={`flex absolute top-1/2 -translate-y-1/2 z-20 touch-none ${prevBtnPosition}`} onPointerDown={() => startPress('prev')} onPointerUp={stopPress} onPointerLeave={stopPress}>
+                  <CarouselPrevious className={`relative inset-auto translate-y-0 h-8 w-8 md:h-12 md:w-12 border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-colors shadow-xl btn-prev-carousel active:scale-[0.98] active:translate-y-0 [&>svg]:w-4 [&>svg]:h-4 md:[&>svg]:w-6 md:[&>svg]:h-6 ${isRtl ? "[&>svg]:rotate-180" : ""}`} />
+                </div>
+
+                <div className={`flex absolute top-1/2 -translate-y-1/2 z-20 touch-none ${nextBtnPosition}`} onPointerDown={() => startPress('next')} onPointerUp={stopPress} onPointerLeave={stopPress}>
+                  <CarouselNext className={`relative inset-auto translate-y-0 h-8 w-8 md:h-12 md:w-12 border-2 border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-white hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-colors shadow-xl btn-next-carousel active:scale-[0.98] active:translate-y-0 [&>svg]:w-4 [&>svg]:h-4 md:[&>svg]:w-6 md:[&>svg]:h-6 ${isRtl ? "[&>svg]:rotate-180" : ""}`} />
+                </div>
+
+              </Carousel>
+            </div>
           </div>
-        </div>
 
-        {/* نقطه‌های راهنما (اینستاگرامی) */}
-        {productsData.length > 0 && (
-          <div className="flex justify-center items-center gap-2 mt-8" dir={isRtl ? "rtl" : "ltr"}>
-            {productsData.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => api?.scrollTo(idx)}
-                className={`rounded-full transition-all duration-300 outline-none shadow-sm ${
-                  current === idx 
-                    ? "w-3 h-3 bg-amber-500 border border-amber-500 scale-110" 
+          {/* نقطه‌های راهنما (اینستاگرامی) */}
+          {productsData.length > 0 && (
+            <div className="flex justify-center items-center gap-2 mt-8" dir={isRtl ? "rtl" : "ltr"}>
+              {productsData.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => api?.scrollTo(idx)}
+                  className={`rounded-full transition-all duration-300 outline-none shadow-sm ${current === idx
+                    ? "w-3 h-3 bg-amber-500 border border-amber-500 scale-110"
                     : "w-2.5 h-2.5 bg-white dark:bg-gray-400 border border-gray-200 dark:border-gray-600 hover:bg-gray-100"
-                }`}
-                aria-label={`Go to slide ${idx + 1}`}
-              />
-            ))}
-          </div>
-        )}
+                    }`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+          )}
 
-      </div>
-    </section>
+        </div>
+      </section>
     </>
   );
 }

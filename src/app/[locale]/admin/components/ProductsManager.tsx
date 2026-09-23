@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  Plus, Search, Edit3, Trash2, Image as ImageIcon, GripVertical, 
+import {
+  Plus, Search, Edit3, Trash2, Image as ImageIcon, GripVertical,
   X, Upload, CheckCircle2, Wand2, Loader2, Star, ChevronLeft, ChevronRight,
-  LayoutGrid, List, AlignJustify
+  LayoutGrid, List as ListIcon, AlignJustify, Filter, ArrowDownAZ, ArrowUpZA
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAdminShortcuts } from "../hooks/useAdminShortcuts";
@@ -18,8 +18,8 @@ export default function ProductsManager() {
 
   const [products, setProducts] = useState<any[]>([]);
   const [brandsList, setBrandsList] = useState<any[]>([]);
-  const [categoriesList, setCategoriesList] = useState<any[]>([]); 
-  
+  const [categoriesList, setCategoriesList] = useState<any[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,45 +27,55 @@ export default function ProductsManager() {
   const [editMode, setEditMode] = useState(false);
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [translatingField, setTranslatingField] = useState<string | null>(null);
-  
+
+  // استیت‌های جدید برای فیلتر و مرتب‌سازی مرحله‌ای
+  const [filterMain, setFilterMain] = useState("all");
+  const [filterBrand, setFilterBrand] = useState("all");
+  const [filterSub, setFilterSub] = useState("all");
+
+  // استیت‌های سورت (شامل گزینه چیدمان دستی)
+  const [sortBy, setSortBy] = useState("custom");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [viewMode, setViewMode] = useState<"list" | "compact" | "grid">("list");
 
-  const [formData, setFormData] = useState({ 
-    _id: "", 
-    brandId: "", 
-    slug: "", 
-    faTitle: "", 
-    enTitle: "", 
-    mainCat: "", 
-    category: "", 
-    faDesc: "", 
-    enDesc: "", 
-    flavor: "", 
-    weight: "", 
-    packaging: "", 
-    faShelfLife: "", 
-    enShelfLife: "", 
-    faIngredients: "", 
+  const [formData, setFormData] = useState({
+    _id: "",
+    brandId: "",
+    slug: "",
+    faTitle: "",
+    enTitle: "",
+    mainCat: "",
+    category: "",
+    faDesc: "",
+    enDesc: "",
+    flavor: "",
+    weight: "",
+    packaging: "",
+    faShelfLife: "",
+    enShelfLife: "",
+    faIngredients: "",
     enIngredients: "",
-    itemsPerPackage: "", 
-    visibilityStatus: "published", 
-    isFeatured: false, 
+    itemsPerPackage: "",
+    visibilityStatus: "published",
+    isFeatured: false,
     hasWarning: false,
     warningMessageFa: "",
     warningMessageEn: "",
     mainImage: "",
-    nutritionImage: "" 
+    nutritionImage: ""
   });
-  
+
   const tabList = ["basic", "specs", "media"];
 
   const fetchData = async () => {
     setIsLoading(true);
     const [productsRes, brandsRes, catsRes] = await Promise.all([
-      getProducts({ status: 'all' }), 
-      getBrands(), 
+      getProducts({ status: 'all' }),
+      getBrands(),
       getCategories()
     ]);
     if (productsRes.success) setProducts(productsRes.data);
@@ -81,7 +91,7 @@ export default function ProductsManager() {
   useAdminShortcuts({
     activeTab: activeTab,
     setActiveTab: setActiveTab,
-    tabsList: isModalOpen ? tabList : [], 
+    tabsList: isModalOpen ? tabList : [],
     closeModal: () => setIsModalOpen(false),
     onAddNew: () => { if (!isModalOpen) handleAddNew(); }
   });
@@ -108,9 +118,9 @@ export default function ProductsManager() {
   const findCatSlug = (val: string) => {
     if (!val) return "";
     const cleanVal = String(val).trim();
-    const c = categoriesList.find(x => 
-      String(x.faName).trim() === cleanVal || 
-      String(x.slug).trim() === cleanVal || 
+    const c = categoriesList.find(x =>
+      String(x.faName).trim() === cleanVal ||
+      String(x.slug).trim() === cleanVal ||
       String(x.enName).trim() === cleanVal ||
       String(x._id) === cleanVal
     );
@@ -121,43 +131,43 @@ export default function ProductsManager() {
     if (!slug) return fallback || "-";
     const cat = categoriesList.find(c => c.slug === slug || c._id === slug);
     if (cat) return cat.faName;
-    
+
     if (fallback && typeof fallback === 'string' && fallback.match(/-[0-9]+$/)) {
-        return fallback.replace(/-[0-9]+$/, '').replace(/-/g, ' ');
+      return fallback.replace(/-[0-9]+$/, '').replace(/-/g, ' ');
     }
     if (slug && typeof slug === 'string' && slug.match(/-[0-9]+$/)) {
-        return slug.replace(/-[0-9]+$/, '').replace(/-/g, ' ');
+      return slug.replace(/-[0-9]+$/, '').replace(/-/g, ' ');
     }
     return fallback || slug || "-";
   };
 
   const handleEdit = (product: any) => {
     setEditMode(true);
-    setFormData({ 
-      _id: product._id, 
+    setFormData({
+      _id: product._id,
       brandId: product.brandId?._id || product.brandId || "",
       slug: product.slug || "",
-      faTitle: product.faTitle || "", 
-      enTitle: product.enTitle || "", 
-      mainCat: product.mainCat || "", 
-      category: product.category || "", 
-      visibilityStatus: product.status || "published", 
+      faTitle: product.faTitle || "",
+      enTitle: product.enTitle || "",
+      mainCat: product.mainCat || "",
+      category: product.category || "",
+      visibilityStatus: product.status || "published",
       isFeatured: product.isFeatured || false,
       hasWarning: product.hasWarning || false,
       warningMessageFa: product.warningMessageFa || "",
       warningMessageEn: product.warningMessageEn || "",
-      faDesc: product.faDesc || "", 
-      enDesc: product.enDesc || "", 
+      faDesc: product.faDesc || "",
+      enDesc: product.enDesc || "",
       flavor: findCatSlug(product.specs?.flavorFa || product.specs?.flavor || ""),
       weight: findCatSlug(product.specs?.weightFa || product.specs?.weight || ""),
       packaging: findCatSlug(product.specs?.packagingFa || product.specs?.packaging || product.packaging || ""),
-      faShelfLife: product.specs?.shelfLifeFa || "", 
-      enShelfLife: product.specs?.shelfLifeEn || "", 
-      faIngredients: product.specs?.ingredientsFa || "", 
+      faShelfLife: product.specs?.shelfLifeFa || "",
+      enShelfLife: product.specs?.shelfLifeEn || "",
+      faIngredients: product.specs?.ingredientsFa || "",
       enIngredients: product.specs?.ingredientsEn || "",
-      itemsPerPackage: product.specs?.itemsPerPackage || "", 
+      itemsPerPackage: product.specs?.itemsPerPackage || "",
       mainImage: product.images?.main || "",
-      nutritionImage: product.images?.nutrition || "" 
+      nutritionImage: product.images?.nutrition || ""
     });
     setActiveTab("basic");
     setIsModalOpen(true);
@@ -166,26 +176,26 @@ export default function ProductsManager() {
   const handleAddNew = () => {
     setEditMode(false);
     const firstMainCat = mainCategories.length > 0 ? mainCategories[0].slug : "";
-    setFormData({ 
-      _id: "", 
-      brandId: "", 
-      slug: "", 
-      faTitle: "", 
-      enTitle: "", 
-      mainCat: firstMainCat, 
+    setFormData({
+      _id: "",
+      brandId: "",
+      slug: "",
+      faTitle: "",
+      enTitle: "",
+      mainCat: firstMainCat,
       category: "",
-      faDesc: "", 
-      enDesc: "", 
-      flavor: "", 
-      weight: "", 
+      faDesc: "",
+      enDesc: "",
+      flavor: "",
+      weight: "",
       packaging: "",
-      faShelfLife: "", 
-      enShelfLife: "", 
-      faIngredients: "", 
+      faShelfLife: "",
+      enShelfLife: "",
+      faIngredients: "",
       enIngredients: "",
       itemsPerPackage: "",
-      visibilityStatus: "published", 
-      isFeatured: false, 
+      visibilityStatus: "published",
+      isFeatured: false,
       hasWarning: false,
       warningMessageFa: "",
       warningMessageEn: "",
@@ -206,7 +216,7 @@ export default function ProductsManager() {
     const selFlavor = categoriesList.find(c => c.slug === formData.flavor || c._id === formData.flavor || c.faName === formData.flavor);
     const selPack = categoriesList.find(c => c.slug === formData.packaging || c._id === formData.packaging || c.faName === formData.packaging);
     const selWeight = categoriesList.find(c => c.slug === formData.weight || c._id === formData.weight || c.faName === formData.weight);
-    
+
     const payload = {
       brandId: formData.brandId,
       faTitle: formData.faTitle,
@@ -221,6 +231,7 @@ export default function ProductsManager() {
       warningMessageEn: formData.warningMessageEn,
       faDesc: formData.faDesc,
       enDesc: formData.enDesc,
+      order: editMode ? undefined : products.length, // محصول جدید میره آخر لیست
       specs: {
         flavorFa: selFlavor ? selFlavor.faName : formData.flavor,
         flavorEn: selFlavor ? selFlavor.enName : formData.flavor,
@@ -234,15 +245,15 @@ export default function ProductsManager() {
         shelfLifeEn: formData.enShelfLife,
         ingredientsFa: formData.faIngredients,
         ingredientsEn: formData.enIngredients,
-        itemsPerPackage: formData.itemsPerPackage, 
+        itemsPerPackage: formData.itemsPerPackage,
       },
-      images: { 
-        main: formData.mainImage || "https://placehold.co/400x400/png", 
+      images: {
+        main: formData.mainImage || "https://placehold.co/400x400/png",
         gallery: [],
-        nutrition: formData.nutritionImage || "" 
+        nutrition: formData.nutritionImage || ""
       }
     };
-    
+
     if (editMode && formData._id) {
       const res = await updateProduct(formData._id, payload);
       if (res.success) {
@@ -289,32 +300,126 @@ export default function ProductsManager() {
     }
   };
 
-  const handleDragStart = (index: number) => setDraggedItemIndex(index);
-  
+  // ==========================================
+  // فیلترها، سورت و درگ‌اند‌دراپ ضدتداخل
+  // ==========================================
+
+  // درگ‌اند‌دراپ فقط در صورتی مجاز است که هیچ فیلتر یا سورتی اعمال نشده باشد
+  const isDragAllowed = sortBy === "custom" && filterMain === "all" && filterBrand === "all" && filterSub === "all" && !searchQuery;
+
+  const handleDragStart = (index: number) => {
+    if (!isDragAllowed) {
+      showToast("برای تغییر چیدمان (Drag & Drop)، باید سورت روی «چیدمان دستی» تنظیم شده باشد و تمام فیلترها و جستجو پاک باشند.", "warning");
+      return;
+    }
+    setDraggedItemIndex((currentPage - 1) * itemsPerPage + index);
+  };
+
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
-    if (draggedItemIndex === null || draggedItemIndex === index) return;
+    if (!isDragAllowed) return;
+    const absoluteIndex = (currentPage - 1) * itemsPerPage + index;
+    if (draggedItemIndex === null || draggedItemIndex === absoluteIndex) return;
+
     const newProducts = [...products];
     const draggedItem = newProducts[draggedItemIndex];
     newProducts.splice(draggedItemIndex, 1);
-    newProducts.splice(index, 0, draggedItem);
-    setDraggedItemIndex(index);
+    newProducts.splice(absoluteIndex, 0, draggedItem);
+    setDraggedItemIndex(absoluteIndex);
     setProducts(newProducts);
   };
-  
-  const handleDragEnd = () => setDraggedItemIndex(null);
-  
-  const filteredProducts = products.filter(p => 
-    (p.faTitle && p.faTitle.includes(searchQuery)) || 
-    (p.enTitle && p.enTitle.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
-  
+
+  const handleDragEnd = async () => {
+    if (draggedItemIndex === null) return;
+    setDraggedItemIndex(null);
+
+    setIsSavingOrder(true);
+    showToast("در حال ذخیره چیدمان جدید...", "success");
+    try {
+      const promises = products.map((product, index) => {
+        return updateProduct(product._id, { order: index });
+      });
+      await Promise.all(promises);
+      showToast("چیدمان با موفقیت ذخیره شد.", "success");
+    } catch (error) {
+      showToast("خطا در ذخیره چیدمان.", "error");
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
+
+  // --- هندلرهای فیلترهای مرحله‌ای (آبشاری) ---
+  const handleMainCatChange = (val: string) => {
+    setFilterMain(val);
+    setFilterBrand("all"); // ریست مرحله ۲
+    setFilterSub("all"); // ریست مرحله ۳
+  };
+
+  const handleBrandChange = (val: string) => {
+    setFilterBrand(val);
+    setFilterSub("all"); // ریست مرحله ۳
+  };
+
+  // محاسبه برندهای مجاز بر اساس گروه اصلی انتخاب شده
+  const availableBrands = brandsList.filter(b => {
+    if (filterMain === "all") return true;
+    return products.some(p => (p.brandId?._id === b._id || p.brandId === b._id) && p.mainCat === filterMain);
+  });
+
+  // محاسبه زیردسته‌های مجاز بر اساس گروه اصلی و برند انتخاب شده
+  const availableSubCats = categoriesList.filter(c => {
+    if (c.iconName === 'main') return false;
+
+    // فیلتر بر اساس دسته اصلی
+    if (filterMain !== "all" && c.parent !== filterMain) return false;
+
+    // فیلتر بر اساس برند
+    if (filterBrand !== "all") {
+      const hasProduct = products.some(p => p.category === c.slug && (p.brandId?._id === filterBrand || p.brandId === filterBrand));
+      if (!hasProduct) return false;
+    }
+    return true;
+  });
+
+  // اعمال تمام فیلترها
+  let filteredProducts = products.filter(p => {
+    const mSearch = (p.faTitle && p.faTitle.includes(searchQuery)) || (p.enTitle && p.enTitle.toLowerCase().includes(searchQuery.toLowerCase()));
+    const mMain = filterMain === "all" || p.mainCat === filterMain;
+    const mBrand = filterBrand === "all" || p.brandId?._id === filterBrand || p.brandId === filterBrand;
+    const mSub = filterSub === "all" || p.category === filterSub;
+    return mSearch && mMain && mBrand && mSub;
+  });
+
+  // اعمال سورت نهایی روی محصولات فیلتر شده
+  filteredProducts.sort((a, b) => {
+    let valA, valB;
+    if (sortBy === "name") {
+      valA = a.faTitle || "";
+      valB = b.faTitle || "";
+      return sortOrder === "asc" ? valA.localeCompare(valB, 'fa-IR') : valB.localeCompare(valA, 'fa-IR');
+    } else if (sortBy === "date") {
+      valA = new Date(a.createdAt || 0).getTime();
+      valB = new Date(b.createdAt || 0).getTime();
+      return sortOrder === "asc" ? valA - valB : valB - valA;
+    } else if (sortBy === "weight") {
+      valA = parseFloat((getSpecName(a.specs?.weight, a.specs?.weightFa) || "0").replace(/[^0-9.]/g, '')) || 0;
+      valB = parseFloat((getSpecName(b.specs?.weight, b.specs?.weightFa) || "0").replace(/[^0-9.]/g, '')) || 0;
+      return sortOrder === "asc" ? valA - valB : valB - valA;
+    } else if (sortBy === "custom") {
+      valA = a.order || 0;
+      valB = b.order || 0;
+      // در حالت درگ اند دراپ همیشه بر اساس اوردر دیتابیس مرتب می‌کنیم تا باگ نخورد
+      return sortOrder === "asc" ? valA - valB : valB - valA;
+    }
+    return 0;
+  });
+
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const currentProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, itemsPerPage, viewMode]);
+  }, [searchQuery, itemsPerPage, viewMode, filterMain, filterBrand, filterSub, sortBy, sortOrder]);
 
   const getCatName = (slug: string) => {
     const cat = categoriesList.find(c => c.slug === slug);
@@ -323,71 +428,149 @@ export default function ProductsManager() {
 
   return (
     <div className="flex flex-col gap-6">
-      
+
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
             لیست محصولات
           </h1>
           <p className="text-xs text-gray-500 mt-2 font-medium flex items-center gap-2">
-             داده‌ها و وابستگی‌های سلسله‌مراتبی کاملاً به Category Manager متصل است.
+            مدیریت، فیلتر مرحله‌ای، جستجو و تغییر چیدمان محصولات سایت
           </p>
         </div>
-        
-        <button 
+
+        <button
           onClick={handleAddNew}
           className="bg-amber-400 hover:bg-amber-500 text-gray-950 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-lg shadow-amber-400/20"
         >
-           <Plus size={18} />
+          <Plus size={18} />
           <span>افزودن محصول جدید</span>
         </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl p-4 flex flex-wrap justify-between items-center gap-4 shadow-sm">
-        <div className="relative grow min-w-64 max-w-md">
-          <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input 
-            type="text" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="جستجو در نام محصولات..." 
-            className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl py-2.5 pr-12 pl-4 text-sm focus:outline-none focus:border-amber-400 transition-colors"
-          />
+      {/* --- نوار حرفه‌ای فیلتر، سورت و جستجو --- */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-5 flex flex-col gap-4 shadow-sm">
+
+        <div className="flex flex-wrap justify-between items-center gap-4">
+          <div className="relative grow max-w-md">
+            <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="جستجوی سریع محصول (نام، ویژگی)..."
+              className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl py-2.5 pr-12 pl-4 text-sm font-bold focus:outline-none focus:border-amber-400 transition-colors"
+            />
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`} title="نمایش لیست با عکس">
+                <ListIcon size={18} />
+              </button>
+              <button onClick={() => setViewMode("compact")} className={`p-1.5 rounded-md transition-colors ${viewMode === 'compact' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`} title="نمایش لیست ساده">
+                <AlignJustify size={18} />
+              </button>
+              <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`} title="نمایش کارتی">
+                <LayoutGrid size={18} />
+              </button>
+            </div>
+
+            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-500 hidden sm:block">نمایش:</label>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-amber-400"
+              >
+                <option value={5}>۵</option>
+                <option value={10}>۱۰</option>
+                <option value={20}>۲۰</option>
+                <option value={50}>۵۰</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-            <button onClick={() => setViewMode("list")} className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`} title="نمایش لیست با عکس">
-              <List size={18} />
-            </button>
-            <button onClick={() => setViewMode("compact")} className={`p-1.5 rounded-md transition-colors ${viewMode === 'compact' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`} title="نمایش لیست ساده">
-              <AlignJustify size={18} />
-            </button>
-            <button onClick={() => setViewMode("grid")} className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`} title="نمایش کارتی">
-              <LayoutGrid size={18} />
-            </button>
-          </div>
+        <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
 
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
-
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-bold text-gray-500 hidden sm:block">نمایش:</label>
-            <select 
-              value={itemsPerPage} 
-              onChange={(e) => setItemsPerPage(Number(e.target.value))}
-              className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-amber-400"
+          <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
+            <Filter size={16} className="text-amber-500 ml-1" />
+            <select
+              value={filterMain}
+              onChange={(e) => handleMainCatChange(e.target.value)}
+              className="bg-transparent text-xs font-bold focus:outline-none text-gray-700 dark:text-gray-300 w-full sm:w-auto"
             >
-              <option value={5}>۵ محصول</option>
-              <option value={10}>۱۰ محصول</option>
-              <option value={20}>۲۰ محصول</option>
-              <option value={50}>۵۰ محصول</option>
+              <option value="all">۱. همه دسته‌های اصلی</option>
+              {mainCategories.map(c => (
+                <option key={c.slug} value={c.slug}>{c.faName}</option>
+              ))}
+            </select>
+
+            <span className="text-gray-300 dark:text-gray-600 hidden sm:block">|</span>
+
+            <select
+              value={filterBrand}
+              onChange={(e) => handleBrandChange(e.target.value)}
+              className="bg-transparent text-xs font-bold focus:outline-none text-gray-700 dark:text-gray-300 w-full sm:w-auto mt-2 sm:mt-0"
+            >
+              <option value="all">۲. همه برندها</option>
+              {availableBrands.map(b => <option key={b._id} value={b._id}>{b.faName}</option>)}
+            </select>
+
+            <span className="text-gray-300 dark:text-gray-600 hidden sm:block">|</span>
+
+            <select
+              value={filterSub}
+              onChange={(e) => setFilterSub(e.target.value)}
+              className="bg-transparent text-xs font-bold focus:outline-none text-gray-700 dark:text-gray-300 w-full sm:w-auto mt-2 sm:mt-0"
+            >
+              <option value="all">۳. همه زیردسته‌ها</option>
+              {availableSubCats.map(c => <option key={c.slug} value={c.slug}>{c.faName}</option>)}
             </select>
           </div>
+
+          <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 mt-2 lg:mt-0">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="bg-transparent text-xs font-bold focus:outline-none text-gray-700 dark:text-gray-300"
+            >
+              <option value="custom">چیدمان دستی (Drag & Drop)</option>
+              <option value="name">نام محصول</option>
+              <option value="date">تاریخ آپلود</option>
+              <option value="weight">وزن / حجم</option>
+            </select>
+
+            {sortBy !== "custom" && (
+              <>
+                <span className="text-gray-300 dark:text-gray-600">|</span>
+                <button
+                  onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                  className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 transition-colors"
+                  title={sortOrder === "asc" ? "صعودی (A-Z)" : "نزولی (Z-A)"}
+                >
+                  {sortOrder === "asc" ? <ArrowDownAZ size={16} /> : <ArrowUpZA size={16} />}
+                </button>
+              </>
+            )}
+          </div>
+
+          {(!isDragAllowed) && (
+            <button
+              onClick={() => { setFilterMain("all"); setFilterBrand("all"); setFilterSub("all"); setSortBy("custom"); setSortOrder("asc"); setSearchQuery(""); }}
+              className="text-[11px] font-black text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-2 rounded-xl transition-colors flex items-center gap-1 border border-red-100 dark:border-red-900/50 mr-auto mt-2 lg:mt-0"
+            >
+              <X size={14} /> ریست کامل
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
-        
+      <div className={`bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm transition-opacity duration-300 ${isSavingOrder ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+
         {isLoading ? (
           <div className="flex justify-center items-center py-16 w-full">
             <Loader2 className="animate-spin text-amber-500" size={40} />
@@ -395,13 +578,13 @@ export default function ProductsManager() {
         ) : viewMode === "grid" ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-4 bg-gray-50/50 dark:bg-gray-800/20">
             {currentProducts.map((product, index) => (
-              <div 
+              <div
                 key={product._id}
                 draggable
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col gap-3 relative shadow-sm hover:border-amber-400 dark:hover:border-amber-500 transition-colors group cursor-grab active:cursor-grabbing ${draggedItemIndex === index ? 'opacity-50 border-dashed' : ''}`}
+                className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col gap-3 relative shadow-sm hover:border-amber-400 dark:hover:border-amber-500 transition-colors group ${draggedItemIndex === ((currentPage - 1) * itemsPerPage + index) ? 'opacity-50 border-dashed' : ''} ${isDragAllowed ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
               >
                 {product.isFeatured && (
                   <div className="absolute top-2 right-2 bg-amber-400 text-gray-900 p-1.5 rounded-full shadow-sm z-10" title="محصول ویژه">
@@ -409,24 +592,24 @@ export default function ProductsManager() {
                   </div>
                 )}
                 <div className="w-full h-36 bg-gray-50 dark:bg-gray-800/50 rounded-xl flex items-center justify-center p-3 relative overflow-hidden group-hover:bg-amber-50 dark:group-hover:bg-amber-900/10 transition-colors">
-                   {product.images?.main ? (
-                       <img src={product.images.main} alt={product.faTitle} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
-                   ) : (
-                       <ImageIcon size={32} className="text-gray-300" />
-                   )}
+                  {product.images?.main ? (
+                    <img src={product.images.main} alt={product.faTitle} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                  ) : (
+                    <ImageIcon size={32} className="text-gray-300" />
+                  )}
                 </div>
                 <div className="flex flex-col gap-1 mt-1">
-                   <h3 className="font-black text-gray-900 dark:text-white text-sm truncate" title={product.faTitle}>{product.faTitle}</h3>
-                   <span className="text-xs text-gray-500 font-mono truncate" title={product.enTitle}>{product.enTitle || "---"}</span>
+                  <h3 className="font-black text-gray-900 dark:text-white text-sm truncate" title={product.faTitle}>{product.faTitle}</h3>
+                  <span className="text-xs text-gray-500 font-mono truncate" title={product.enTitle}>{product.enTitle || "---"}</span>
                 </div>
                 <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100 dark:border-gray-800">
-                   <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1 rounded-lg" dir="ltr">
-                      {getSpecName(product.specs?.weight, product.specs?.weightFa)}
-                   </span>
-                   <div className="flex items-center gap-1">
-                      <button onClick={() => handleEdit(product)} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-amber-500 rounded-lg transition-colors"><Edit3 size={16} /></button>
-                      <button onClick={() => handleDelete(String(product._id))} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
-                   </div>
+                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2.5 py-1 rounded-lg" dir="ltr">
+                    {getSpecName(product.specs?.weight, product.specs?.weightFa)}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => handleEdit(product)} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-amber-500 rounded-lg transition-colors"><Edit3 size={16} /></button>
+                    <button onClick={() => handleDelete(String(product._id))} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -437,39 +620,42 @@ export default function ProductsManager() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-right">
-              <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 font-bold text-xs">
+              <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 font-bold text-xs border-b border-gray-100 dark:border-gray-800">
                 <tr>
-                  <th className="px-4 py-4 w-10">ترتیب</th>
-                  {viewMode === "list" && <th className="px-6 py-4">تصویر</th>}
-                  <th className="px-6 py-4">عنوان (فارسی / انگلیسی)</th>
-                  <th className="px-6 py-4">برند</th>
-                  <th className="px-6 py-4">وزن/حجم</th>
-                  <th className="px-6 py-4">دسته‌بندی‌ها</th>
-                  <th className="px-6 py-4">وضعیت</th>
-                  <th className="px-6 py-4">عملیات</th>
-                 </tr>
+                  <th className="px-4 py-5 w-10">ترتیب</th>
+                  {viewMode === "list" && <th className="px-6 py-5">تصویر</th>}
+                  <th className="px-6 py-5">عنوان (فارسی / انگلیسی)</th>
+                  <th className="px-6 py-5">برند</th>
+                  <th className="px-6 py-5">وزن/حجم</th>
+                  <th className="px-6 py-5">دسته‌بندی‌ها</th>
+                  <th className="px-6 py-5">وضعیت</th>
+                  <th className="px-6 py-5">عملیات</th>
+                </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800 relative">
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50 relative">
                 {currentProducts.map((product, index) => (
-                  <tr 
-                    key={product._id} 
+                  <tr
+                    key={product._id}
                     draggable
                     onDragStart={() => handleDragStart(index)}
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDragEnd={handleDragEnd}
-                    className={`hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors group ${draggedItemIndex === index ? 'opacity-50 bg-gray-100 dark:bg-gray-800' : ''}`}
+                    className={`hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors group ${draggedItemIndex === ((currentPage - 1) * itemsPerPage + index) ? 'opacity-50 bg-gray-100 dark:bg-gray-800' : ''}`}
                   >
-                    <td className="px-4 py-4 cursor-grab active:cursor-grabbing text-gray-300 hover:text-amber-500 transition-colors">
-                       <GripVertical size={18} />
+                    <td
+                      className={`px-4 py-4 text-gray-300 hover:text-amber-500 transition-colors ${isDragAllowed ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed opacity-30'}`}
+                      title={!isDragAllowed ? "درگ اند دراپ فقط در حالت چیدمان دستی و بدون فیلتر فعال است" : "برای جابجایی بکشید"}
+                    >
+                      <GripVertical size={18} />
                     </td>
-                    
+
                     {viewMode === "list" && (
                       <td className="px-6 py-4 relative">
-                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 overflow-hidden p-1">
+                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center text-gray-400 overflow-hidden p-1 border border-gray-200 dark:border-gray-700">
                           {product.images?.main ? (
-                             <img src={product.images.main} alt="Product" className="w-full h-full object-contain" />
+                            <img src={product.images.main} alt="Product" className="w-full h-full object-contain" />
                           ) : (
-                             <ImageIcon size={20} />
+                            <ImageIcon size={20} />
                           )}
                         </div>
                         {product.isFeatured && (
@@ -482,7 +668,7 @@ export default function ProductsManager() {
 
                     <td className="px-6 py-4">
                       <div className="font-bold text-gray-900 dark:text-white">{product.faTitle}</div>
-                      <div className="text-xs text-gray-500 font-mono mt-0.5">{product.enTitle}</div>
+                      <div className="text-xs text-gray-500 font-mono mt-1">{product.enTitle || "---"}</div>
                     </td>
                     <td className="px-6 py-4 text-gray-600 dark:text-gray-300 font-medium">
                       {product.brandId?.faName || "نامشخص"}
@@ -491,38 +677,46 @@ export default function ProductsManager() {
                       {getSpecName(product.specs?.weight, product.specs?.weightFa)}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 px-2 py-0.5 rounded text-[10px] w-fit">
-                           گروه: {getCatName(product.mainCat)}
+                      <div className="flex flex-col gap-1.5">
+                        <span className="bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 px-2 py-1 rounded text-[10px] w-fit font-bold shadow-sm border border-blue-100 dark:border-blue-800/30">
+                          گروه: {getCatName(product.mainCat)}
                         </span>
-                        <span className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 px-2 py-0.5 rounded text-[10px] w-fit">
+                        <span className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 px-2 py-1 rounded text-[10px] w-fit font-bold shadow-sm border border-gray-200 dark:border-gray-700">
                           دسته: {getCatName(product.category)}
-                         </span>
+                        </span>
                       </div>
                     </td>
-                    
+
                     <td className="px-6 py-4">
-                       <span className="px-3 py-1 text-xs font-bold rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 whitespace-nowrap">
+                      <span className="px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 whitespace-nowrap shadow-sm">
                         {getCatName(product.status) || (product.status === "published" ? "فعال" : "پیش‌نویس")}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                         <button onClick={() => handleEdit(product)} className="text-gray-400 hover:text-amber-500 transition-colors" title="ویرایش">
-                          <Edit3 size={18} />
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEdit(product)}
+                          className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors"
+                          title="ویرایش"
+                        >
+                          <Edit3 size={16} />
                         </button>
-                        <button onClick={() => handleDelete(String(product._id))} className="text-gray-400 hover:text-red-500 transition-colors" title="حذف">
-                           <Trash2 size={18} />
+                        <button
+                          onClick={() => handleDelete(String(product._id))}
+                          className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                          title="حذف"
+                        >
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>
                   </tr>
-                 ))}
+                ))}
                 {currentProducts.length === 0 && (
                   <tr>
-                    <td colSpan={viewMode === "list" ? 8 : 7} className="text-center py-8 text-gray-400 font-bold">هیچ محصولی یافت نشد.</td>
+                    <td colSpan={viewMode === "list" ? 8 : 7} className="text-center py-12 text-gray-400 font-bold">هیچ محصولی یافت نشد.</td>
                   </tr>
-                 )}
+                )}
               </tbody>
             </table>
           </div>
@@ -534,32 +728,31 @@ export default function ProductsManager() {
               نمایش {(currentPage - 1) * itemsPerPage + 1} تا {Math.min(currentPage * itemsPerPage, filteredProducts.length)} از {filteredProducts.length} محصول
             </span>
             <div className="flex items-center gap-2" dir="ltr">
-              <button 
-                disabled={currentPage === 1} 
-                onClick={() => setCurrentPage(prev => prev - 1)} 
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-30 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-30 text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 transition-colors shadow-sm"
               >
                 <ChevronLeft size={16} />
               </button>
-              
-              {Array.from({length: totalPages}, (_, i) => i + 1).map(page => (
-                <button 
-                  key={page} 
-                  onClick={() => setCurrentPage(page)} 
-                  className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-black transition-all ${
-                    currentPage === page 
-                      ? 'bg-amber-400 text-gray-950 shadow-md shadow-amber-400/20' 
-                      : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 border border-transparent'
-                  }`}
+
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-black transition-all ${currentPage === page
+                    ? 'bg-amber-400 text-gray-950 shadow-md shadow-amber-400/20'
+                    : 'hover:bg-white dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 border border-transparent'
+                    }`}
                 >
                   {page}
                 </button>
               ))}
 
-              <button 
-                disabled={currentPage === totalPages} 
-                onClick={() => setCurrentPage(prev => prev + 1)} 
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-30 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-30 text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 transition-colors shadow-sm"
               >
                 <ChevronRight size={16} />
               </button>
@@ -570,14 +763,16 @@ export default function ProductsManager() {
 
       <AnimatePresence>
         {isModalOpen && (
-           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} 
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="absolute inset-0 bg-gray-950/60 backdrop-blur-sm"
               onClick={() => setIsModalOpen(false)}
-             />
-            
-            <motion.div 
+            />
+
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -586,86 +781,94 @@ export default function ProductsManager() {
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900">
                 <div className="flex items-center gap-4">
                   <h2 className="text-lg font-black text-gray-900 dark:text-white">
-                     {editMode ? `ویرایش: ${formData.faTitle}` : "ثبت محصول جدید"}
+                    {editMode ? `ویرایش: ${formData.faTitle}` : "ثبت محصول جدید"}
                   </h2>
                 </div>
-                <button type="button" onClick={() => setIsModalOpen(false)} className="p-2 text-gray-400 hover:text-red-500 bg-gray-100 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-full transition-colors">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-2 text-gray-400 hover:text-red-500 bg-gray-100 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-full transition-colors"
+                >
                   <X size={20} />
                 </button>
               </div>
 
               <div className="flex border-b border-gray-100 dark:border-gray-800 px-6 pt-4 gap-6 bg-gray-50/50 dark:bg-gray-900 overflow-x-auto">
                 {["basic", "specs", "media"].map((tab) => (
-                  <button 
+                  <button
                     key={tab}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`pb-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${
-                      activeTab === tab 
-                        ? "border-amber-400 text-amber-500" 
-                        : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                    }`}
+                    className={`pb-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap ${activeTab === tab
+                      ? "border-amber-400 text-amber-500"
+                      : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                      }`}
                   >
-                     {tab === "basic" ? "اطلاعات پایه" : tab === "specs" ? "مشخصات تخصصی" : "رسانه و عکس"}
+                    {tab === "basic" ? "اطلاعات پایه" : tab === "specs" ? "مشخصات تخصصی" : "رسانه و عکس"}
                   </button>
                 ))}
               </div>
 
-              <form onSubmit={handleFormSubmit} className="flex flex-col grow overflow-hidden">
+              <form onSubmit={handleFormSubmit} className="flex flex-col grow overflow-hidden bg-white dark:bg-gray-950">
                 <div className="p-6 overflow-y-auto grow custom-scrollbar">
-                  
+
                   {activeTab === "basic" && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
-                      
+
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">نام محصول (فارسی) <span className="text-red-500">*</span></label>
-                        <input 
+                        <label className="text-xs font-black text-gray-400">نام محصول (فارسی) <span className="text-red-500">*</span></label>
+                        <input
                           autoFocus
-                          type="text" 
+                          type="text"
                           value={formData.faTitle}
-                          onChange={(e) => setFormData({...formData, faTitle: e.target.value})}
-                          placeholder="مثال: انرژی‌زا مکس" 
-                          className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400" 
+                          onChange={(e) => setFormData({ ...formData, faTitle: e.target.value })}
+                          placeholder="مثال: انرژی‌زا مکس"
+                          className="border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 bg-transparent text-sm font-bold outline-none focus:border-amber-400"
                         />
                       </div>
-         
+
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">نام محصول (انگلیسی)</label>
+                        <label className="text-xs font-black text-gray-400">نام محصول (انگلیسی)</label>
                         <div className="relative">
-                          <input 
-                            type="text" 
-                            dir="ltr" 
+                          <input
+                            type="text"
+                            dir="ltr"
                             value={formData.enTitle}
-                            onChange={(e) => setFormData({...formData, enTitle: e.target.value})}
-                            placeholder="Example: Max Energy" 
-                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl py-3 pr-4 pl-12 text-sm font-mono focus:outline-none focus:border-amber-400" 
+                            onChange={(e) => setFormData({ ...formData, enTitle: e.target.value })}
+                            placeholder="Example: Max Energy"
+                            className="w-full border border-gray-200 dark:border-gray-800 rounded-xl py-3 pr-4 pl-12 bg-transparent text-sm font-mono outline-none focus:border-amber-400"
                           />
-                          <button type="button" onClick={() => handleAutoTranslate(formData.faTitle, 'enTitle')} disabled={translatingField === 'enTitle' || !formData.faTitle} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors">
+                          <button
+                            type="button"
+                            onClick={() => handleAutoTranslate(formData.faTitle, 'enTitle')}
+                            disabled={translatingField === 'enTitle' || !formData.faTitle}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 p-2 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors"
+                          >
                             {translatingField === 'enTitle' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
                           </button>
                         </div>
                       </div>
 
                       <div className="flex flex-col gap-2 md:col-span-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">اسلاگ URL (شناسه لینک) <span className="text-red-500">*</span></label>
-                        <input 
-                          type="text" 
-                          dir="ltr" 
+                        <label className="text-xs font-black text-gray-400">اسلاگ URL (شناسه لینک) <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          dir="ltr"
                           value={formData.slug}
-                          onChange={(e) => setFormData({...formData, slug: e.target.value})}
-                          placeholder="max-energy-250" 
-                          className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-mono focus:outline-none focus:border-amber-400" 
+                          onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                          placeholder="max-energy-250"
+                          className="w-full border border-gray-200 dark:border-gray-800 rounded-xl py-3 px-4 bg-transparent text-sm font-mono outline-none focus:border-amber-400"
                         />
                       </div>
-               
+
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">گروه اصلی محصول <span className="text-red-500">*</span></label>
-                        <select 
+                        <label className="text-xs font-black text-gray-400">گروه اصلی محصول <span className="text-red-500">*</span></label>
+                        <select
                           value={formData.mainCat}
-                          onChange={(e) => setFormData({...formData, mainCat: e.target.value, category: "", packaging: "", flavor: "", weight: ""})}
-                          className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-bold text-amber-600"
+                          onChange={(e) => setFormData({ ...formData, mainCat: e.target.value, category: "", packaging: "", flavor: "", weight: "" })}
+                          className="border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 bg-transparent text-sm font-bold outline-none focus:border-amber-400 text-gray-900 dark:text-white"
                         >
-                          <option value="">انتخاب گروه اصلی...</option>
+                          <option value="" className="text-gray-500">انتخاب گروه اصلی...</option>
                           {mainCategories.map(cat => (
                             <option key={cat.slug} value={cat.slug}>{cat.faName}</option>
                           ))}
@@ -673,12 +876,12 @@ export default function ProductsManager() {
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-blue-600 dark:text-blue-400">زیردسته محصول (نوع) <span className="text-red-500">*</span></label>
-                        <select 
+                        <label className="text-xs font-black text-blue-500">زیردسته محصول (نوع) <span className="text-red-500">*</span></label>
+                        <select
                           value={formData.category}
-                          onChange={(e) => setFormData({...formData, category: e.target.value, packaging: "", flavor: "", weight: ""})}
+                          onChange={(e) => setFormData({ ...formData, category: e.target.value, packaging: "", flavor: "", weight: "" })}
                           disabled={!formData.mainCat}
-                          className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 font-bold text-blue-700 dark:text-blue-400 disabled:opacity-50"
+                          className="border border-blue-200 dark:border-blue-900 rounded-xl px-4 py-3 bg-blue-50/30 dark:bg-blue-900/10 text-sm font-bold outline-none focus:border-blue-400 text-blue-700 dark:text-blue-400 disabled:opacity-50"
                         >
                           <option value="">{formData.mainCat ? "انتخاب زیردسته..." : "ابتدا گروه اصلی را انتخاب کنید"}</option>
                           {subCategories.map(cat => (
@@ -688,13 +891,13 @@ export default function ProductsManager() {
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">انتخاب برند <span className="text-red-500">*</span></label>
-                        <select 
-                           value={formData.brandId}
-                           onChange={(e) => setFormData({...formData, brandId: e.target.value})}
-                           className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400"
+                        <label className="text-xs font-black text-gray-400">انتخاب برند <span className="text-red-500">*</span></label>
+                        <select
+                          value={formData.brandId}
+                          onChange={(e) => setFormData({ ...formData, brandId: e.target.value })}
+                          className="border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 bg-transparent text-sm font-bold outline-none focus:border-amber-400 text-gray-900 dark:text-white"
                         >
-                          <option value="">انتخاب برند...</option>
+                          <option value="" className="text-gray-500">انتخاب برند...</option>
                           {brandsList.map(b => (
                             <option key={b._id} value={b._id}>{b.faName}</option>
                           ))}
@@ -702,44 +905,44 @@ export default function ProductsManager() {
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">وضعیت نمایش در سایت</label>
-                        <select 
+                        <label className="text-xs font-black text-gray-400">وضعیت نمایش در سایت</label>
+                        <select
                           value={formData.visibilityStatus}
-                          onChange={(e) => setFormData({...formData, visibilityStatus: e.target.value})}
-                          className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 font-medium"
+                          onChange={(e) => setFormData({ ...formData, visibilityStatus: e.target.value })}
+                          className="border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 bg-transparent text-sm font-bold outline-none focus:border-amber-400 text-gray-900 dark:text-white"
                         >
-                          <option value="">انتخاب وضعیت...</option>
+                          <option value="" className="text-gray-500">انتخاب وضعیت...</option>
                           {statusOptions.map(cat => (
                             <option key={cat.slug} value={cat.slug}>{cat.faName}</option>
                           ))}
                         </select>
                       </div>
 
-                      <div className="flex flex-col gap-2 justify-center md:col-span-2 mt-2 border-t border-gray-100 dark:border-gray-800 pt-4">
-                        <div className="flex items-center gap-6">
+                      <div className="flex flex-col gap-2 justify-center md:col-span-2 mt-4 border-t border-gray-100 dark:border-gray-800 pt-6">
+                        <div className="flex items-center gap-8">
                           <div className="flex items-center gap-3">
-                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">محصول ویژه (نمایش در صفحه اصلی)</label>
-                            <button 
+                            <label className="text-xs font-black text-gray-600 dark:text-gray-300">محصول ویژه (نمایش در صفحه اصلی)</label>
+                            <button
                               type="button"
-                              onClick={() => setFormData({...formData, isFeatured: !formData.isFeatured})}
-                              className={`relative w-12 h-6 rounded-full transition-colors ${formData.isFeatured ? 'bg-amber-400' : 'bg-gray-300 dark:bg-gray-700'}`}
+                              onClick={() => setFormData({ ...formData, isFeatured: !formData.isFeatured })}
+                              className={`relative w-12 h-6 rounded-full transition-colors ${formData.isFeatured ? 'bg-amber-400' : 'bg-gray-200 dark:bg-gray-800'}`}
                             >
-                              <motion.div 
+                              <motion.div
                                 className="w-4 h-4 bg-white rounded-full shadow-sm absolute top-1"
                                 animate={{ left: formData.isFeatured ? '4px' : '28px' }}
                                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
                               />
                             </button>
                           </div>
-                          
-                          <div className="flex items-center gap-3 border-r border-gray-200 dark:border-gray-700 pr-6">
-                            <label className="text-xs font-bold text-red-600 dark:text-red-400">ثبت هشدار مصرف برای محصول</label>
-                            <button 
+
+                          <div className="flex items-center gap-3 border-r border-gray-200 dark:border-gray-700 pr-8">
+                            <label className="text-xs font-black text-red-600 dark:text-red-400">ثبت هشدار مصرف برای محصول</label>
+                            <button
                               type="button"
-                              onClick={() => setFormData({...formData, hasWarning: !formData.hasWarning})}
-                              className={`relative w-12 h-6 rounded-full transition-colors ${formData.hasWarning ? 'bg-red-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                              onClick={() => setFormData({ ...formData, hasWarning: !formData.hasWarning })}
+                              className={`relative w-12 h-6 rounded-full transition-colors ${formData.hasWarning ? 'bg-red-500' : 'bg-gray-200 dark:bg-gray-800'}`}
                             >
-                              <motion.div 
+                              <motion.div
                                 className="w-4 h-4 bg-white rounded-full shadow-sm absolute top-1"
                                 animate={{ left: formData.hasWarning ? '4px' : '28px' }}
                                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
@@ -751,33 +954,74 @@ export default function ProductsManager() {
 
                       <AnimatePresence>
                         {formData.hasWarning && (
-                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2 overflow-hidden">
-                             <div className="flex flex-col gap-2 mt-4">
-                                <label className="text-xs font-bold text-red-600 dark:text-red-400">متن هشدار (فارسی) <span className="text-red-500">*</span></label>
-                                <textarea rows={2} value={formData.warningMessageFa} onChange={e => setFormData({...formData, warningMessageFa: e.target.value})} placeholder="مثال: مصرف این محصول برای زنان باردار توصیه نمی‌شود..." className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-red-400 resize-none"></textarea>
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="grid grid-cols-1 md:grid-cols-2 gap-6 md:col-span-2 overflow-hidden bg-red-50/50 dark:bg-red-900/10 p-5 rounded-2xl border border-red-100 dark:border-red-900/50 mb-2 mt-2"
+                          >
+                            <div className="flex flex-col gap-2">
+                              <label className="text-xs font-black text-red-600 dark:text-red-400">متن هشدار (فارسی) <span className="text-red-500">*</span></label>
+                              <textarea
+                                rows={2}
+                                value={formData.warningMessageFa}
+                                onChange={e => setFormData({ ...formData, warningMessageFa: e.target.value })}
+                                placeholder="مثال: مصرف این محصول برای زنان باردار توصیه نمی‌شود..."
+                                className="border border-red-200 dark:border-red-800/50 rounded-xl px-4 py-3 bg-white dark:bg-gray-950 text-sm font-bold outline-none focus:border-red-400 resize-none"
+                              ></textarea>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                              <label className="text-xs font-black text-red-600 dark:text-red-400">متن هشدار (انگلیسی)</label>
+                              <div className="relative">
+                                <textarea
+                                  rows={2}
+                                  dir="ltr"
+                                  value={formData.warningMessageEn}
+                                  onChange={e => setFormData({ ...formData, warningMessageEn: e.target.value })}
+                                  placeholder="Warning message..."
+                                  className="w-full border border-red-200 dark:border-red-800/50 rounded-xl py-3 pr-4 pl-12 bg-white dark:bg-gray-950 text-sm font-mono outline-none focus:border-red-400 resize-none"
+                                ></textarea>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAutoTranslate(formData.warningMessageFa, 'warningMessageEn')}
+                                  disabled={translatingField === 'warningMessageEn' || !formData.warningMessageFa}
+                                  className="absolute left-2 top-3 p-2 bg-red-100 text-red-600 hover:bg-red-500 hover:text-white disabled:opacity-50 rounded-lg transition-colors"
+                                >
+                                  {translatingField === 'warningMessageEn' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                                </button>
                               </div>
-                              <div className="flex flex-col gap-2 mt-4">
-                                <label className="text-xs font-bold text-red-600 dark:text-red-400">متن هشدار (انگلیسی)</label>
-                                <div className="relative">
-                                  <textarea rows={2} dir="ltr" value={formData.warningMessageEn} onChange={e => setFormData({...formData, warningMessageEn: e.target.value})} placeholder="Warning message..." className="w-full bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-xl py-3 pr-4 pl-12 text-sm font-mono focus:outline-none focus:border-red-400 resize-none"></textarea>
-                                  <button type="button" onClick={() => handleAutoTranslate(formData.warningMessageFa, 'warningMessageEn')} disabled={translatingField === 'warningMessageEn' || !formData.warningMessageFa} className="absolute left-2 top-3 p-2 bg-red-400/10 text-red-600 hover:bg-red-500 hover:text-white disabled:opacity-50 rounded-lg transition-colors">
-                                    {translatingField === 'warningMessageEn' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
-                                  </button>
-                                </div>
-                              </div>
+                            </div>
                           </motion.div>
                         )}
                       </AnimatePresence>
 
-                      <div className="flex flex-col gap-2 md:col-span-2 mt-2 border-t border-gray-100 dark:border-gray-800 pt-4">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">توضیحات کوتاه (فارسی)</label>
-                        <textarea rows={2} value={formData.faDesc} onChange={e => setFormData({...formData, faDesc: e.target.value})} placeholder="توضیح مختصر محصول..." className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 resize-none"></textarea>
+                      <div className="flex flex-col gap-2 md:col-span-2 mt-4 border-t border-gray-100 dark:border-gray-800 pt-6">
+                        <label className="text-xs font-black text-gray-400">توضیحات کوتاه (فارسی)</label>
+                        <textarea
+                          rows={2}
+                          value={formData.faDesc}
+                          onChange={e => setFormData({ ...formData, faDesc: e.target.value })}
+                          placeholder="توضیح مختصر محصول..."
+                          className="border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 bg-gray-50/50 dark:bg-gray-900/30 text-sm font-medium outline-none focus:border-amber-400 resize-none"
+                        ></textarea>
                       </div>
                       <div className="flex flex-col gap-2 md:col-span-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">توضیحات کوتاه (انگلیسی)</label>
+                        <label className="text-xs font-black text-gray-400">توضیحات کوتاه (انگلیسی)</label>
                         <div className="relative">
-                          <textarea rows={2} dir="ltr" value={formData.enDesc} onChange={e => setFormData({...formData, enDesc: e.target.value})} placeholder="Short description..." className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl py-3 pr-4 pl-12 text-sm font-mono focus:outline-none focus:border-amber-400 resize-none"></textarea>
-                          <button type="button" onClick={() => handleAutoTranslate(formData.faDesc, 'enDesc')} disabled={translatingField === 'enDesc' || !formData.faDesc} className="absolute left-2 top-3 p-2 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors">
+                          <textarea
+                            rows={2}
+                            dir="ltr"
+                            value={formData.enDesc}
+                            onChange={e => setFormData({ ...formData, enDesc: e.target.value })}
+                            placeholder="Short description..."
+                            className="w-full border border-gray-200 dark:border-gray-800 rounded-xl py-3 pr-4 pl-12 bg-gray-50/50 dark:bg-gray-900/30 text-sm font-mono outline-none focus:border-amber-400 resize-none"
+                          ></textarea>
+                          <button
+                            type="button"
+                            onClick={() => handleAutoTranslate(formData.faDesc, 'enDesc')}
+                            disabled={translatingField === 'enDesc' || !formData.faDesc}
+                            className="absolute left-2 top-3 p-2 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors"
+                          >
                             {translatingField === 'enDesc' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
                           </button>
                         </div>
@@ -787,62 +1031,116 @@ export default function ProductsManager() {
 
                   {activeTab === "specs" && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
-                      
+
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">نوع بسته‌بندی</label>
-                        <select value={formData.packaging} onChange={(e) => setFormData({...formData, packaging: e.target.value})} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400">
-                          <option value="">{formData.category ? "انتخاب بسته‌بندی..." : "ابتدا زیردسته را انتخاب کنید"}</option>
+                        <label className="text-xs font-black text-gray-400">نوع بسته‌بندی</label>
+                        <select
+                          value={formData.packaging}
+                          onChange={(e) => setFormData({ ...formData, packaging: e.target.value })}
+                          className="border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 bg-transparent text-sm font-bold outline-none focus:border-amber-400 text-gray-900 dark:text-white"
+                        >
+                          <option value="" className="text-gray-500">{formData.category ? "انتخاب بسته‌بندی..." : "ابتدا زیردسته را انتخاب کنید"}</option>
                           {packagingOptions.map(cat => <option key={cat.slug} value={cat.slug}>{cat.faName}</option>)}
                         </select>
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">طعم و عصاره</label>
-                        <select value={formData.flavor} onChange={(e) => setFormData({...formData, flavor: e.target.value})} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400">
-                          <option value="">بدون طعم / انتخاب کنید...</option>
+                        <label className="text-xs font-black text-gray-400">طعم و عصاره</label>
+                        <select
+                          value={formData.flavor}
+                          onChange={(e) => setFormData({ ...formData, flavor: e.target.value })}
+                          className="border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 bg-transparent text-sm font-bold outline-none focus:border-amber-400 text-gray-900 dark:text-white"
+                        >
+                          <option value="" className="text-gray-500">بدون طعم / انتخاب کنید...</option>
                           {flavorOptions.map(cat => <option key={cat.slug} value={cat.slug}>{cat.faName}</option>)}
                         </select>
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">حجم / وزن</label>
-                        <select value={formData.weight} onChange={(e) => setFormData({...formData, weight: e.target.value})} className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400">
-                          <option value="">انتخاب کنید...</option>
+                        <label className="text-xs font-black text-gray-400">حجم / وزن</label>
+                        <select
+                          value={formData.weight}
+                          onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                          className="border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 bg-transparent text-sm font-bold outline-none focus:border-amber-400 text-gray-900 dark:text-white"
+                        >
+                          <option value="" className="text-gray-500">انتخاب کنید...</option>
                           {weightOptions.map(cat => <option key={cat.slug} value={cat.slug}>{cat.faName}</option>)}
                         </select>
                       </div>
 
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">تعداد در بسته (کارتن/شیرینگ)</label>
-                        <input type="text" value={formData.itemsPerPackage} onChange={e => setFormData({...formData, itemsPerPackage: e.target.value})} placeholder="مثال: ۲۴ عدد" className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:border-amber-400" />
+                        <label className="text-xs font-black text-gray-400">تعداد در بسته (کارتن/شیرینگ)</label>
+                        <input
+                          type="text"
+                          value={formData.itemsPerPackage}
+                          onChange={e => setFormData({ ...formData, itemsPerPackage: e.target.value })}
+                          placeholder="مثال: ۲۴ عدد"
+                          className="border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 bg-transparent text-sm font-bold outline-none focus:border-amber-400"
+                        />
                       </div>
-                    
+
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">مدت انقضا (فارسی)</label>
-                        <input type="text" value={formData.faShelfLife} onChange={e => setFormData({...formData, faShelfLife: e.target.value})} placeholder="مثال: ۶ ماه" className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400" />
+                        <label className="text-xs font-black text-gray-400">مدت انقضا (فارسی)</label>
+                        <input
+                          type="text"
+                          value={formData.faShelfLife}
+                          onChange={e => setFormData({ ...formData, faShelfLife: e.target.value })}
+                          placeholder="مثال: ۶ ماه"
+                          className="border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 bg-transparent text-sm font-bold outline-none focus:border-amber-400"
+                        />
                       </div>
-                      
+
                       <div className="flex flex-col gap-2">
-                        <label className="text-xs font-bold text-gray-600 dark:text-gray-400">Shelf Life (انگلیسی)</label>
+                        <label className="text-xs font-black text-gray-400">Shelf Life (انگلیسی)</label>
                         <div className="relative">
-                          <input type="text" dir="ltr" value={formData.enShelfLife} onChange={e => setFormData({...formData, enShelfLife: e.target.value})} placeholder="Example: 6 Months" className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl py-3 pr-4 pl-12 text-sm font-mono focus:outline-none focus:border-amber-400" />
-                          <button type="button" onClick={() => handleAutoTranslate(formData.faShelfLife, 'enShelfLife')} disabled={translatingField === 'enShelfLife' || !formData.faShelfLife} className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors">
+                          <input
+                            type="text"
+                            dir="ltr"
+                            value={formData.enShelfLife}
+                            onChange={e => setFormData({ ...formData, enShelfLife: e.target.value })}
+                            placeholder="Example: 6 Months"
+                            className="w-full border border-gray-200 dark:border-gray-800 rounded-xl py-3 pr-4 pl-12 bg-transparent text-sm font-mono outline-none focus:border-amber-400"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAutoTranslate(formData.faShelfLife, 'enShelfLife')}
+                            disabled={translatingField === 'enShelfLife' || !formData.faShelfLife}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors"
+                          >
                             {translatingField === 'enShelfLife' ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
                           </button>
                         </div>
                       </div>
 
                       <div className="flex flex-col gap-2 md:col-span-2 lg:col-span-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 border-t border-gray-100 dark:border-gray-800 pt-6">
                           <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">ترکیبات اصلی (فارسی)</label>
-                            <textarea rows={2} value={formData.faIngredients} onChange={e => setFormData({...formData, faIngredients: e.target.value})} placeholder="آب، شکر..." className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-amber-400 resize-none"></textarea>
+                            <label className="text-xs font-black text-gray-400">ترکیبات اصلی (فارسی)</label>
+                            <textarea
+                              rows={2}
+                              value={formData.faIngredients}
+                              onChange={e => setFormData({ ...formData, faIngredients: e.target.value })}
+                              placeholder="آب، شکر..."
+                              className="border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 bg-gray-50/50 dark:bg-gray-900/30 text-sm font-medium outline-none focus:border-amber-400 resize-none"
+                            ></textarea>
                           </div>
                           <div className="flex flex-col gap-2">
-                            <label className="text-xs font-bold text-gray-600 dark:text-gray-400">Ingredients (انگلیسی)</label>
+                            <label className="text-xs font-black text-gray-400">Ingredients (انگلیسی)</label>
                             <div className="relative">
-                              <textarea rows={2} dir="ltr" value={formData.enIngredients} onChange={e => setFormData({...formData, enIngredients: e.target.value})} placeholder="Water, Sugar..." className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl py-3 pr-4 pl-12 text-sm font-mono focus:outline-none focus:border-amber-400 resize-none"></textarea>
-                              <button type="button" onClick={() => handleAutoTranslate(formData.faIngredients, 'enIngredients')} disabled={translatingField === 'enIngredients' || !formData.faIngredients} className="absolute left-2 top-3 p-2 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors">
+                              <textarea
+                                rows={2}
+                                dir="ltr"
+                                value={formData.enIngredients}
+                                onChange={e => setFormData({ ...formData, enIngredients: e.target.value })}
+                                placeholder="Water, Sugar..."
+                                className="w-full border border-gray-200 dark:border-gray-800 rounded-xl py-3 pr-4 pl-12 bg-gray-50/50 dark:bg-gray-900/30 text-sm font-mono outline-none focus:border-amber-400 resize-none"
+                              ></textarea>
+                              <button
+                                type="button"
+                                onClick={() => handleAutoTranslate(formData.faIngredients, 'enIngredients')}
+                                disabled={translatingField === 'enIngredients' || !formData.faIngredients}
+                                className="absolute left-2 top-3 p-2 bg-amber-400/10 text-amber-600 hover:bg-amber-400 hover:text-gray-950 disabled:opacity-50 rounded-lg transition-colors"
+                              >
                                 {translatingField === 'enIngredients' ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
                               </button>
                             </div>
@@ -853,22 +1151,29 @@ export default function ProductsManager() {
                   )}
 
                   {activeTab === "media" && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-300">
                       <div className="flex flex-col gap-4">
                         <label className="text-sm font-black text-gray-900 dark:text-white">تصویر اصلی محصول (بدون پس‌زمینه)</label>
-                        {formData.mainImage && <img src={formData.mainImage} className="w-full h-48 object-contain rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50" alt="Main" />}
-                        <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-48 flex flex-col items-center justify-center gap-3 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800/50 dark:hover:bg-gray-800 transition-colors cursor-pointer group">
-                          <input type="file" accept="image/*" className="hidden" onChange={async(e) => { 
-                            const f = e.target.files?.[0];
-                            if(!f) return; 
-                            if(formData.mainImage) await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.mainImage }) }).catch(err => console.error(err));
-                            const fd = new FormData(); fd.append('file', f); 
-                            const r = await fetch('/api/upload', {method:'POST',body:fd}); const d = await r.json();
-                            if(d.success) {
-                              setFormData({...formData, mainImage: d.url});
-                              showToast("تصویر اصلی محصول آپلود شد.", "success");
-                            }
-                          }} />
+                        {formData.mainImage && (
+                          <img src={formData.mainImage} className="w-full h-48 object-contain rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-2" alt="Main" />
+                        )}
+                        <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-48 flex flex-col items-center justify-center gap-3 bg-gray-50/50 hover:bg-gray-100 dark:bg-gray-900/30 dark:hover:bg-gray-800 transition-colors cursor-pointer group">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const f = e.target.files?.[0];
+                              if (!f) return;
+                              if (formData.mainImage) await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.mainImage }) }).catch(err => console.error(err));
+                              const fd = new FormData(); fd.append('file', f);
+                              const r = await fetch('/api/upload', { method: 'POST', body: fd }); const d = await r.json();
+                              if (d.success) {
+                                setFormData({ ...formData, mainImage: d.url });
+                                showToast("تصویر اصلی محصول آپلود شد.", "success");
+                              }
+                            }}
+                          />
                           <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
                             <Upload size={20} className="text-gray-400 group-hover:text-amber-500" />
                           </div>
@@ -878,19 +1183,26 @@ export default function ProductsManager() {
 
                       <div className="flex flex-col gap-4">
                         <label className="text-sm font-black text-gray-900 dark:text-white">جدول ارزش غذایی (Nutrition Facts)</label>
-                        {formData.nutritionImage && <img src={formData.nutritionImage} className="w-full h-48 object-contain rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50" alt="Nutrition" />}
-                        <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-48 flex flex-col items-center justify-center gap-3 bg-blue-50/10 hover:bg-blue-50/50 dark:bg-blue-900/10 dark:hover:bg-blue-900/30 transition-colors cursor-pointer group">
-                          <input type="file" accept="image/*" className="hidden" onChange={async(e) => { 
-                            const f = e.target.files?.[0];
-                            if(!f) return;
-                            if(formData.nutritionImage) await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.nutritionImage }) }).catch(err => console.error(err));
-                            const fd = new FormData(); fd.append('file', f); 
-                            const r = await fetch('/api/upload', {method:'POST',body:fd}); const d = await r.json();
-                            if(d.success) {
-                              setFormData({...formData, nutritionImage: d.url});
-                              showToast("جدول ارزش غذایی آپلود شد.", "success");
-                            }
-                          }} />
+                        {formData.nutritionImage && (
+                          <img src={formData.nutritionImage} className="w-full h-48 object-contain rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-2" alt="Nutrition" />
+                        )}
+                        <label className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl h-48 flex flex-col items-center justify-center gap-3 bg-blue-50/30 hover:bg-blue-100/50 dark:bg-blue-900/10 dark:hover:bg-blue-900/30 transition-colors cursor-pointer group">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const f = e.target.files?.[0];
+                              if (!f) return;
+                              if (formData.nutritionImage) await fetch('/api/upload', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileUrl: formData.nutritionImage }) }).catch(err => console.error(err));
+                              const fd = new FormData(); fd.append('file', f);
+                              const r = await fetch('/api/upload', { method: 'POST', body: fd }); const d = await r.json();
+                              if (d.success) {
+                                setFormData({ ...formData, nutritionImage: d.url });
+                                showToast("جدول ارزش غذایی آپلود شد.", "success");
+                              }
+                            }}
+                          />
                           <div className="w-12 h-12 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
                             <Upload size={20} className="text-blue-400 group-hover:text-blue-500" />
                           </div>
@@ -902,9 +1214,18 @@ export default function ProductsManager() {
 
                 </div>
 
-                <div className="mt-auto border-t border-gray-100 dark:border-gray-800 pt-6 flex justify-end gap-3 sticky bottom-0 bg-white dark:bg-gray-950 pb-2 px-6">
-                  <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 rounded-xl font-bold text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-sm">انصراف</button>
-                  <button type="submit" className="bg-amber-400 hover:bg-amber-500 text-gray-950 px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-amber-400/20 hover:scale-105 active:scale-95 text-sm">
+                <div className="mt-auto border-t border-gray-100 dark:border-gray-800 pt-5 flex justify-end gap-3 sticky bottom-0 bg-gray-50/50 dark:bg-gray-900/50 px-6 py-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-5 py-2.5 rounded-xl font-bold text-gray-500 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors text-sm border border-transparent hover:border-gray-200 dark:hover:border-gray-700 shadow-sm"
+                  >
+                    انصراف (Esc)
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-amber-400 hover:bg-amber-500 text-gray-950 px-8 py-2.5 rounded-xl font-black flex items-center gap-2 transition-all shadow-lg shadow-amber-400/20 hover:scale-105 active:scale-95 text-sm"
+                  >
                     <CheckCircle2 size={18} /> {editMode ? "بروزرسانی اطلاعات" : "ذخیره محصول جدید"}
                   </button>
                 </div>
