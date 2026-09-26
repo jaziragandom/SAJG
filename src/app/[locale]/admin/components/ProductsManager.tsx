@@ -4,11 +4,11 @@ import React, { useState, useEffect } from "react";
 import {
   Plus, Search, Edit3, Trash2, Image as ImageIcon, GripVertical,
   X, Upload, CheckCircle2, Wand2, Loader2, Star, ChevronLeft, ChevronRight,
-  LayoutGrid, List as ListIcon, AlignJustify, Filter, ArrowDownAZ, ArrowUpZA
+  LayoutGrid, List as ListIcon, AlignJustify, Filter, ArrowDownAZ, ArrowUpZA, ArrowUpDown
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAdminShortcuts } from "../hooks/useAdminShortcuts";
-import { getProducts, createProduct, updateProduct, deleteProduct } from "@/actions/product";
+import { getProducts, createProduct, updateProduct, deleteProduct, updateProductsOrder } from "@/actions/product";
 import { getBrands } from "@/actions/brand";
 import { getCategories } from "@/actions/category";
 import { useToast } from "../components/ToastProvider";
@@ -28,14 +28,16 @@ export default function ProductsManager() {
   const [draggedItemIndex, setDraggedItemIndex] = useState<number | null>(null);
   const [translatingField, setTranslatingField] = useState<string | null>(null);
 
-  // استیت‌های جدید برای فیلتر و مرتب‌سازی مرحله‌ای
+  // استیت‌های فیلتر مرحله‌ای
   const [filterMain, setFilterMain] = useState("all");
   const [filterBrand, setFilterBrand] = useState("all");
   const [filterSub, setFilterSub] = useState("all");
 
-  // استیت‌های سورت (شامل گزینه چیدمان دستی)
+  // استیت‌های سورت و حالت ترتیب دستی
   const [sortBy, setSortBy] = useState("custom");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [originalProductsBackup, setOriginalProductsBackup] = useState<any[]>([]);
   const [isSavingOrder, setIsSavingOrder] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -231,7 +233,7 @@ export default function ProductsManager() {
       warningMessageEn: formData.warningMessageEn,
       faDesc: formData.faDesc,
       enDesc: formData.enDesc,
-      order: editMode ? undefined : products.length, // محصول جدید میره آخر لیست
+      order: editMode ? undefined : products.length,
       specs: {
         flavorFa: selFlavor ? selFlavor.faName : formData.flavor,
         flavorEn: selFlavor ? selFlavor.enName : formData.flavor,
@@ -301,23 +303,58 @@ export default function ProductsManager() {
   };
 
   // ==========================================
-  // فیلترها، سورت و درگ‌اند‌دراپ ضدتداخل
+  // سیستم جدید ترتیب دستی (با دکمه تایید نهایی)
   // ==========================================
 
-  // درگ‌اند‌دراپ فقط در صورتی مجاز است که هیچ فیلتر یا سورتی اعمال نشده باشد
-  const isDragAllowed = sortBy === "custom" && filterMain === "all" && filterBrand === "all" && filterSub === "all" && !searchQuery;
+  const handleStartReorder = () => {
+    // تهیه نسخه پشتیبان برای صورت انصراف کاربر
+    setOriginalProductsBackup([...products]);
+    // پاکسازی فیلترها تا کل لیست به ترتیب فعلی نمایش داده شود
+    setFilterMain("all");
+    setFilterBrand("all");
+    setFilterSub("all");
+    setSearchQuery("");
+    setSortBy("custom");
+    setSortOrder("asc");
+    setIsReorderMode(true);
+    showToast("حالت ترتیب دستی فعال شد. محصولات را جابجا کرده و سپس دکمه «تایید چیدمان» را بزنید.", "success");
+  };
+
+  const handleCancelReorder = () => {
+    setProducts(originalProductsBackup);
+    setIsReorderMode(false);
+    setDraggedItemIndex(null);
+  };
+
+  const handleSaveReorder = async () => {
+    setIsSavingOrder(true);
+    try {
+      const orderedIds = products.map(p => String(p._id));
+      const res = await updateProductsOrder(orderedIds);
+      if (res.success) {
+        // آپدیت فیلد order در استیت محلی
+        const updatedLocal = products.map((p, idx) => ({ ...p, order: idx }));
+        setProducts(updatedLocal);
+        setIsReorderMode(false);
+        showToast("چیدمان جدید محصولات با موفقیت در دیتابیس ذخیره شد.", "success");
+      } else {
+        showToast(res.error || "خطا در ذخیره چیدمان.", "error");
+      }
+    } catch (error) {
+      showToast("خطا در ارتباط با سرور هنگام ذخیره چیدمان.", "error");
+    } finally {
+      setIsSavingOrder(false);
+    }
+  };
 
   const handleDragStart = (index: number) => {
-    if (!isDragAllowed) {
-      showToast("برای تغییر چیدمان (Drag & Drop)، باید سورت روی «چیدمان دستی» تنظیم شده باشد و تمام فیلترها و جستجو پاک باشند.", "warning");
-      return;
-    }
+    if (!isReorderMode) return;
     setDraggedItemIndex((currentPage - 1) * itemsPerPage + index);
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
-    if (!isDragAllowed) return;
+    if (!isReorderMode) return;
     const absoluteIndex = (currentPage - 1) * itemsPerPage + index;
     if (draggedItemIndex === null || draggedItemIndex === absoluteIndex) return;
 
@@ -329,35 +366,21 @@ export default function ProductsManager() {
     setProducts(newProducts);
   };
 
-  const handleDragEnd = async () => {
-    if (draggedItemIndex === null) return;
+  const handleDragEnd = () => {
+    if (!isReorderMode) return;
     setDraggedItemIndex(null);
-
-    setIsSavingOrder(true);
-    showToast("در حال ذخیره چیدمان جدید...", "success");
-    try {
-      const promises = products.map((product, index) => {
-        return updateProduct(product._id, { order: index });
-      });
-      await Promise.all(promises);
-      showToast("چیدمان با موفقیت ذخیره شد.", "success");
-    } catch (error) {
-      showToast("خطا در ذخیره چیدمان.", "error");
-    } finally {
-      setIsSavingOrder(false);
-    }
   };
 
   // --- هندلرهای فیلترهای مرحله‌ای (آبشاری) ---
   const handleMainCatChange = (val: string) => {
     setFilterMain(val);
-    setFilterBrand("all"); // ریست مرحله ۲
-    setFilterSub("all"); // ریست مرحله ۳
+    setFilterBrand("all");
+    setFilterSub("all");
   };
 
   const handleBrandChange = (val: string) => {
     setFilterBrand(val);
-    setFilterSub("all"); // ریست مرحله ۳
+    setFilterSub("all");
   };
 
   // محاسبه برندهای مجاز بر اساس گروه اصلی انتخاب شده
@@ -370,10 +393,8 @@ export default function ProductsManager() {
   const availableSubCats = categoriesList.filter(c => {
     if (c.iconName === 'main') return false;
 
-    // فیلتر بر اساس دسته اصلی
     if (filterMain !== "all" && c.parent !== filterMain) return false;
 
-    // فیلتر بر اساس برند
     if (filterBrand !== "all") {
       const hasProduct = products.some(p => p.category === c.slug && (p.brandId?._id === filterBrand || p.brandId === filterBrand));
       if (!hasProduct) return false;
@@ -390,29 +411,30 @@ export default function ProductsManager() {
     return mSearch && mMain && mBrand && mSub;
   });
 
-  // اعمال سورت نهایی روی محصولات فیلتر شده
-  filteredProducts.sort((a, b) => {
-    let valA, valB;
-    if (sortBy === "name") {
-      valA = a.faTitle || "";
-      valB = b.faTitle || "";
-      return sortOrder === "asc" ? valA.localeCompare(valB, 'fa-IR') : valB.localeCompare(valA, 'fa-IR');
-    } else if (sortBy === "date") {
-      valA = new Date(a.createdAt || 0).getTime();
-      valB = new Date(b.createdAt || 0).getTime();
-      return sortOrder === "asc" ? valA - valB : valB - valA;
-    } else if (sortBy === "weight") {
-      valA = parseFloat((getSpecName(a.specs?.weight, a.specs?.weightFa) || "0").replace(/[^0-9.]/g, '')) || 0;
-      valB = parseFloat((getSpecName(b.specs?.weight, b.specs?.weightFa) || "0").replace(/[^0-9.]/g, '')) || 0;
-      return sortOrder === "asc" ? valA - valB : valB - valA;
-    } else if (sortBy === "custom") {
-      valA = a.order || 0;
-      valB = b.order || 0;
-      // در حالت درگ اند دراپ همیشه بر اساس اوردر دیتابیس مرتب می‌کنیم تا باگ نخورد
-      return sortOrder === "asc" ? valA - valB : valB - valA;
-    }
-    return 0;
-  });
+  // اعمال سورت نهایی (در حالت ترتیب دستی، سورت غیرفعال است تا ایندکس واقعی آرایه حفظ شود)
+  if (!isReorderMode) {
+    filteredProducts.sort((a, b) => {
+      let valA, valB;
+      if (sortBy === "name") {
+        valA = a.faTitle || "";
+        valB = b.faTitle || "";
+        return sortOrder === "asc" ? valA.localeCompare(valB, 'fa-IR') : valB.localeCompare(valA, 'fa-IR');
+      } else if (sortBy === "date") {
+        valA = new Date(a.createdAt || 0).getTime();
+        valB = new Date(b.createdAt || 0).getTime();
+        return sortOrder === "asc" ? valA - valB : valB - valA;
+      } else if (sortBy === "weight") {
+        valA = parseFloat((getSpecName(a.specs?.weight, a.specs?.weightFa) || "0").replace(/[^0-9.]/g, '')) || 0;
+        valB = parseFloat((getSpecName(b.specs?.weight, b.specs?.weightFa) || "0").replace(/[^0-9.]/g, '')) || 0;
+        return sortOrder === "asc" ? valA - valB : valB - valA;
+      } else if (sortBy === "custom") {
+        valA = typeof a.order === "number" ? a.order : 0;
+        valB = typeof b.order === "number" ? b.order : 0;
+        return valA - valB;
+      }
+      return 0;
+    });
+  }
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const currentProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -425,6 +447,8 @@ export default function ProductsManager() {
     const cat = categoriesList.find(c => c.slug === slug);
     return cat ? cat.faName : "نامشخص";
   };
+
+  const hasActiveFilters = filterMain !== "all" || filterBrand !== "all" || filterSub !== "all" || sortBy !== "custom" || searchQuery !== "";
 
   return (
     <div className="flex flex-col gap-6">
@@ -441,7 +465,8 @@ export default function ProductsManager() {
 
         <button
           onClick={handleAddNew}
-          className="bg-amber-400 hover:bg-amber-500 text-gray-950 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-lg shadow-amber-400/20"
+          disabled={isReorderMode}
+          className="bg-amber-400 hover:bg-amber-500 disabled:opacity-50 text-gray-950 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-lg shadow-amber-400/20"
         >
           <Plus size={18} />
           <span>افزودن محصول جدید</span>
@@ -457,9 +482,10 @@ export default function ProductsManager() {
             <input
               type="text"
               value={searchQuery}
+              disabled={isReorderMode}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="جستجوی سریع محصول (نام، ویژگی)..."
-              className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl py-2.5 pr-12 pl-4 text-sm font-bold focus:outline-none focus:border-amber-400 transition-colors"
+              className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl py-2.5 pr-12 pl-4 text-sm font-bold focus:outline-none focus:border-amber-400 transition-colors disabled:opacity-50"
             />
           </div>
 
@@ -496,8 +522,8 @@ export default function ProductsManager() {
 
         <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-gray-100 dark:border-gray-800">
 
-          <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700">
-            <Filter size={16} className="text-amber-500 ml-1" />
+          <div className={`flex flex-wrap sm:flex-nowrap items-center gap-2 bg-gray-50 dark:bg-gray-800/50 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 transition-opacity ${isReorderMode ? 'opacity-40 pointer-events-none' : ''}`}>
+            <Filter size={16} className="text-amber-500 ml-1 shrink-0" />
             <select
               value={filterMain}
               onChange={(e) => handleMainCatChange(e.target.value)}
@@ -532,16 +558,16 @@ export default function ProductsManager() {
             </select>
           </div>
 
-          <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 mt-2 lg:mt-0">
+          <div className={`flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 mt-2 lg:mt-0 transition-opacity ${isReorderMode ? 'opacity-40 pointer-events-none' : ''}`}>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="bg-transparent text-xs font-bold focus:outline-none text-gray-700 dark:text-gray-300"
             >
-              <option value="custom">چیدمان دستی (Drag & Drop)</option>
-              <option value="name">نام محصول</option>
-              <option value="date">تاریخ آپلود</option>
-              <option value="weight">وزن / حجم</option>
+              <option value="custom">سورت: پیش‌فرض سایت</option>
+              <option value="name">سورت: نام محصول</option>
+              <option value="date">سورت: تاریخ آپلود</option>
+              <option value="weight">سورت: وزن / حجم</option>
             </select>
 
             {sortBy !== "custom" && (
@@ -558,18 +584,54 @@ export default function ProductsManager() {
             )}
           </div>
 
-          {(!isDragAllowed) && (
-            <button
-              onClick={() => { setFilterMain("all"); setFilterBrand("all"); setFilterSub("all"); setSortBy("custom"); setSortOrder("asc"); setSearchQuery(""); }}
-              className="text-[11px] font-black text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-2 rounded-xl transition-colors flex items-center gap-1 border border-red-100 dark:border-red-900/50 mr-auto mt-2 lg:mt-0"
-            >
-              <X size={14} /> ریست کامل
-            </button>
-          )}
+          {/* دکمه ترتیب دستی و تایید چیدمان */}
+          <div className="flex items-center gap-2 mr-auto mt-2 lg:mt-0">
+            {hasActiveFilters && !isReorderMode && (
+              <button
+                onClick={() => { setFilterMain("all"); setFilterBrand("all"); setFilterSub("all"); setSortBy("custom"); setSortOrder("asc"); setSearchQuery(""); }}
+                className="text-[11px] font-black text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 px-3 py-2 rounded-xl transition-colors flex items-center gap-1 border border-red-100 dark:border-red-900/50"
+              >
+                <X size={14} /> ریست فیلتر
+              </button>
+            )}
+
+            {!isReorderMode ? (
+              <button
+                type="button"
+                onClick={handleStartReorder}
+                className="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-400 hover:text-gray-950 border border-amber-200/60 dark:border-amber-500/30 px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+              >
+                <ArrowUpDown size={15} />
+                <span>ترتیب دستی</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 animate-in fade-in duration-200">
+                <button
+                  type="button"
+                  onClick={handleSaveReorder}
+                  disabled={isSavingOrder}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/20 cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingOrder ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                  <span>تایید چیدمان</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelReorder}
+                  disabled={isSavingOrder}
+                  className="bg-gray-100 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-950/50 text-gray-600 dark:text-gray-300 hover:text-red-500 px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1 transition-all border border-gray-200 dark:border-gray-700 cursor-pointer"
+                >
+                  <X size={15} />
+                  <span>انصراف</span>
+                </button>
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
 
-      <div className={`bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm transition-opacity duration-300 ${isSavingOrder ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+      <div className={`bg-white dark:bg-gray-900 border ${isReorderMode ? 'border-amber-400 dark:border-amber-500/60 ring-2 ring-amber-400/10' : 'border-gray-100 dark:border-gray-800'} rounded-3xl overflow-hidden shadow-sm transition-all duration-300 ${isSavingOrder ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
 
         {isLoading ? (
           <div className="flex justify-center items-center py-16 w-full">
@@ -580,12 +642,18 @@ export default function ProductsManager() {
             {currentProducts.map((product, index) => (
               <div
                 key={product._id}
-                draggable
+                draggable={isReorderMode}
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 flex flex-col gap-3 relative shadow-sm hover:border-amber-400 dark:hover:border-amber-500 transition-colors group ${draggedItemIndex === ((currentPage - 1) * itemsPerPage + index) ? 'opacity-50 border-dashed' : ''} ${isDragAllowed ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+                className={`bg-white dark:bg-gray-900 border ${isReorderMode ? 'border-amber-300 dark:border-amber-500/40' : 'border-gray-200 dark:border-gray-800'} rounded-2xl p-4 flex flex-col gap-3 relative shadow-sm hover:border-amber-400 dark:hover:border-amber-500 transition-colors group ${draggedItemIndex === ((currentPage - 1) * itemsPerPage + index) ? 'opacity-50 border-dashed' : ''} ${isReorderMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
               >
+                {isReorderMode && (
+                  <div className="absolute top-2 left-2 bg-amber-400 text-gray-950 p-1.5 rounded-lg shadow-md z-20 flex items-center justify-center">
+                    <GripVertical size={16} />
+                  </div>
+                )}
+
                 {product.isFeatured && (
                   <div className="absolute top-2 right-2 bg-amber-400 text-gray-900 p-1.5 rounded-full shadow-sm z-10" title="محصول ویژه">
                     <Star size={12} className="fill-current" />
@@ -607,8 +675,8 @@ export default function ProductsManager() {
                     {getSpecName(product.specs?.weight, product.specs?.weightFa)}
                   </span>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => handleEdit(product)} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-amber-500 rounded-lg transition-colors"><Edit3 size={16} /></button>
-                    <button onClick={() => handleDelete(String(product._id))} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                    <button onClick={() => handleEdit(product)} disabled={isReorderMode} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-amber-500 rounded-lg transition-colors disabled:opacity-40"><Edit3 size={16} /></button>
+                    <button onClick={() => handleDelete(String(product._id))} disabled={isReorderMode} className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-red-500 rounded-lg transition-colors disabled:opacity-40"><Trash2 size={16} /></button>
                   </div>
                 </div>
               </div>
@@ -622,7 +690,7 @@ export default function ProductsManager() {
             <table className="w-full text-sm text-right">
               <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 font-bold text-xs border-b border-gray-100 dark:border-gray-800">
                 <tr>
-                  <th className="px-4 py-5 w-10">ترتیب</th>
+                  {isReorderMode && <th className="px-4 py-5 w-10 text-amber-500">جابجایی</th>}
                   {viewMode === "list" && <th className="px-6 py-5">تصویر</th>}
                   <th className="px-6 py-5">عنوان (فارسی / انگلیسی)</th>
                   <th className="px-6 py-5">برند</th>
@@ -636,18 +704,17 @@ export default function ProductsManager() {
                 {currentProducts.map((product, index) => (
                   <tr
                     key={product._id}
-                    draggable
+                    draggable={isReorderMode}
                     onDragStart={() => handleDragStart(index)}
                     onDragOver={(e) => handleDragOver(e, index)}
                     onDragEnd={handleDragEnd}
-                    className={`hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors group ${draggedItemIndex === ((currentPage - 1) * itemsPerPage + index) ? 'opacity-50 bg-gray-100 dark:bg-gray-800' : ''}`}
+                    className={`hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors group ${draggedItemIndex === ((currentPage - 1) * itemsPerPage + index) ? 'opacity-50 bg-amber-50/30 dark:bg-gray-800' : ''} ${isReorderMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
                   >
-                    <td
-                      className={`px-4 py-4 text-gray-300 hover:text-amber-500 transition-colors ${isDragAllowed ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed opacity-30'}`}
-                      title={!isDragAllowed ? "درگ اند دراپ فقط در حالت چیدمان دستی و بدون فیلتر فعال است" : "برای جابجایی بکشید"}
-                    >
-                      <GripVertical size={18} />
-                    </td>
+                    {isReorderMode && (
+                      <td className="px-4 py-4 text-amber-500 cursor-grab active:cursor-grabbing" title="برای جابجایی بکشید و رها کنید">
+                        <GripVertical size={20} />
+                      </td>
+                    )}
 
                     {viewMode === "list" && (
                       <td className="px-6 py-4 relative">
@@ -696,14 +763,16 @@ export default function ProductsManager() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleEdit(product)}
-                          className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors"
+                          disabled={isReorderMode}
+                          className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-amber-500 hover:bg-amber-50 rounded-xl transition-colors disabled:opacity-40"
                           title="ویرایش"
                         >
                           <Edit3 size={16} />
                         </button>
                         <button
                           onClick={() => handleDelete(String(product._id))}
-                          className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                          disabled={isReorderMode}
+                          className="p-2 bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-40"
                           title="حذف"
                         >
                           <Trash2 size={16} />
@@ -714,7 +783,7 @@ export default function ProductsManager() {
                 ))}
                 {currentProducts.length === 0 && (
                   <tr>
-                    <td colSpan={viewMode === "list" ? 8 : 7} className="text-center py-12 text-gray-400 font-bold">هیچ محصولی یافت نشد.</td>
+                    <td colSpan={viewMode === "list" ? (isReorderMode ? 8 : 7) : (isReorderMode ? 7 : 6)} className="text-center py-12 text-gray-400 font-bold">هیچ محصولی یافت نشد.</td>
                   </tr>
                 )}
               </tbody>

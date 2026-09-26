@@ -47,7 +47,7 @@ export async function getProducts(filter: any = {}) {
 
     const products = await Product.find(dbFilter)
       .populate('brandId', 'faName enName slug logo')
-      .sort({ order: 1, createdAt: -1 }) // اضافه شدن order
+      .sort({ order: 1, createdAt: -1 })
       .lean();
 
     console.log(`✅ [BACKEND] تعداد محصولات یافت شده: ${products.length}`);
@@ -75,12 +75,34 @@ export async function createProduct(data: any) {
 export async function updateProduct(id: string, data: any) {
   try {
     await dbConnect();
-    const updatedProduct = await Product.findByIdAndUpdate(id, data, { new: true, runValidators: true }).lean();
+    const updatedProduct = await Product.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true }).lean();
     revalidatePath("/", "layout");
     return { success: true, data: JSON.parse(JSON.stringify(updatedProduct)) };
   } catch (error: any) {
     console.error("❌ [BACKEND] خطا در ویرایش محصول:", error.message || error);
     return { success: false, error: "خطا در ویرایش محصول" };
+  }
+}
+
+export async function updateProductsOrder(orderedIds: string[]) {
+  try {
+    await dbConnect();
+    const bulkOps = orderedIds.map((id, index) => ({
+      updateOne: {
+        filter: { _id: id },
+        update: { $set: { order: index } }
+      }
+    }));
+
+    if (bulkOps.length > 0) {
+      await Product.bulkWrite(bulkOps);
+    }
+
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (error: any) {
+    console.error("❌ [BACKEND] خطا در بروزرسانی ترتیب محصولات:", error.message || error);
+    return { success: false, error: "خطا در ذخیره چیدمان محصولات" };
   }
 }
 

@@ -51,7 +51,7 @@ function ProductsContent() {
         getProducts({ status: 'all' }),
         getCategories()
       ]);
-      
+
       if (prodRes.success) setProductsData(prodRes.data);
       if (catRes.success) {
         setCategoriesData(catRes.data);
@@ -96,19 +96,25 @@ function ProductsContent() {
   });
 
   const filteredProducts = useMemo(() => {
-    return productsData.filter((product) => {
-      const searchTxt = searchQuery.toLowerCase();
-      const matchSearch = 
-        (product.faTitle && product.faTitle.includes(searchTxt)) || 
-        (product.enTitle && product.enTitle.toLowerCase().includes(searchTxt)) ||
-        (product.brandId?.faName && product.brandId.faName.includes(searchTxt)) ||
-        (product.brandId?.enName && product.brandId.enName.toLowerCase().includes(searchTxt));
-      
-      const matchMainCat = activeMainCat === "all" || product.mainCat === activeMainCat || product.category === activeMainCat;
-      const matchBrand = !urlBrand || product.brandId?.slug === urlBrand;
+    return productsData
+      .filter((product) => {
+        const searchTxt = searchQuery.toLowerCase();
+        const matchSearch =
+          (product.faTitle && product.faTitle.includes(searchTxt)) ||
+          (product.enTitle && product.enTitle.toLowerCase().includes(searchTxt)) ||
+          (product.brandId?.faName && product.brandId.faName.includes(searchTxt)) ||
+          (product.brandId?.enName && product.brandId.enName.toLowerCase().includes(searchTxt));
 
-      return matchSearch && matchMainCat && matchBrand;
-    });
+        const matchMainCat = activeMainCat === "all" || product.mainCat === activeMainCat || product.category === activeMainCat;
+        const matchBrand = !urlBrand || product.brandId?.slug === urlBrand;
+
+        return matchSearch && matchMainCat && matchBrand;
+      })
+      .sort((a, b) => {
+        const orderA = typeof a.order === "number" ? a.order : 0;
+        const orderB = typeof b.order === "number" ? b.order : 0;
+        return orderA - orderB;
+      });
   }, [searchQuery, activeMainCat, productsData, urlBrand]);
 
   const clearAllFilters = () => {
@@ -119,13 +125,13 @@ function ProductsContent() {
 
   return (
     <main className="w-full pb-32" dir={isRtl ? "rtl" : "ltr"}>
-      
-      <motion.div 
+
+      <motion.div
         animate={{ opacity: isScrolled ? 0 : 1, y: isScrolled ? -20 : 0, pointerEvents: isScrolled ? "none" : "auto" }}
         transition={{ duration: 0.5, ease: customEase }}
         className="w-full pt-28 md:pt-36 pb-6 px-4 text-center bg-transparent flex flex-col items-center relative z-10"
       >
-        <motion.h1 
+        <motion.h1
           initial={false}
           animate={{ opacity: isTitleIn ? 1 : 0, x: isTitleIn ? 0 : (isRtl ? 40 : -40) }}
           transition={{ duration: 0.8, ease: customEase }}
@@ -134,8 +140,8 @@ function ProductsContent() {
           {isRtl ? "ویترین محصولات " : "Products of "}
           <span className="text-amber-500">{isRtl ? "جزیره گندم" : "Jazirah Gandum"}</span>
         </motion.h1>
-        
-        <motion.p 
+
+        <motion.p
           initial={false}
           animate={{ opacity: isTitleIn ? 1 : 0, x: isTitleIn ? 0 : (isRtl ? -40 : 40) }}
           transition={{ duration: 0.8, ease: customEase, delay: 0.1 }}
@@ -145,16 +151,15 @@ function ProductsContent() {
         </motion.p>
       </motion.div>
 
-      <div 
-        className={`sticky w-full transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] px-4 md:px-8 z-50 ${
-          isScrolled 
-            ? `bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl shadow-sm border-b border-gray-200/60 dark:border-gray-800/60 ${scrollDirection === 'up' ? 'top-16 lg:top-18 py-3' : 'top-0 py-3'}` 
+      <div
+        className={`sticky w-full transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] px-4 md:px-8 z-50 ${isScrolled
+            ? `bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl shadow-sm border-b border-gray-200/60 dark:border-gray-800/60 ${scrollDirection === 'up' ? 'top-16 lg:top-18 py-3' : 'top-0 py-3'}`
             : 'top-16 lg:top-18 bg-transparent pb-4'
-        }`}
+          }`}
       >
         <div className="mx-auto w-full flex flex-col items-center relative z-20">
-          
-          <motion.div 
+
+          <motion.div
             initial={false}
             animate={{ opacity: isSearchBoxIn ? 1 : 0, y: isSearchBoxIn ? 0 : 30 }}
             transition={{ duration: 0.6, ease: customEase }}
@@ -164,16 +169,16 @@ function ProductsContent() {
             <div className={`px-4 text-gray-400 shrink-0 transition-all duration-500 ${isScrolled ? 'md:px-6' : ''}`}>
               <Search size={22} />
             </div>
-            
+
             <div className="relative z-10 flex grow items-center h-full pr-1">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={isRtl ? "نام محصول یا برند را وارد کنید..." : "Search product or brand..."}
                 className="grow bg-transparent border-none outline-none text-gray-900 dark:text-white text-sm md:text-base font-bold placeholder:text-gray-400 min-w-0"
               />
-              
+
               {/* دکمه پاک کردن سرچ/فیلتر */}
               {(searchQuery || urlBrand) && (
                 <button onClick={clearAllFilters} className="mr-2 ml-4 text-gray-400 hover:text-red-500">
@@ -187,31 +192,29 @@ function ProductsContent() {
             {!isScrolled && (
               <motion.div initial={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0, transition: { duration: 0.3, ease: customEase } }} className="w-full overflow-hidden flex items-center justify-center pt-5">
                 <div className="flex items-center justify-start md:justify-center gap-2 w-full overflow-x-auto custom-scrollbar pb-2 px-1">
-                  
-                  <motion.button 
+
+                  <motion.button
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: isPillsIn ? 1 : 0, y: isPillsIn ? 0 : -20 }}
                     transition={{ duration: 0.5, ease: customEase }}
                     type="button"
                     onClick={() => { setActiveMainCat("all"); router.push(`/${locale}/products`); }}
-                    className={`shrink-0 px-4 py-2.5 rounded-full text-[11px] sm:text-xs font-black transition-colors border text-center flex items-center justify-center whitespace-nowrap ${
-                      activeMainCat === "all" ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-transparent shadow-md' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-amber-400'
-                    }`}
+                    className={`shrink-0 px-4 py-2.5 rounded-full text-[11px] sm:text-xs font-black transition-colors border text-center flex items-center justify-center whitespace-nowrap ${activeMainCat === "all" ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-transparent shadow-md' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-amber-400'
+                      }`}
                   >
                     {isRtl ? "همه محصولات" : "All Products"}
                   </motion.button>
 
                   {mainCategories.map((cat, index) => (
-                    <motion.button 
+                    <motion.button
                       key={cat.slug}
                       initial={{ opacity: 0, y: -20 }}
                       animate={{ opacity: isPillsIn ? 1 : 0, y: isPillsIn ? 0 : -20 }}
                       transition={{ duration: 0.5, ease: customEase, delay: isPillsIn ? (index + 1) * 0.05 : 0 }}
                       type="button"
                       onClick={() => { setActiveMainCat(cat.slug); router.push(`/${locale}/products`); }}
-                      className={`shrink-0 px-4 py-2.5 rounded-full text-[11px] sm:text-xs font-black transition-colors border text-center flex items-center justify-center whitespace-nowrap ${
-                        activeMainCat === cat.slug ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-transparent shadow-md' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-amber-400'
-                      }`}
+                      className={`shrink-0 px-4 py-2.5 rounded-full text-[11px] sm:text-xs font-black transition-colors border text-center flex items-center justify-center whitespace-nowrap ${activeMainCat === cat.slug ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-transparent shadow-md' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-amber-400'
+                        }`}
                     >
                       {isRtl ? cat.faName : cat.enName}
                     </motion.button>
@@ -264,86 +267,86 @@ function ProductsContent() {
       </div>
 
       <div className="container mx-auto max-w-7xl px-4 md:px-8 mt-8">
-        
+
         {isLoading ? (
-            <div className="w-full flex justify-center py-20">
-                <Loader2 className="animate-spin text-amber-500" size={48} />
-            </div>
+          <div className="w-full flex justify-center py-20">
+            <Loader2 className="animate-spin text-amber-500" size={48} />
+          </div>
         ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
             <AnimatePresence>
               {filteredProducts.map((product, index) => {
-                
+
                 const title = isRtl ? product.faTitle : (product.enTitle || product.faTitle);
                 const brandName = isRtl ? (product.brandId?.faName || "") : (product.brandId?.enName || product.brandId?.faName || "");
                 const imgUrl = product.images?.main || "https://placehold.co/400x400/png";
-                
+
                 const weightVal = product.specs?.weight || product.weight || "";
                 const weightCat = categoriesData.find(c => c.slug === weightVal || c.faName === weightVal || c._id === weightVal);
-                const finalWeight = weightCat 
-                    ? (isRtl ? weightCat.faName : weightCat.enName) 
-                    : (isRtl ? (product.specs?.weightFa || weightVal) : (product.specs?.weightEn || weightVal));
+                const finalWeight = weightCat
+                  ? (isRtl ? weightCat.faName : weightCat.enName)
+                  : (isRtl ? (product.specs?.weightFa || weightVal) : (product.specs?.weightEn || weightVal));
 
                 const subCatObj = categoriesData.find(c => c.slug === product.category);
                 const catLabel = subCatObj ? (isRtl ? subCatObj.faName : subCatObj.enName) : product.category;
 
                 return (
-                    <motion.div
+                  <motion.div
                     initial={{ opacity: 0, y: 60 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: false, amount: 0.15 }}
                     transition={{ duration: 0.7, ease: customEase, delay: (index % 4) * 0.05 }}
                     key={product._id}
                     className="group flex flex-col h-full"
-                 >
-                   <a href={`/${locale}/products/${product.slug}`} className="flex flex-col h-full bg-white dark:bg-gray-900/40 rounded-[2rem] border border-gray-200/60 dark:border-gray-800/50 hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-400/10 transition-all overflow-hidden relative">  
-                            <div className="relative h-56 shrink-0 w-full bg-linear-to-b from-gray-50/50 to-white dark:from-gray-800/30 dark:to-gray-900/30 flex items-center justify-center">
-                             <Image src={imgUrl} alt={title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw" className="object-contain p-6 group-hover:scale-110 group-hover:-translate-y-1.5 transition-transform duration-700 ease-out drop-shadow-xl" />
+                  >
+                    <a href={`/${locale}/products/${product.slug}`} className="flex flex-col h-full bg-white dark:bg-gray-900/40 rounded-[2rem] border border-gray-200/60 dark:border-gray-800/50 hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-400/10 transition-all overflow-hidden relative">
+                      <div className="relative h-56 shrink-0 w-full bg-linear-to-b from-gray-50/50 to-white dark:from-gray-800/30 dark:to-gray-900/30 flex items-center justify-center">
+                        <Image src={imgUrl} alt={title} fill sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw" className="object-contain p-6 group-hover:scale-110 group-hover:-translate-y-1.5 transition-transform duration-700 ease-out drop-shadow-xl" />
 
-                            <div className="absolute top-4 right-4 flex flex-col gap-2">
-                                {product.isFeatured && (
-                                <span className="bg-amber-400 text-gray-900 text-[9px] font-black px-2.5 py-1 rounded-md flex items-center gap-1 shadow-sm">
-                                    <Star size={10} className="fill-current" /> {isRtl ? "ویژه" : "Featured"}
-                                </span>
-                                )}
-                            </div>
-                            </div>
+                        <div className="absolute top-4 right-4 flex flex-col gap-2">
+                          {product.isFeatured && (
+                            <span className="bg-amber-400 text-gray-900 text-[9px] font-black px-2.5 py-1 rounded-md flex items-center gap-1 shadow-sm">
+                              <Star size={10} className="fill-current" /> {isRtl ? "ویژه" : "Featured"}
+                            </span>
+                          )}
+                        </div>
+                      </div>
 
-                            <div className="p-4 md:p-5 flex flex-col grow bg-white dark:bg-transparent">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-md">
-                                {brandName}
-                                </span>
-                                <span className="text-[10px] font-bold text-gray-400" dir={isRtl ? "rtl" : "ltr"}>
-                                {finalWeight}
-                                </span>
-                            </div>
-                            
-                            <h2 className="text-sm md:text-base font-black text-gray-900 dark:text-white leading-tight mb-1 group-hover:text-amber-500 transition-colors line-clamp-2">
-                                {title}
-                            </h2>
-                            <p className="text-[9px] md:text-xs font-bold text-gray-400 truncate mb-4">
-                                {catLabel}
-                            </p>
-                            
-                            <div className="mt-auto pt-3 md:pt-4 flex justify-between items-center border-t border-gray-100 dark:border-gray-800/60">
-                                <span className="text-[10px] md:text-xs font-bold text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
-                                {isRtl ? "مشاهده جزئیات" : "View Details"}
-                                </span>
-                                <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400 group-hover:bg-amber-400 group-hover:text-gray-900 transition-colors shadow-sm">
-                                <ArrowRight size={14} className={`${isRtl ? 'rotate-45' : '-rotate-45'} group-hover:rotate-0 transition-transform`} />
-                                </div>
-                            </div>
-                            </div>
-                        </a>
-                    </motion.div>
+                      <div className="p-4 md:p-5 flex flex-col grow bg-white dark:bg-transparent">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-md">
+                            {brandName}
+                          </span>
+                          <span className="text-[10px] font-bold text-gray-400" dir={isRtl ? "rtl" : "ltr"}>
+                            {finalWeight}
+                          </span>
+                        </div>
+
+                        <h2 className="text-sm md:text-base font-black text-gray-900 dark:text-white leading-tight mb-1 group-hover:text-amber-500 transition-colors line-clamp-2">
+                          {title}
+                        </h2>
+                        <p className="text-[9px] md:text-xs font-bold text-gray-400 truncate mb-4">
+                          {catLabel}
+                        </p>
+
+                        <div className="mt-auto pt-3 md:pt-4 flex justify-between items-center border-t border-gray-100 dark:border-gray-800/60">
+                          <span className="text-[10px] md:text-xs font-bold text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors">
+                            {isRtl ? "مشاهده جزئیات" : "View Details"}
+                          </span>
+                          <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-400 group-hover:bg-amber-400 group-hover:text-gray-900 transition-colors shadow-sm">
+                            <ArrowRight size={14} className={`${isRtl ? 'rotate-45' : '-rotate-45'} group-hover:rotate-0 transition-transform`} />
+                          </div>
+                        </div>
+                      </div>
+                    </a>
+                  </motion.div>
                 )
               })}
             </AnimatePresence>
           </div>
         ) : (
-          <motion.div 
-            initial={{ opacity: 0, y: 40 }} 
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: false }}
             transition={{ duration: 0.6, ease: customEase }}

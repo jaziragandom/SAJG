@@ -76,4 +76,9 @@ const ProductSchema: Schema = new Schema({
   }
 }, { timestamps: true });
 
+// اطمینان از بروز بودن اسکیما در حافظه کش Next.js برای شناسایی فیلد order
+if (mongoose.models.Product && !mongoose.models.Product.schema.paths.order) {
+  delete mongoose.models.Product;
+}
+
 export default mongoose.models.Product || mongoose.model<IProduct>('Product', ProductSchema);
